@@ -85,8 +85,8 @@
                 <i class="fa-solid fa-road text-xl"></i>
             </div>
             <div>
-                <h1 class="font-extrabold text-base leading-tight text-white tracking-wide">RoadMonev GPS Tracker</h1>
-                <p class="text-xs text-amber-400 font-semibold">Pengukur Jarak & Dokumentasi Jalan</p>
+                <h1 class="font-extrabold text-base leading-tight text-white tracking-wide">PMD Sirampog</h1>
+                <p class="text-xs text-amber-400 font-semibold">Monitoring & Evaluasi Kegiatan Infrastruktur</p>
             </div>
         </div>
         <div class="flex items-center space-x-2">
@@ -114,11 +114,11 @@
 
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Nama Ruas / Proyek</label>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Nama Kegiatan</label>
                     <input type="text" id="input-ruas" placeholder="Contoh: Jl. Raya Pantura Km 12" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400">
                 </div>
                 <div>
-                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">STA / Segmen</label>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Ruas / Segmen</label>
                     <input type="text" id="input-sta" placeholder="Contoh: STA 0+100 - 0+350" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400">
                 </div>
             </div>
@@ -172,7 +172,7 @@
                         <i class="fa-solid fa-image text-slate-700 text-sm"></i>
                     </div>
                     <div class="overflow-hidden">
-                        <span class="text-[10px] font-bold text-emerald-400 block">Foto Titik A</span>
+                        <span class="text-[10px] font-bold text-emerald-400 block">Foto Titik Awal (A)</span>
                         <span id="text-photo-a-status" class="text-[9px] text-slate-500 block truncate">Belum ada foto</span>
                     </div>
                 </div>
@@ -182,7 +182,7 @@
                         <i class="fa-solid fa-image text-slate-700 text-sm"></i>
                     </div>
                     <div class="overflow-hidden">
-                        <span class="text-[10px] font-bold text-red-400 block">Foto Titik B</span>
+                        <span class="text-[10px] font-bold text-red-400 block">Foto Titik Akhir B)</span>
                         <span id="text-photo-b-status" class="text-[9px] text-slate-500 block truncate">Belum ada foto</span>
                     </div>
                 </div>
@@ -194,7 +194,7 @@
             <div class="absolute -right-4 -bottom-4 opacity-10 text-amber-400 text-7xl font-black">
                 <i class="fa-solid fa-ruler"></i>
             </div>
-            <span class="text-[11px] font-bold tracking-widest text-slate-400 uppercase">Jarak Segmen Jalan (A ➔ B)</span>
+            <span class="text-[11px] font-bold tracking-widest text-slate-400 uppercase">Jarak Segmen (A ➔ B)</span>
             <div id="calculated-distance" class="text-4xl font-black text-amber-400 tracking-tight">
                 0.00 <span class="text-base font-medium text-slate-300">meter</span>
             </div>
@@ -224,26 +224,27 @@
         <div id="form-section" class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
             <div class="flex items-center space-x-2 border-b border-slate-800 pb-2">
                 <i class="fa-solid fa-pen-to-square text-amber-400"></i>
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Detail Temuan & Kerusakan</h2>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Catatan Monev </h2>
             </div>
 
             <div>
                 <label class="block text-[11px] text-slate-400 mb-1 font-medium">Jenis Kerusakan / Temuan</label>
                 <select id="select-finding-type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
-                    <option value="Lubang Jalan (Pothole)">Lubang Jalan (Pothole)</option>
+                    <option value="Pekerjaan Pengaspalan / Overlay">Pekerjaan Pengaspalan / Overlay</option>
+                    <option value="Perbaikan Rigid Pavement">Perbaikan Rigid Pavement</option>
+                    <option value="Pekerjaan Saluran / Drainase">Pekerjaan Saluran / Drainase</option>
+					<option value="Lubang Jalan (Pothole)">Lubang Jalan (Pothole)</option>
                     <option value="Retak Buaya (Alligator Cracking)">Retak Buaya (Alligator Cracking)</option>
                     <option value="Retak Memanjang / Melintang">Retak Memanjang / Melintang</option>
                     <option value="Longsor / Amblas (Subsidence)">Longsor / Amblas (Subsidence)</option>
                     <option value="Kerusakan Bahu Jalan">Kerusakan Bahu Jalan</option>
-                    <option value="Pekerjaan Pengaspalan / Overlay">Pekerjaan Pengaspalan / Overlay</option>
-                    <option value="Perbaikan Rigid Pavement">Perbaikan Rigid Pavement</option>
-                    <option value="Kerusakan Saluran / Drainase">Kerusakan Saluran / Drainase</option>
+                    
                     <option value="Lainnya">Lainnya</option>
                 </select>
             </div>
 
             <div>
-                <label class="block text-[11px] text-slate-400 mb-1 font-medium">Catatan Tambahan / Keterangan Temuan</label>
+                <label class="block text-[11px] text-slate-400 mb-1 font-medium">Catatan Tambahan / Detail Keterangan Monev</label>
                 <textarea id="input-notes" rows="2" placeholder="Catat estimasi lebar/kedalaman, instruksi penanganan, atau kondisi fisik jalan..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 resize-none"></textarea>
             </div>
 
@@ -287,7 +288,7 @@
     <div id="print-report" class="hidden p-8 text-black bg-white">
         <div class="border-b-2 border-black pb-4 mb-4 flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-black uppercase">Laporan Monev Jalan & Bangunan</h1>
+                <h1 class="text-2xl font-black uppercase">Laporan Monev Kegiatan Infrastruktur</h1>
                 <p class="text-sm">Dokumentasi Pengukuran Jarak Segmen Berbasis GPS & Kamera</p>
             </div>
             <div class="text-right text-xs">
