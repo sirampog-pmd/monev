@@ -606,21 +606,16 @@
                         // Real-time update saat berjalan dari A ke B
                         if (pointA && !pointB) {
                             // FILTER 1: Akurasi rendah
-                            if (acc > 20) return;
-
+                            if (acc > 25) return;
                             const lastPoint = pathCoords[pathCoords.length - 1];
 
                             if (lastPoint) {
                                 const distFromLast = calculateDistanceTwoPoints(lastPoint[0], lastPoint[1], lat, lon);
-
-                                // FILTER 2: Noise diam (< 5m)
-                                if (distFromLast < 5) return;
-
+                                const noiseThreshold = Math.max(1.5, acc * 0.6);
+                                if (distFromLast < noiseThreshold) return;
                                 // FILTER 3: Anti lompat (> 100m)
                                 if (distFromLast > 100) return;
-
-                                // FILTER 4: Belokan tajam (> 150°)
-                                if (pathCoords.length >= 2) {
+                                if (pathCoords.length >= 2 && distFromLast > 3) {
                                     const prevPoint = pathCoords[pathCoords.length - 2];
                                     const angle = calculateTurnAngle(prevPoint, lastPoint, [lat, lon]);
                                     if (angle > 150) return;
@@ -1790,3 +1785,4 @@
     </script>
 </body>
 </html>
+
