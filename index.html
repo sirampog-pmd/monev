@@ -64,7 +64,7 @@
 
         @media print {
             body { background: white !important; color: black !important; }
-            header, nav, #camera-section, #form-section, #segments-history-section, .no-print { display: none !important; }
+            header, nav, #camera-section, #form-section, #segments-history-section, #calibration-section, .no-print { display: none !important; }
             #print-report { display: block !important; }
         }
     </style>
@@ -135,6 +135,76 @@
                         <option value="Lainnya">Lainnya</option>
                     </select>
                 </div>
+            </div>
+        </div>
+
+        <!-- Section Kalibrasi Manual -->
+        <div id="calibration-section" class="bg-slate-900 p-4 rounded-2xl border border-indigo-500/30 shadow-lg space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Kalibrasi Akurasi GPS</h2>
+                </div>
+                <span id="calibration-status-badge" class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-400 font-semibold">
+                    <i class="fa-solid fa-exclamation-triangle text-amber-400 mr-1"></i> Belum Terkalibrasi
+                </span>
+            </div>
+
+            <p class="text-[10px] text-slate-400 leading-relaxed">
+                💡 <b class="text-indigo-300">Tips Akurasi:</b> Untuk hasil presisi, ukur <b>10 meter</b> pakai meteran di lapangan, 
+                lalu kalibrasi. Semua pengukuran berikutnya akan otomatis dikoreksi.
+            </p>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Jarak Referensi (meteran)</label>
+                    <div class="relative">
+                        <input type="text" inputmode="decimal" id="input-calib-ref" placeholder="10" value="10" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-400 font-semibold pr-10">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400">m</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Hasil GPS</label>
+                    <div class="relative">
+                        <input type="text" id="input-calib-gps" readonly placeholder="-" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-emerald-400 placeholder-slate-600 focus:outline-none font-semibold pr-10">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-400">m</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 rounded-xl p-2.5 border border-slate-800">
+                <div class="flex justify-between text-[10px] mb-1">
+                    <span class="text-slate-500">Faktor Koreksi:</span>
+                    <span id="calibration-factor-display" class="text-amber-400 font-bold">1.000×</span>
+                </div>
+                <div class="text-[9px] text-slate-500">
+                    Semua jarak yang diukur akan dikalikan faktor ini.
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button id="btn-start-manual-calib" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Mulai Kalibrasi</span>
+                </button>
+                <button id="btn-reset-manual-calib" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 border border-slate-700 transition">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset Faktor</span>
+                </button>
+            </div>
+
+            <!-- Panduan Kalibrasi -->
+            <div id="calib-guide" class="hidden bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-3 space-y-1.5">
+                <div class="flex items-center space-x-1.5 text-indigo-300 font-bold text-[10px]">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Mode Kalibrasi AKTIF</span>
+                </div>
+                <ol class="text-[10px] text-slate-300 space-y-1 list-decimal list-inside">
+                    <li>Tandai 2 titik di jalan dengan jarak <b id="calib-guide-ref">10</b> m (pakai meteran)</li>
+                    <li>Berdiri di titik pertama, klik <b class="text-emerald-400">Set Titik A</b></li>
+                    <li>Jalan pelan ke titik kedua, klik <b class="text-red-400">Set Titik B</b></li>
+                    <li>Faktor koreksi akan otomatis dihitung & disimpan</li>
+                </ol>
             </div>
         </div>
 
@@ -227,6 +297,9 @@
                 0.00 <span class="text-base font-medium text-slate-300">meter</span>
             </div>
             <p id="distance-km-sub" class="text-[11px] text-slate-400 font-semibold">(0.000 km)</p>
+            <p id="distance-calibration-info" class="text-[9px] text-indigo-400 font-bold hidden">
+                <i class="fa-solid fa-check-circle mr-1"></i>Terkalibrasi ×<span id="calibration-info-factor">1.000</span>
+            </p>
         </div>
 
         <!-- Tombol Aksi Kontrol GPS -->
@@ -416,13 +489,13 @@
                 <button id="close-modal" class="text-slate-400 hover:text-white text-base"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-2.5 text-slate-300 leading-relaxed">
-                <p><b>1. Buka Kamera HP:</b> Klik tombol "Buka Kamera HP". Gunakan tombol "Stop" untuk mematikan kamera.</p>
-                <p><b>2. Tandai Titik A (Awal):</b> Tekan tombol <b>"1. SET TITIK AWAL (A)"</b>. Akan muncul kalibrasi GPS 5 detik — <b>diam di tempat</b> sampai selesai.</p>
-                <p><b>3. Berjalan ke Ujung Segmen:</b> Berjalanlah menyusuri jalan. Garis biru akan otomatis ditarik mengikuti pergerakan GPS Anda.</p>
-                <p><b>4. Tandai Titik B (Akhir):</b> Tekan tombol <b>"2. SET TITIK AKHIR (B)"</b>. Kalibrasi 5 detik lagi, lalu jarak otomatis dihitung dari <b>jejak GPS (polyline)</b>.</p>
-                <p><b>5. Auto-Mode:</b> Jika beda jarak polyline vs lurus > 5%, sistem otomatis pakai polyline (lebih akurat untuk jalan berbelok).</p>
-                <p><b>6. Segmen Baru:</b> Setelah simpan, klik <b>"Segmen Baru"</b> untuk mengukur segmen berikutnya. Setiap segmen diberi warna & nomor di peta.</p>
-                <p><b>7. Simpan & Kirim:</b> Pilih jenis pemeriksaan, isi catatan. Klik <b>"Simpan & Kirim ke Google Sheet"</b> untuk upload.</p>
+                <p><b class="text-indigo-400">✨ KALIBRASI (Sangat Disarankan):</b> Ukur 10m pakai meteran, lalu klik "Mulai Kalibrasi" di section Kalibrasi. Faktor koreksi akan dihitung otomatis untuk akurasi maksimal.</p>
+                <p><b>1. Buka Kamera HP:</b> Klik tombol "Buka Kamera HP" untuk dokumentasi visual.</p>
+                <p><b>2. Tandai Titik A:</b> Klik "SET TITIK AWAL (A)". Kalibrasi GPS 5 detik — <b>diam di tempat</b>.</p>
+                <p><b>3. Jalan ke Ujung Segmen:</b> Garis biru otomatis mengikuti pergerakan GPS.</p>
+                <p><b>4. Tandai Titik B:</b> Klik "SET TITIK AKHIR (B)". Kalibrasi 5 detik lagi.</p>
+                <p><b>5. Auto-Mode:</b> Sistem otomatis pilih polyline (jalan berbelok) atau garis lurus.</p>
+                <p><b>6. Simpan & Kirim:</b> Isi catatan, klik "Simpan & Kirim ke Google Sheet".</p>
             </div>
             <button id="btn-close-modal" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl border border-slate-700 transition">Tutup Panduan</button>
         </div>
@@ -448,10 +521,9 @@
 
     <script>
         // =========================================================
-        // KONFIGURASI - CUKUP EDIT 1 BARIS INI SAJA
+        // KONFIGURASI
         // =========================================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwryKVW7L1QcBr0f-RTWVhG7PXyMslWRYarYTsRz6CyDKxRBBUo1e9RRQu8yU6czedo/exec";
-        // =========================================================
 
         // =========================================================
         // STATE GLOBAL
@@ -470,12 +542,21 @@
         const CALIBRATION_DURATION_MS = 5000;
         const CALIBRATION_SAMPLE_COUNT = 10;
 
+        // Kalibrasi MANUAL (untuk akurasi monitoring pekerjaan jalan)
+        let manualCalibrationFactor = 1.0;
+        let manualCalibrationRefMeters = 0;
+        let manualCalibrationGpsMeters = 0;
+        let isCalibrationMode = false;
+
         let cameraStream = null;
         let pointA = null;
         let pointB = null;
         let calculatedDistanceMeters = 0;
         let calculatedPolylineDistance = 0;
         let calculatedStraightDistance = 0;
+        let rawDistanceMeters = 0;
+        let rawPolylineDistance = 0;
+        let rawStraightDistance = 0;
         let autoModeUsed = 'straight';
 
         let monevLogs = [];
@@ -535,6 +616,7 @@
             initGPS();
             loadLocalLogs();
             initAnggaranFormatter();
+            initManualCalibration();
             updateSegmentsUI();
         };
 
@@ -597,7 +679,7 @@
                             currentPosMarker.setLatLng(currentLatLng);
                         }
 
-                        // Kalau sedang kalibrasi, kumpulkan sampel
+                        // Kalau sedang kalibrasi (auto), kumpulkan sampel
                         if (isCalibrating) {
                             calibrationSamples.push({ lat, lon, acc });
                             return;
@@ -605,16 +687,22 @@
 
                         // Real-time update saat berjalan dari A ke B
                         if (pointA && !pointB) {
-                            // FILTER 1: Akurasi rendah
+                            // FILTER 1: Akurasi sangat buruk
                             if (acc > 25) return;
+
                             const lastPoint = pathCoords[pathCoords.length - 1];
 
                             if (lastPoint) {
                                 const distFromLast = calculateDistanceTwoPoints(lastPoint[0], lastPoint[1], lat, lon);
-                                const noiseThreshold = Math.max(1.5, acc * 0.6);
+
+                                // FILTER 2: Noise diam ADAPTIF
+                                const noiseThreshold = Math.max(1.5, acc * 0.5);
                                 if (distFromLast < noiseThreshold) return;
-                                // FILTER 3: Anti lompat (> 100m)
+
+                                // FILTER 3: Anti lompat
                                 if (distFromLast > 100) return;
+
+                                // FILTER 4: Belokan tajam (hanya kalau jarak > 3m)
                                 if (pathCoords.length >= 2 && distFromLast > 3) {
                                     const prevPoint = pathCoords[pathCoords.length - 2];
                                     const angle = calculateTurnAngle(prevPoint, lastPoint, [lat, lon]);
@@ -625,8 +713,12 @@
                             pathCoords.push(currentLatLng);
                             polyline.setLatLngs(pathCoords);
 
-                            const livePolyline = calculatePolylineDistance(pathCoords);
-                            const liveStraight = calculateDistanceTwoPoints(pointA.lat, pointA.lon, lat, lon);
+                            const rawLivePolyline = calculatePolylineDistance(pathCoords);
+                            const rawLiveStraight = calculateDistanceTwoPoints(pointA.lat, pointA.lon, lat, lon);
+
+                            // Terapkan faktor kalibrasi manual
+                            const livePolyline = rawLivePolyline * manualCalibrationFactor;
+                            const liveStraight = rawLiveStraight * manualCalibrationFactor;
 
                             calculatedDistanceElem.innerHTML = `${livePolyline.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
                             distanceKmSubElem.textContent = `(${(livePolyline / 1000).toFixed(3)} km)`;
@@ -671,7 +763,6 @@
             return totalDistance;
         }
 
-        // Hitung bearing (arah) antara 2 titik dalam derajat (0-360)
         function calculateBearing(lat1, lon1, lat2, lon2) {
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
@@ -681,7 +772,6 @@
             return (brng + 360) % 360;
         }
 
-        // Hitung sudut belokan antara 3 titik (dalam derajat)
         function calculateTurnAngle(p1, p2, p3) {
             const bearing1 = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
             const bearing2 = calculateBearing(p2[0], p2[1], p3[0], p3[1]);
@@ -691,7 +781,163 @@
         }
 
         // =========================================================
-        // 4. KAMERA ON/OFF
+        // 4. KALIBRASI MANUAL (untuk akurasi monitoring pekerjaan jalan)
+        // =========================================================
+        function initManualCalibration() {
+            const inputCalibRef = document.getElementById('input-calib-ref');
+            const inputCalibGps = document.getElementById('input-calib-gps');
+            const calibrationFactorDisplay = document.getElementById('calibration-factor-display');
+            const calibrationStatusBadge = document.getElementById('calibration-status-badge');
+            const calibGuide = document.getElementById('calib-guide');
+            const btnStartManualCalib = document.getElementById('btn-start-manual-calib');
+            const btnResetManualCalib = document.getElementById('btn-reset-manual-calib');
+
+            // Load dari localStorage
+            try {
+                const savedFactor = localStorage.getItem('sirampog_calib_factor');
+                const savedRef = localStorage.getItem('sirampog_calib_ref');
+                const savedGps = localStorage.getItem('sirampog_calib_gps');
+                if (savedFactor) {
+                    manualCalibrationFactor = parseFloat(savedFactor);
+                    manualCalibrationRefMeters = parseFloat(savedRef) || 0;
+                    manualCalibrationGpsMeters = parseFloat(savedGps) || 0;
+                }
+            } catch (e) { console.warn("Gagal load kalibrasi:", e); }
+
+            // Update UI awal
+            updateCalibrationUI();
+
+            // Event handler: Mulai kalibrasi
+            btnStartManualCalib.addEventListener('click', () => {
+                isCalibrationMode = true;
+                calibGuide.classList.remove('hidden');
+                btnStartManualCalib.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Menunggu...</span>';
+                btnStartManualCalib.className = 'bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition';
+
+                inputCalibGps.value = '';
+                document.getElementById('calib-guide-ref').textContent = inputCalibRef.value || '10';
+
+                showAlert("Mode Kalibrasi Aktif",
+                    "1. Ukur " + (inputCalibRef.value || '10') + " meter pakai meteran\n" +
+                    "2. Klik 'SET TITIK AWAL (A)' di titik pertama\n" +
+                    "3. Jalan ke titik kedua\n" +
+                    "4. Klik 'SET TITIK AKHIR (B)'\n\n" +
+                    "Faktor koreksi akan dihitung otomatis.");
+            });
+
+            // Event handler: Reset faktor
+            btnResetManualCalib.addEventListener('click', () => {
+                if (!confirm("Reset faktor koreksi ke 1.000×?\n\nSemua pengukuran akan kembali ke hasil GPS mentah.")) return;
+                manualCalibrationFactor = 1.0;
+                manualCalibrationRefMeters = 0;
+                manualCalibrationGpsMeters = 0;
+                isCalibrationMode = false;
+                localStorage.removeItem('sirampog_calib_factor');
+                localStorage.removeItem('sirampog_calib_ref');
+                localStorage.removeItem('sirampog_calib_gps');
+                inputCalibGps.value = '';
+                updateCalibrationUI();
+                calibGuide.classList.add('hidden');
+                btnStartManualCalib.innerHTML = '<i class="fa-solid fa-play"></i><span>Mulai Kalibrasi</span>';
+                btnStartManualCalib.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition';
+                showAlert("Kalibrasi Direset", "Faktor koreksi kembali ke 1.000× (GPS mentah).");
+            });
+
+            // Update label saat input berubah
+            inputCalibRef.addEventListener('input', () => {
+                document.getElementById('calib-guide-ref').textContent = inputCalibRef.value || '10';
+            });
+        }
+
+        function updateCalibrationUI() {
+            const calibrationFactorDisplay = document.getElementById('calibration-factor-display');
+            const calibrationStatusBadge = document.getElementById('calibration-status-badge');
+            const inputCalibGps = document.getElementById('input-calib-gps');
+            const distanceCalibrationInfo = document.getElementById('distance-calibration-info');
+            const calibrationInfoFactor = document.getElementById('calibration-info-factor');
+
+            calibrationFactorDisplay.textContent = manualCalibrationFactor.toFixed(3) + '×';
+
+            if (manualCalibrationFactor !== 1.0 && manualCalibrationRefMeters > 0) {
+                calibrationStatusBadge.className = 'text-[10px] bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 rounded-full text-emerald-300 font-bold';
+                calibrationStatusBadge.innerHTML = '<i class="fa-solid fa-check-circle mr-1"></i> Aktif ×' + manualCalibrationFactor.toFixed(3);
+
+                if (manualCalibrationGpsMeters > 0) {
+                    inputCalibGps.value = manualCalibrationGpsMeters.toFixed(2);
+                }
+            } else {
+                calibrationStatusBadge.className = 'text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-400 font-semibold';
+                calibrationStatusBadge.innerHTML = '<i class="fa-solid fa-exclamation-triangle text-amber-400 mr-1"></i> Belum Terkalibrasi';
+            }
+
+            // Update banner info kalibrasi
+            if (distanceCalibrationInfo && calibrationInfoFactor) {
+                if (manualCalibrationFactor !== 1.0) {
+                    distanceCalibrationInfo.classList.remove('hidden');
+                    calibrationInfoFactor.textContent = manualCalibrationFactor.toFixed(3);
+                } else {
+                    distanceCalibrationInfo.classList.add('hidden');
+                }
+            }
+        }
+
+        // Terapkan faktor kalibrasi ke jarak mentah
+        function applyCalibration(rawMeters) {
+            return rawMeters * manualCalibrationFactor;
+        }
+
+        // Hitung & simpan faktor kalibrasi (dipanggil setelah Set Titik B saat mode kalibrasi)
+        function computeAndApplyCalibration(gpsMeters) {
+            if (!isCalibrationMode) return false;
+
+            const inputCalibRef = document.getElementById('input-calib-ref');
+            const refMeters = parseFloat(inputCalibRef.value) || 0;
+
+            if (refMeters <= 0) {
+                showAlert("Input Tidak Valid", "Masukkan jarak referensi meteran (misal 10m).");
+                return false;
+            }
+
+            manualCalibrationRefMeters = refMeters;
+            manualCalibrationGpsMeters = gpsMeters;
+
+            if (gpsMeters > 0.5) {
+                manualCalibrationFactor = refMeters / gpsMeters;
+
+                // Batasi faktor agar tidak ekstrem
+                if (manualCalibrationFactor < 0.5) manualCalibrationFactor = 0.5;
+                if (manualCalibrationFactor > 2.5) manualCalibrationFactor = 2.5;
+
+                // Simpan ke localStorage
+                localStorage.setItem('sirampog_calib_factor', manualCalibrationFactor.toString());
+                localStorage.setItem('sirampog_calib_ref', refMeters.toString());
+                localStorage.setItem('sirampog_calib_gps', gpsMeters.toString());
+
+                // Reset mode kalibrasi
+                isCalibrationMode = false;
+                document.getElementById('calib-guide').classList.add('hidden');
+                const btnStart = document.getElementById('btn-start-manual-calib');
+                btnStart.innerHTML = '<i class="fa-solid fa-play"></i><span>Mulai Kalibrasi</span>';
+                btnStart.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition';
+
+                updateCalibrationUI();
+
+                showAlert("Kalibrasi Berhasil! ✅",
+                    "Referensi (meteran): " + refMeters + " m\n" +
+                    "GPS mengukur: " + gpsMeters.toFixed(2) + " m\n" +
+                    "Faktor koreksi: ×" + manualCalibrationFactor.toFixed(3) + "\n\n" +
+                    "Mulai sekarang, semua pengukuran otomatis dikoreksi."
+                );
+
+                return true;
+            } else {
+                showAlert("Kalibrasi Gagal", "GPS mengukur < 0.5m. Coba lagi dengan jarak lebih jauh (min 10m).");
+                return false;
+            }
+        }
+
+        // =========================================================
+        // 5. KAMERA ON/OFF
         // =========================================================
         btnStartCamera.addEventListener('click', startCamera);
         btnStopCamera.addEventListener('click', stopCamera);
@@ -741,7 +987,7 @@
         }
 
         // =========================================================
-        // 5. KALIBRASI GPS
+        // 6. KALIBRASI GPS OTOMATIS (5 detik)
         // =========================================================
         function startCalibration(callback) {
             if (isCalibrating) {
@@ -757,18 +1003,15 @@
 
             const startTime = Date.now();
 
-            // Update overlay tiap 100ms
             calibrationIntervalId = setInterval(() => {
                 const elapsed = Date.now() - startTime;
                 const timeRemaining = Math.max(0, (CALIBRATION_DURATION_MS - elapsed) / 1000);
 
-                // Update timer display
                 const timerEl = document.getElementById('calibration-timer');
                 if (timerEl) timerEl.textContent = timeRemaining.toFixed(1) + ' s';
 
                 updateCalibrationProgress();
 
-                // Selesai kalau: sudah 5 detik ATAU sudah dapat 10 sampel bagus
                 const goodSamples = calibrationSamples.filter(s => s.acc <= 20).length;
                 if (elapsed >= CALIBRATION_DURATION_MS || goodSamples >= CALIBRATION_SAMPLE_COUNT) {
                     clearInterval(calibrationIntervalId);
@@ -789,9 +1032,7 @@
 
             hideCalibrationOverlay();
 
-            // Filter sampel dengan akurasi bagus (≤ 20m)
             let goodSamples = calibrationSamples.filter(s => s.acc <= 20);
-
             if (goodSamples.length < 3) {
                 goodSamples = calibrationSamples;
             }
@@ -801,7 +1042,6 @@
                 return;
             }
 
-            // Hitung MEDIAN (lebih tahan outlier daripada rata-rata)
             const lats = goodSamples.map(s => s.lat).sort((a, b) => a - b);
             const lons = goodSamples.map(s => s.lon).sort((a, b) => a - b);
             const accs = goodSamples.map(s => s.acc).sort((a, b) => a - b);
@@ -818,7 +1058,6 @@
             };
 
             console.log(`Kalibrasi selesai: ${goodSamples.length} sampel, akurasi ±${medianAcc}m`);
-
             calibrationSamples = [];
 
             if (calibrationCallback) {
@@ -903,7 +1142,7 @@
         }
 
         // =========================================================
-        // 6. FORMATTER RUPIAH
+        // 7. FORMATTER RUPIAH
         // =========================================================
         function initAnggaranFormatter() {
             inputAnggaran.addEventListener('input', (e) => {
@@ -920,7 +1159,7 @@
         }
 
         // =========================================================
-        // 7. SET TITIK A (dengan kalibrasi)
+        // 8. SET TITIK A
         // =========================================================
         btnPointA.addEventListener('click', () => {
             if (!lastKnownCoords) {
@@ -973,12 +1212,18 @@
                 btnPointB.disabled = false;
                 btnPointB.classList.remove('opacity-60', 'cursor-not-allowed');
 
-                showAlert("Titik A Terkunci", `Segmen #${segmentCounter + 1} siap dimulai.\nAkurasi terkunci: ±${pointA.accuracy}m.\n\nBerjalanlah ke Titik B.`);
+                if (isCalibrationMode) {
+                    showAlert("Titik A Terkunci (Mode Kalibrasi)", 
+                        `Segmen #${segmentCounter + 1} siap dimulai.\nAkurasi terkunci: ±${pointA.accuracy}m.\n\n` +
+                        `🎯 Jalan ke titik B yang berjarak ${document.getElementById('input-calib-ref').value}m dari titik A.`);
+                } else {
+                    showAlert("Titik A Terkunci", `Segmen #${segmentCounter + 1} siap dimulai.\nAkurasi terkunci: ±${pointA.accuracy}m.\n\nBerjalanlah ke Titik B.`);
+                }
             });
         });
 
         // =========================================================
-        // 8. SET TITIK B (dengan kalibrasi + auto-mode)
+        // 9. SET TITIK B
         // =========================================================
         btnPointB.addEventListener('click', () => {
             if (!pointA) {
@@ -1021,15 +1266,34 @@
                 const bounds = L.latLngBounds([[pointA.lat, pointA.lon], [pointB.lat, pointB.lon]]);
                 map.fitBounds(bounds, { padding: [30, 30] });
 
-                calculatedPolylineDistance = calculatePolylineDistance(pathCoords);
-                calculatedStraightDistance = calculateDistanceTwoPoints(pointA.lat, pointA.lon, pointB.lat, pointB.lon);
+                // ============ HITUNG JARAK MENTAH (RAW GPS) ============
+                rawPolylineDistance = calculatePolylineDistance(pathCoords);
+                rawStraightDistance = calculateDistanceTwoPoints(pointA.lat, pointA.lon, pointB.lat, pointB.lon);
 
-                const ratio = calculatedStraightDistance > 0 ? calculatedPolylineDistance / calculatedStraightDistance : 1;
+                const ratio = rawStraightDistance > 0 ? rawPolylineDistance / rawStraightDistance : 1;
                 const usePolyline = ratio > 1.05;
 
-                calculatedDistanceMeters = usePolyline ? calculatedPolylineDistance : calculatedStraightDistance;
+                rawDistanceMeters = usePolyline ? rawPolylineDistance : rawStraightDistance;
                 autoModeUsed = usePolyline ? 'polyline' : 'straight';
 
+                // ============ TERAPKAN FAKTOR KALIBRASI ============
+                calculatedPolylineDistance = rawPolylineDistance * manualCalibrationFactor;
+                calculatedStraightDistance = rawStraightDistance * manualCalibrationFactor;
+                calculatedDistanceMeters = rawDistanceMeters * manualCalibrationFactor;
+
+                // ============ CEK MODE KALIBRASI MANUAL ============
+                if (isCalibrationMode) {
+                    // Kalibrasi pakai straight raw (paling stabil)
+                    const calibSuccess = computeAndApplyCalibration(rawStraightDistance);
+                    if (calibSuccess) {
+                        // Update setelah kalibrasi
+                        calculatedPolylineDistance = rawPolylineDistance * manualCalibrationFactor;
+                        calculatedStraightDistance = rawStraightDistance * manualCalibrationFactor;
+                        calculatedDistanceMeters = rawDistanceMeters * manualCalibrationFactor;
+                    }
+                }
+
+                // Update UI
                 calculatedDistanceElem.innerHTML = `${calculatedDistanceMeters.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
                 distanceKmSubElem.innerHTML = `(${(calculatedDistanceMeters / 1000).toFixed(3)} km)`;
 
@@ -1049,20 +1313,31 @@
                 ratioInfo.classList.remove('hidden');
                 ratioInfo.innerHTML = `Rasio Polyline/Lurus: <b class="text-amber-400">${ratio.toFixed(3)}×</b> ${usePolyline ? '(berbelok)' : '(lurus)'}`;
 
-                const modeText = usePolyline ? 'Mengikuti Jalan (Polyline)' : 'Garis Lurus (Haversine)';
-                showAlert(
-                    "Pengukuran Selesai",
-                    `Segmen #${segmentCounter + 1}: ${calculatedDistanceMeters.toFixed(2)} m\n` +
-                    `Mode: ${modeText}\n` +
-                    `Polyline: ${calculatedPolylineDistance.toFixed(2)} m\n` +
-                    `Lurus: ${calculatedStraightDistance.toFixed(2)} m\n` +
-                    `Akurasi A: ±${pointA.accuracy}m | B: ±${pointB.accuracy}m`
-                );
+                // Update banner info kalibrasi
+                updateCalibrationUI();
+
+                // Alert hasil (skip kalau baru kalibrasi, sudah ada alert sendiri)
+                if (!isCalibrationMode) {
+                    const modeText = usePolyline ? 'Mengikuti Jalan (Polyline)' : 'Garis Lurus (Haversine)';
+                    const calibText = manualCalibrationFactor !== 1.0 
+                        ? `\nKalibrasi: ×${manualCalibrationFactor.toFixed(3)}` 
+                        : '';
+
+                    showAlert(
+                        "Pengukuran Selesai",
+                        `Segmen #${segmentCounter + 1}: ${calculatedDistanceMeters.toFixed(2)} m\n` +
+                        `Mode: ${modeText}\n` +
+                        `Polyline: ${calculatedPolylineDistance.toFixed(2)} m\n` +
+                        `Lurus: ${calculatedStraightDistance.toFixed(2)} m` +
+                        calibText +
+                        `\nAkurasi A: ±${pointA.accuracy}m | B: ±${pointB.accuracy}m`
+                    );
+                }
             });
         });
 
         // =========================================================
-        // 9. SEGMEN BARU & HAPUS SEMUA
+        // 10. SEGMEN BARU & HAPUS SEMUA
         // =========================================================
         document.getElementById('btn-new-segment').addEventListener('click', () => {
             if (!pointA || !pointB) {
@@ -1141,7 +1416,10 @@
                 polylineDistance: calculatedPolylineDistance,
                 straightDistance: calculatedStraightDistance,
                 distanceMeters: calculatedDistanceMeters,
+                rawPolylineDistance: rawPolylineDistance,
+                rawStraightDistance: rawStraightDistance,
                 mode: autoModeUsed,
+                calibrationFactor: manualCalibrationFactor,
                 layer: segLayer,
                 markerA: markerASeg,
                 markerB: markerBSeg,
@@ -1172,6 +1450,9 @@
             calculatedDistanceMeters = 0;
             calculatedPolylineDistance = 0;
             calculatedStraightDistance = 0;
+            rawDistanceMeters = 0;
+            rawPolylineDistance = 0;
+            rawStraightDistance = 0;
             calculatedDistanceElem.innerHTML = `0.00 <span class="text-base font-medium text-slate-300">meter</span>`;
             distanceKmSubElem.textContent = `(0.000 km)`;
 
@@ -1182,7 +1463,7 @@
         }
 
         // =========================================================
-        // 10. UI HISTORY SEGMEN
+        // 11. UI HISTORY SEGMEN
         // =========================================================
         function updateSegmentsUI() {
             const list = document.getElementById('segments-list');
@@ -1207,6 +1488,10 @@
                         ? '<span class="mode-badge mode-polyline">🛣️ Ikuti Jalan</span>'
                         : '<span class="mode-badge mode-straight">📏 Lurus</span>';
 
+                    const calibBadge = seg.calibrationFactor && seg.calibrationFactor !== 1.0
+                        ? `<span class="text-[9px] bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-bold px-1.5 py-0.5 rounded">×${seg.calibrationFactor.toFixed(3)}</span>`
+                        : '';
+
                     card.innerHTML = `
                         <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-slate-950 shrink-0"
                              style="background: ${seg.color}; border: 2px solid white;">
@@ -1215,7 +1500,10 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between">
                                 <span class="font-bold text-xs text-white">Segmen #${seg.number}</span>
-                                ${modeBadge}
+                                <div class="flex items-center space-x-1">
+                                    ${modeBadge}
+                                    ${calibBadge}
+                                </div>
                             </div>
                             <div class="flex items-center space-x-2 text-[10px] text-slate-500 mt-0.5">
                                 <span>Polyline: <b class="text-emerald-400">${seg.polylineDistance.toFixed(2)}m</b></span>
@@ -1243,7 +1531,7 @@
         }
 
         // =========================================================
-        // 11. SIMPAN KE LOKAL
+        // 12. SIMPAN KE LOKAL
         // =========================================================
         document.getElementById('btn-save-log').addEventListener('click', () => {
             const ruas = inputRuas.value.trim() || 'Ruas Tanpa Nama';
@@ -1275,6 +1563,8 @@
                 distanceKm: (calculatedDistanceMeters / 1000).toFixed(3),
                 polylineDistance: calculatedPolylineDistance.toFixed(2),
                 straightDistance: calculatedStraightDistance.toFixed(2),
+                rawDistance: rawDistanceMeters.toFixed(2),
+                calibrationFactor: manualCalibrationFactor.toFixed(3),
                 mode: autoModeUsed,
                 coordA: `${pointA.lat.toFixed(6)}, ${pointA.lon.toFixed(6)}`,
                 coordB: `${pointB.lat.toFixed(6)}, ${pointB.lon.toFixed(6)}`,
@@ -1292,7 +1582,7 @@
         });
 
         // =========================================================
-        // 12. UPLOAD KE GOOGLE SHEET
+        // 13. UPLOAD KE GOOGLE SHEET
         // =========================================================
         document.getElementById('btn-upload-cloud').addEventListener('click', async () => {
             if (!GAS_URL || GAS_URL.includes('XXXXXXXX')) {
@@ -1325,6 +1615,10 @@
                     jarakMeter: calculatedDistanceMeters.toFixed(2),
                     polylineMeter: calculatedPolylineDistance.toFixed(2),
                     straightMeter: calculatedStraightDistance.toFixed(2),
+                    rawMeter: rawDistanceMeters.toFixed(2),
+                    calibrationFactor: manualCalibrationFactor.toFixed(4),
+                    calibrationRefMeters: manualCalibrationRefMeters,
+                    calibrationGpsMeters: manualCalibrationGpsMeters,
                     mode: autoModeUsed,
                     keterangan: `[${findingType}] ${notes}`,
                     latA: pointA.lat, lonA: pointA.lon,
@@ -1350,6 +1644,8 @@
                     distanceKm: (calculatedDistanceMeters / 1000).toFixed(3),
                     polylineDistance: calculatedPolylineDistance.toFixed(2),
                     straightDistance: calculatedStraightDistance.toFixed(2),
+                    rawDistance: rawDistanceMeters.toFixed(2),
+                    calibrationFactor: manualCalibrationFactor.toFixed(3),
                     mode: autoModeUsed,
                     coordA: `${pointA.lat.toFixed(6)}, ${pointA.lon.toFixed(6)}`,
                     coordB: `${pointB.lat.toFixed(6)}, ${pointB.lon.toFixed(6)}`,
@@ -1414,7 +1710,7 @@
         }
 
         // =========================================================
-        // 13. LOAD SERVER
+        // 14. LOAD SERVER
         // =========================================================
         document.getElementById('btn-load-cloud').addEventListener('click', async () => {
             if (!GAS_URL || GAS_URL.includes('XXXXXXXX')) {
@@ -1457,7 +1753,7 @@
         });
 
         // =========================================================
-        // 14. TAB SWITCHING
+        // 15. TAB SWITCHING
         // =========================================================
         document.getElementById('tab-local').addEventListener('click', () => switchTab('local'));
         document.getElementById('tab-server').addEventListener('click', () => switchTab('server'));
@@ -1479,7 +1775,7 @@
         }
 
         // =========================================================
-        // 15. RENDER LOGS
+        // 16. RENDER LOGS
         // =========================================================
         function renderLogs() {
             document.getElementById('count-local').textContent = monevLogs.length;
@@ -1501,6 +1797,9 @@
                 const modeBadge = log.mode === 'polyline'
                     ? '<span class="mode-badge mode-polyline">🛣️ Ikuti Jalan</span>'
                     : '<span class="mode-badge mode-straight">📏 Lurus</span>';
+                const calibBadge = log.calibrationFactor && log.calibrationFactor !== '1.000'
+                    ? `<span class="text-[9px] bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-bold px-1.5 py-0.5 rounded">×${log.calibrationFactor}</span>`
+                    : '';
                 card.innerHTML = `
                     <div class="flex justify-between items-start border-b border-slate-800 pb-1.5">
                         <div>
@@ -1518,8 +1817,9 @@
                         <div><b class="text-slate-500">Temuan:</b> ${log.findingType}</div>
                         <div><b class="text-slate-500">Catatan:</b> ${log.notes}</div>
                     </div>
-                    <div class="flex items-center gap-2 text-[9px]">
+                    <div class="flex items-center gap-2 text-[9px] flex-wrap">
                         ${modeBadge}
+                        ${calibBadge}
                         <span class="text-slate-500">Polyline: <b class="text-emerald-400">${log.polylineDistance || '-'}m</b> • Lurus: <b class="text-blue-400">${log.straightDistance || '-'}m</b></span>
                     </div>
                     <div class="grid grid-cols-2 gap-2 text-[11px]">
@@ -1605,7 +1905,7 @@
         }
 
         // =========================================================
-        // 16. LOCALSTORAGE
+        // 17. LOCALSTORAGE
         // =========================================================
         function saveLocalLogs() {
             try {
@@ -1629,7 +1929,7 @@
         }
 
         // =========================================================
-        // 17. EXPORT EXCEL
+        // 18. EXPORT EXCEL
         // =========================================================
         function getUniqueDataForCurrentTab() {
             const allData = [...monevLogs, ...serverLogs];
@@ -1670,6 +1970,7 @@
                     "Jarak (km)": parseFloat(item.distanceKm) || 0,
                     "Polyline (m)": parseFloat(item.polylineDistance) || 0,
                     "Lurus (m)": parseFloat(item.straightDistance) || 0,
+                    "Faktor Kalibrasi": item.calibrationFactor || '1.000',
                     "Mode": item.mode === 'polyline' ? 'Ikuti Jalan' : 'Garis Lurus',
                     "Jenis Temuan": item.findingType || '-',
                     "Koordinat A": item.coordA || '-',
@@ -1682,7 +1983,7 @@
                 ws['!cols'] = [
                     { wch: 5 }, { wch: 20 }, { wch: 28 }, { wch: 22 },
                     { wch: 16 }, { wch: 18 }, { wch: 11 }, { wch: 11 },
-                    { wch: 12 }, { wch: 12 }, { wch: 14 },
+                    { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 },
                     { wch: 30 }, { wch: 24 }, { wch: 24 }, { wch: 40 }, { wch: 30 }
                 ];
 
@@ -1699,11 +2000,11 @@
                     { "Keterangan": "Judul Laporan", "Nilai": "Laporan Monev Kegiatan Infrastruktur" },
                     { "Keterangan": "Sumber Data", "Nilai": currentTab === 'local' ? 'Data Lokal' : 'Data Server' },
                     { "Keterangan": "Tanggal Export", "Nilai": new Date().toLocaleString('id-ID') },
+                    { "Keterangan": "Faktor Kalibrasi Aktif", "Nilai": manualCalibrationFactor.toFixed(3) + '×' },
+                    { "Keterangan": "Referensi Kalibrasi", "Nilai": manualCalibrationRefMeters > 0 ? manualCalibrationRefMeters + ' m (meteran)' : '-' },
                     { "Keterangan": "Total Segmen", "Nilai": dataToExport.length },
                     { "Keterangan": "Total Anggaran", "Nilai": dataToExport.reduce((sum, it) => sum + (parseFloat(it.anggaran) || 0), 0) },
-                    { "Keterangan": "Total Jarak (m)", "Nilai": dataToExport.reduce((sum, it) => sum + (parseFloat(it.distanceMeters) || 0), 0) },
-                    { "Keterangan": "Segmen Polyline", "Nilai": dataToExport.filter(it => it.mode === 'polyline').length },
-                    { "Keterangan": "Segmen Lurus", "Nilai": dataToExport.filter(it => it.mode !== 'polyline').length }
+                    { "Keterangan": "Total Jarak (m)", "Nilai": dataToExport.reduce((sum, it) => sum + (parseFloat(it.distanceMeters) || 0), 0) }
                 ];
                 const wsMeta = XLSX.utils.json_to_sheet(metaRows);
                 wsMeta['!cols'] = [{ wch: 22 }, { wch: 40 }];
@@ -1719,7 +2020,7 @@
         });
 
         // =========================================================
-        // 18. CETAK
+        // 19. CETAK
         // =========================================================
         document.getElementById('btn-print-report').addEventListener('click', () => {
             const dataToPrint = getUniqueDataForCurrentTab();
@@ -1748,7 +2049,7 @@
         });
 
         // =========================================================
-        // 19. CLEAR LOCAL
+        // 20. CLEAR LOCAL
         // =========================================================
         document.getElementById('btn-clear-local').addEventListener('click', () => {
             if (confirm('Yakin ingin menghapus semua riwayat lokal? Data di Google Sheet tidak akan terhapus.')) {
@@ -1760,7 +2061,7 @@
         });
 
         // =========================================================
-        // 20. MODAL & ALERT
+        // 21. MODAL & ALERT
         // =========================================================
         const modalInfo = document.getElementById('modal-info');
         document.getElementById('btn-info').addEventListener('click', () => modalInfo.classList.remove('hidden'));
@@ -1785,4 +2086,3 @@
     </script>
 </body>
 </html>
-
