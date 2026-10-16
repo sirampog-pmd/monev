@@ -53,7 +53,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Style untuk badge mode pengukuran */
         .mode-badge {
             display: inline-flex; align-items: center; gap: 4px;
             padding: 2px 8px; border-radius: 999px;
@@ -151,8 +150,7 @@
                 </div>
             </div>
             <div id="map" class="w-full h-72 rounded-xl border border-slate-800 z-10 overflow-hidden shadow-inner"></div>
-            
-            <!-- Legend / Info Mode Pengukuran -->
+
             <div id="map-legend" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-[10px] space-y-1.5">
                 <div class="flex justify-between items-center">
                     <span class="font-bold text-slate-300 uppercase tracking-wider">Info Pengukuran</span>
@@ -274,7 +272,6 @@
                 </span>
             </div>
 
-            <!-- Ringkasan -->
             <div class="grid grid-cols-2 gap-2">
                 <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
                     <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total Jarak</div>
@@ -288,7 +285,6 @@
                 </div>
             </div>
 
-            <!-- Daftar Segmen -->
             <div id="segments-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 <div id="empty-segments-msg" class="text-center py-6 text-slate-600 text-xs">
                     <i class="fa-solid fa-route text-2xl mb-2 block"></i>
@@ -309,7 +305,7 @@
                 <select id="select-finding-type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
                     <option value="Pekerjaan Pengaspalan / Overlay">Pekerjaan Pengaspalan / Overlay</option>
                     <option value="Pekerjaan Saluran / Drainase">Pekerjaan Saluran / Drainase</option>
-					<option value="Perbaikan Rigid Pavement">Perbaikan Rigid Pavement</option>
+                    <option value="Perbaikan Rigid Pavement">Perbaikan Rigid Pavement</option>
                     <option value="Lubang Jalan (Pothole)">Lubang Jalan (Pothole)</option>
                     <option value="Retak Buaya (Alligator Cracking)">Retak Buaya (Alligator Cracking)</option>
                     <option value="Retak Memanjang / Melintang">Retak Memanjang / Melintang</option>
@@ -338,10 +334,10 @@
 
         <!-- Tabel Log Riwayat -->
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
-			<button id="btn-clear-local" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-red-500/30 flex items-center space-x-1">
-				<i class="fa-solid fa-trash"></i>
-				<span>Reset Local Data</span>
-			</button>
+            <button id="btn-clear-local" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-red-500/30 flex items-center space-x-1">
+                <i class="fa-solid fa-trash"></i>
+                <span>Reset Local Data</span>
+            </button>
             <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-list-check text-amber-400"></i>
@@ -421,12 +417,12 @@
             </div>
             <div class="space-y-2.5 text-slate-300 leading-relaxed">
                 <p><b>1. Buka Kamera HP:</b> Klik tombol "Buka Kamera HP". Gunakan tombol "Stop" untuk mematikan kamera.</p>
-                <p><b>2. Tandai Titik A (Awal):</b> Tekan tombol <b>"1. SET TITIK AWAL (A)"</b>. Marker hijau berkedip akan muncul di peta dan foto awal akan diambil.</p>
+                <p><b>2. Tandai Titik A (Awal):</b> Tekan tombol <b>"1. SET TITIK AWAL (A)"</b>. Akan muncul kalibrasi GPS 5 detik — <b>diam di tempat</b> sampai selesai.</p>
                 <p><b>3. Berjalan ke Ujung Segmen:</b> Berjalanlah menyusuri jalan. Garis biru akan otomatis ditarik mengikuti pergerakan GPS Anda.</p>
-                <p><b>4. Tandai Titik B (Akhir):</b> Tekan tombol <b>"2. SET TITIK AKHIR (B)"</b>. Marker merah akan dikunci dan jarak otomatis dihitung dari <b>jejak GPS (polyline)</b>.</p>
+                <p><b>4. Tandai Titik B (Akhir):</b> Tekan tombol <b>"2. SET TITIK AKHIR (B)"</b>. Kalibrasi 5 detik lagi, lalu jarak otomatis dihitung dari <b>jejak GPS (polyline)</b>.</p>
                 <p><b>5. Auto-Mode:</b> Jika beda jarak polyline vs lurus > 5%, sistem otomatis pakai polyline (lebih akurat untuk jalan berbelok).</p>
                 <p><b>6. Segmen Baru:</b> Setelah simpan, klik <b>"Segmen Baru"</b> untuk mengukur segmen berikutnya. Setiap segmen diberi warna & nomor di peta.</p>
-                <p><b>7. Simpan & Kirim:</b> Pilih jenis kerusakan, isi catatan. Klik <b>"Simpan & Kirim ke Google Sheet"</b> untuk upload.</p>
+                <p><b>7. Simpan & Kirim:</b> Pilih jenis pemeriksaan, isi catatan. Klik <b>"Simpan & Kirim ke Google Sheet"</b> untuk upload.</p>
             </div>
             <button id="btn-close-modal" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl border border-slate-700 transition">Tutup Panduan</button>
         </div>
@@ -452,7 +448,7 @@
 
     <script>
         // =========================================================
-        // ⚙️ KONFIGURASI - CUKUP EDIT 1 BARIS INI SAJA
+        // KONFIGURASI - CUKUP EDIT 1 BARIS INI SAJA
         // =========================================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwryKVW7L1QcBr0f-RTWVhG7PXyMslWRYarYTsRz6CyDKxRBBUo1e9RRQu8yU6czedo/exec";
         // =========================================================
@@ -464,8 +460,15 @@
         let markerA = null;
         let markerB = null;
         let currentPosMarker = null;
-        let polyline = null;         // polyline segmen aktif
+        let polyline = null;
         let pathCoords = [];
+
+        let isCalibrating = false;
+        let calibrationSamples = [];
+        let calibrationCallback = null;
+        let calibrationIntervalId = null;
+        const CALIBRATION_DURATION_MS = 5000;
+        const CALIBRATION_SAMPLE_COUNT = 10;
 
         let cameraStream = null;
         let pointA = null;
@@ -474,7 +477,7 @@
         let calculatedPolylineDistance = 0;
         let calculatedStraightDistance = 0;
         let autoModeUsed = 'straight';
-        
+
         let monevLogs = [];
         let serverLogs = [];
         let currentTab = 'local';
@@ -484,11 +487,9 @@
         let streetLayer = null;
         let satLayer = null;
 
-        // Segmen yang sudah selesai (untuk history & peta)
         let completedSegments = [];
         let segmentCounter = 0;
-        
-        // Warna berbeda per segmen
+
         const SEGMENT_COLORS = [
             '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16',
             '#f97316', '#14b8a6', '#a855f7', '#ef4444', '#3b82f6'
@@ -526,7 +527,9 @@
         const inputNotes = document.getElementById('input-notes');
         const logListContainer = document.getElementById('log-list-container');
 
-        // Init
+        // =========================================================
+        // INIT
+        // =========================================================
         window.onload = function() {
             initLeafletMap();
             initGPS();
@@ -539,7 +542,7 @@
         // 1. PETA LEAFLET
         // =========================================================
         function initLeafletMap() {
-            map = L.map('map', { zoomControl: false }).setView([-6.2088, 106.8456], 13);
+            map = L.map('map', { zoomControl: false }).setView([-7.204085942429819, 109.06250470580751], 13);
 
             streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
@@ -565,12 +568,11 @@
                 document.getElementById('btn-layer-street').className = "bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-lg";
             });
 
-            // Polyline untuk segmen aktif (biru)
             polyline = L.polyline([], { color: '#3b82f6', weight: 5, opacity: 0.85, dashArray: '5, 10' }).addTo(map);
         }
 
         // =========================================================
-        // 2. GPS
+        // 2. GPS WATCH POSITION
         // =========================================================
         function initGPS() {
             if ("geolocation" in navigator) {
@@ -595,26 +597,45 @@
                             currentPosMarker.setLatLng(currentLatLng);
                         }
 
+                        // Kalau sedang kalibrasi, kumpulkan sampel
+                        if (isCalibrating) {
+                            calibrationSamples.push({ lat, lon, acc });
+                            return;
+                        }
+
                         // Real-time update saat berjalan dari A ke B
                         if (pointA && !pointB) {
-                            // Hindari titik terlalu rapat (filter noise GPS < 2 meter)
+                            // FILTER 1: Akurasi rendah
+                            if (acc > 20) return;
+
                             const lastPoint = pathCoords[pathCoords.length - 1];
+
                             if (lastPoint) {
                                 const distFromLast = calculateDistanceTwoPoints(lastPoint[0], lastPoint[1], lat, lon);
-                                if (distFromLast < 2) return; // skip jika < 2m (noise GPS)
+
+                                // FILTER 2: Noise diam (< 5m)
+                                if (distFromLast < 5) return;
+
+                                // FILTER 3: Anti lompat (> 100m)
+                                if (distFromLast > 100) return;
+
+                                // FILTER 4: Belokan tajam (> 150°)
+                                if (pathCoords.length >= 2) {
+                                    const prevPoint = pathCoords[pathCoords.length - 2];
+                                    const angle = calculateTurnAngle(prevPoint, lastPoint, [lat, lon]);
+                                    if (angle > 150) return;
+                                }
                             }
-                            
+
                             pathCoords.push(currentLatLng);
                             polyline.setLatLngs(pathCoords);
-                            
-                            // Live update: jarak polyline & straight
+
                             const livePolyline = calculatePolylineDistance(pathCoords);
                             const liveStraight = calculateDistanceTwoPoints(pointA.lat, pointA.lon, lat, lon);
-                            
+
                             calculatedDistanceElem.innerHTML = `${livePolyline.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
                             distanceKmSubElem.textContent = `(${(livePolyline / 1000).toFixed(3)} km)`;
-                            
-                            // Update legend
+
                             document.getElementById('legend-polyline-dist').textContent = livePolyline.toFixed(2) + ' m';
                             document.getElementById('legend-straight-dist').textContent = liveStraight.toFixed(2) + ' m';
                         }
@@ -631,7 +652,7 @@
         }
 
         // =========================================================
-        // 3. HITUNG JARAK
+        // 3. FUNGSI HITUNG JARAK
         // =========================================================
         function calculateDistanceTwoPoints(lat1, lon1, lat2, lon2) {
             const R = 6371000;
@@ -644,7 +665,6 @@
             return R * c;
         }
 
-        // Total jarak mengikuti jejak GPS (untuk jalan berbelok)
         function calculatePolylineDistance(coords) {
             if (!coords || coords.length < 2) return 0;
             let totalDistance = 0;
@@ -654,6 +674,25 @@
                 totalDistance += calculateDistanceTwoPoints(p1[0], p1[1], p2[0], p2[1]);
             }
             return totalDistance;
+        }
+
+        // Hitung bearing (arah) antara 2 titik dalam derajat (0-360)
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+            const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                      Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+            const brng = Math.atan2(y, x) * 180 / Math.PI;
+            return (brng + 360) % 360;
+        }
+
+        // Hitung sudut belokan antara 3 titik (dalam derajat)
+        function calculateTurnAngle(p1, p2, p3) {
+            const bearing1 = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
+            const bearing2 = calculateBearing(p2[0], p2[1], p3[0], p3[1]);
+            let diff = Math.abs(bearing2 - bearing1);
+            if (diff > 180) diff = 360 - diff;
+            return diff;
         }
 
         // =========================================================
@@ -707,7 +746,169 @@
         }
 
         // =========================================================
-        // 5. FORMATTER RUPIAH
+        // 5. KALIBRASI GPS
+        // =========================================================
+        function startCalibration(callback) {
+            if (isCalibrating) {
+                showAlert("Sedang Kalibrasi", "Mohon tunggu kalibrasi sebelumnya selesai.");
+                return;
+            }
+
+            isCalibrating = true;
+            calibrationSamples = [];
+            calibrationCallback = callback;
+
+            showCalibrationOverlay();
+
+            const startTime = Date.now();
+
+            // Update overlay tiap 100ms
+            calibrationIntervalId = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const timeRemaining = Math.max(0, (CALIBRATION_DURATION_MS - elapsed) / 1000);
+
+                // Update timer display
+                const timerEl = document.getElementById('calibration-timer');
+                if (timerEl) timerEl.textContent = timeRemaining.toFixed(1) + ' s';
+
+                updateCalibrationProgress();
+
+                // Selesai kalau: sudah 5 detik ATAU sudah dapat 10 sampel bagus
+                const goodSamples = calibrationSamples.filter(s => s.acc <= 20).length;
+                if (elapsed >= CALIBRATION_DURATION_MS || goodSamples >= CALIBRATION_SAMPLE_COUNT) {
+                    clearInterval(calibrationIntervalId);
+                    calibrationIntervalId = null;
+                    finishCalibration();
+                }
+            }, 100);
+        }
+
+        function finishCalibration() {
+            if (!isCalibrating) return;
+            isCalibrating = false;
+
+            if (calibrationIntervalId) {
+                clearInterval(calibrationIntervalId);
+                calibrationIntervalId = null;
+            }
+
+            hideCalibrationOverlay();
+
+            // Filter sampel dengan akurasi bagus (≤ 20m)
+            let goodSamples = calibrationSamples.filter(s => s.acc <= 20);
+
+            if (goodSamples.length < 3) {
+                goodSamples = calibrationSamples;
+            }
+
+            if (goodSamples.length === 0) {
+                showAlert("Kalibrasi Gagal", "Tidak ada sinyal GPS yang layak. Coba lagi di area terbuka.");
+                return;
+            }
+
+            // Hitung MEDIAN (lebih tahan outlier daripada rata-rata)
+            const lats = goodSamples.map(s => s.lat).sort((a, b) => a - b);
+            const lons = goodSamples.map(s => s.lon).sort((a, b) => a - b);
+            const accs = goodSamples.map(s => s.acc).sort((a, b) => a - b);
+
+            const medianLat = lats[Math.floor(lats.length / 2)];
+            const medianLon = lons[Math.floor(lons.length / 2)];
+            const medianAcc = accs[Math.floor(accs.length / 2)];
+
+            const calibratedPoint = {
+                lat: medianLat,
+                lon: medianLon,
+                accuracy: medianAcc,
+                sampleCount: goodSamples.length
+            };
+
+            console.log(`Kalibrasi selesai: ${goodSamples.length} sampel, akurasi ±${medianAcc}m`);
+
+            calibrationSamples = [];
+
+            if (calibrationCallback) {
+                const cb = calibrationCallback;
+                calibrationCallback = null;
+                cb(calibratedPoint);
+            }
+        }
+
+        function showCalibrationOverlay() {
+            let overlay = document.getElementById('calibration-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'calibration-overlay';
+                overlay.className = 'fixed inset-0 bg-black/85 backdrop-blur-sm z-[70] flex items-center justify-center p-4';
+                overlay.innerHTML = `
+                    <div class="bg-slate-900 border border-amber-500/30 rounded-2xl max-w-xs w-full p-5 space-y-4 text-center shadow-2xl">
+                        <div class="relative w-20 h-20 mx-auto">
+                            <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+                            <div class="absolute inset-0 rounded-full border-4 border-amber-400 border-t-transparent animate-spin"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fa-solid fa-satellite-dish text-amber-400 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">📡 Kalibrasi GPS</h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Diam di tempat, jangan bergerak...</p>
+                        </div>
+                        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 space-y-2">
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">Sampel:</span>
+                                <span id="calibration-sample-count" class="text-amber-400 font-bold">0 / 10</span>
+                            </div>
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">Waktu:</span>
+                                <span id="calibration-timer" class="text-amber-400 font-bold">5.0 s</span>
+                            </div>
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">Akurasi:</span>
+                                <span id="calibration-accuracy" class="text-emerald-400 font-bold">-</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="calibration-progress-bar" class="bg-amber-400 h-full rounded-full transition-all duration-200" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-slate-500">💡 Untuk hasil terbaik, tunggu sampai akurasi ≤ ±10m</p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            }
+            overlay.classList.remove('hidden');
+        }
+
+        function hideCalibrationOverlay() {
+            const overlay = document.getElementById('calibration-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        function updateCalibrationProgress() {
+            const sampleEl = document.getElementById('calibration-sample-count');
+            const accEl = document.getElementById('calibration-accuracy');
+            const barEl = document.getElementById('calibration-progress-bar');
+
+            if (!sampleEl) return;
+
+            const goodSamples = calibrationSamples.filter(s => s.acc <= 20).length;
+            sampleEl.textContent = `${goodSamples} / 10`;
+
+            if (calibrationSamples.length > 0) {
+                const lastAcc = calibrationSamples[calibrationSamples.length - 1].acc;
+                accEl.textContent = `±${lastAcc}m`;
+                accEl.className = lastAcc <= 10 ? 'text-emerald-400 font-bold'
+                                : lastAcc <= 20 ? 'text-amber-400 font-bold'
+                                : 'text-red-400 font-bold';
+            }
+
+            const progress = Math.min(100, Math.max(
+                (goodSamples / CALIBRATION_SAMPLE_COUNT) * 100,
+                (calibrationSamples.length / 20) * 100
+            ));
+            if (barEl) barEl.style.width = progress + '%';
+        }
+
+        // =========================================================
+        // 6. FORMATTER RUPIAH
         // =========================================================
         function initAnggaranFormatter() {
             inputAnggaran.addEventListener('input', (e) => {
@@ -724,63 +925,65 @@
         }
 
         // =========================================================
-        // 6. SET TITIK A
+        // 7. SET TITIK A (dengan kalibrasi)
         // =========================================================
         btnPointA.addEventListener('click', () => {
             if (!lastKnownCoords) {
                 showAlert("Mencari Sinyal GPS", "Mohon tunggu sejenak hingga posisi GPS terkunci.");
                 return;
             }
-            const photo = capturePhoto();
-            pointA = { lat: lastKnownCoords.lat, lon: lastKnownCoords.lon, photo: photo };
-            pointB = null; // reset B
-            coordAText.textContent = `${pointA.lat.toFixed(5)}, ${pointA.lon.toFixed(5)}`;
-            coordBText.textContent = 'Belum Ditandai';
 
-            if (photo) {
-                thumbAContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
-                textPhotoAStatus.textContent = "Foto Terekam";
-            } else {
-                thumbAContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
-                textPhotoAStatus.textContent = "Kamera off";
-            }
-            
-            // Reset thumbnail B
-            thumbBContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
-            textPhotoBStatus.textContent = "Belum ada foto";
+            startCalibration((calibratedPoint) => {
+                const photo = capturePhoto();
+                pointA = {
+                    lat: calibratedPoint.lat,
+                    lon: calibratedPoint.lon,
+                    photo: photo,
+                    accuracy: calibratedPoint.accuracy
+                };
+                pointB = null;
+                coordAText.textContent = `${pointA.lat.toFixed(5)}, ${pointA.lon.toFixed(5)}`;
 
-            // Hapus marker B lama jika ada
-            if (markerB) { map.removeLayer(markerB); markerB = null; }
+                if (photo) {
+                    thumbAContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
+                    textPhotoAStatus.textContent = "Foto Terekam";
+                } else {
+                    thumbAContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
+                    textPhotoAStatus.textContent = "Kamera off";
+                }
 
-            // Marker A
-            if (markerA) map.removeLayer(markerA);
-            const customIconA = L.divIcon({ className: 'pulse-marker-a', iconSize: [18, 18], iconAnchor: [9, 9] });
-            markerA = L.marker([pointA.lat, pointA.lon], { icon: customIconA }).addTo(map)
-                .bindPopup("<b>Titik Awal (A)</b><br>Segmen #" + (segmentCounter + 1)).openPopup();
+                thumbBContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
+                textPhotoBStatus.textContent = "Belum ada foto";
 
-            map.setView([pointA.lat, pointA.lon], 18);
-            pathCoords = [[pointA.lat, pointA.lon]];
-            polyline.setLatLngs(pathCoords);
-            polyline.setStyle({ dashArray: '5, 10', color: '#3b82f6' });
+                if (markerB) { map.removeLayer(markerB); markerB = null; }
 
-            // Reset jarak
-            calculatedDistanceMeters = 0;
-            calculatedPolylineDistance = 0;
-            calculatedStraightDistance = 0;
-            calculatedDistanceElem.innerHTML = `0.00 <span class="text-base font-medium text-slate-300">meter</span>`;
-            distanceKmSubElem.textContent = `(0.000 km)`;
+                if (markerA) map.removeLayer(markerA);
+                const customIconA = L.divIcon({ className: 'pulse-marker-a', iconSize: [18, 18], iconAnchor: [9, 9] });
+                markerA = L.marker([pointA.lat, pointA.lon], { icon: customIconA }).addTo(map)
+                    .bindPopup(`<b>Titik Awal (A)</b><br>Segmen #${segmentCounter + 1}<br><small>Akurasi: ±${pointA.accuracy}m</small>`).openPopup();
 
-            // Show legend
-            document.getElementById('map-legend').classList.remove('hidden');
+                map.setView([pointA.lat, pointA.lon], 18);
+                pathCoords = [[pointA.lat, pointA.lon]];
+                polyline.setLatLngs(pathCoords);
+                polyline.setStyle({ dashArray: '5, 10', color: '#3b82f6' });
 
-            btnPointB.disabled = false;
-            btnPointB.classList.remove('opacity-60', 'cursor-not-allowed');
+                calculatedDistanceMeters = 0;
+                calculatedPolylineDistance = 0;
+                calculatedStraightDistance = 0;
+                calculatedDistanceElem.innerHTML = `0.00 <span class="text-base font-medium text-slate-300">meter</span>`;
+                distanceKmSubElem.textContent = `(0.000 km)`;
 
-            showAlert("Titik Awal Terkunci", `Segmen #${segmentCounter + 1} dimulai. Berjalanlah menyusuri jalan ke Titik B.`);
+                document.getElementById('map-legend').classList.remove('hidden');
+
+                btnPointB.disabled = false;
+                btnPointB.classList.remove('opacity-60', 'cursor-not-allowed');
+
+                showAlert("Titik A Terkunci", `Segmen #${segmentCounter + 1} siap dimulai.\nAkurasi terkunci: ±${pointA.accuracy}m.\n\nBerjalanlah ke Titik B.`);
+            });
         });
 
         // =========================================================
-        // 7. SET TITIK B (DENGAN AUTO-MODE POLYLINE vs STRAIGHT)
+        // 8. SET TITIK B (dengan kalibrasi + auto-mode)
         // =========================================================
         btnPointB.addEventListener('click', () => {
             if (!pointA) {
@@ -791,96 +994,94 @@
                 showAlert("Mencari Sinyal GPS", "Mohon tunggu sejenak hingga posisi GPS terkunci.");
                 return;
             }
-            const photo = capturePhoto();
-            pointB = { lat: lastKnownCoords.lat, lon: lastKnownCoords.lon, photo: photo };
-            coordBText.textContent = `${pointB.lat.toFixed(5)}, ${pointB.lon.toFixed(5)}`;
 
-            if (photo) {
-                thumbBContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
-                textPhotoBStatus.textContent = "Foto Terekam";
-            }
+            startCalibration((calibratedPoint) => {
+                const photo = capturePhoto();
+                pointB = {
+                    lat: calibratedPoint.lat,
+                    lon: calibratedPoint.lon,
+                    photo: photo,
+                    accuracy: calibratedPoint.accuracy
+                };
+                coordBText.textContent = `${pointB.lat.toFixed(5)}, ${pointB.lon.toFixed(5)}`;
 
-            // Marker B
-            if (markerB) map.removeLayer(markerB);
-            const customIconB = L.divIcon({ className: 'marker-pin-b', iconSize: [18, 18], iconAnchor: [9, 9] });
-            markerB = L.marker([pointB.lat, pointB.lon], { icon: customIconB }).addTo(map)
-                .bindPopup("<b>Titik Akhir (B)</b><br>Segmen #" + (segmentCounter + 1)).openPopup();
+                if (photo) {
+                    thumbBContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
+                    textPhotoBStatus.textContent = "Foto Terekam";
+                }
 
-            // Pastikan B masuk ke path
-            const lastPoint = pathCoords[pathCoords.length - 1];
-            if (!lastPoint || lastPoint[0] !== pointB.lat || lastPoint[1] !== pointB.lon) {
-                pathCoords.push([pointB.lat, pointB.lon]);
-            }
-            polyline.setLatLngs(pathCoords);
-            polyline.setStyle({ dashArray: null, color: '#3b82f6' });
+                if (markerB) map.removeLayer(markerB);
+                const customIconB = L.divIcon({ className: 'marker-pin-b', iconSize: [18, 18], iconAnchor: [9, 9] });
+                markerB = L.marker([pointB.lat, pointB.lon], { icon: customIconB }).addTo(map)
+                    .bindPopup(`<b>Titik Akhir (B)</b><br>Segmen #${segmentCounter + 1}<br><small>Akurasi: ±${pointB.accuracy}m</small>`).openPopup();
 
-            // Fit bounds
-            const bounds = L.latLngBounds([[pointA.lat, pointA.lon], [pointB.lat, pointB.lon]]);
-            map.fitBounds(bounds, { padding: [30, 30] });
+                // Pastikan B masuk ke path
+                const lastPoint = pathCoords[pathCoords.length - 1];
+                if (!lastPoint || lastPoint[0] !== pointB.lat || lastPoint[1] !== pointB.lon) {
+                    pathCoords.push([pointB.lat, pointB.lon]);
+                }
+                polyline.setLatLngs(pathCoords);
+                polyline.setStyle({ dashArray: null, color: '#3b82f6' });
 
-            // ============ HITUNG JARAK ============
-            calculatedPolylineDistance = calculatePolylineDistance(pathCoords);
-            calculatedStraightDistance = calculateDistanceTwoPoints(pointA.lat, pointA.lon, pointB.lat, pointB.lon);
-            
-            // AUTO-MODE: pilih yang paling akurat
-            const ratio = calculatedStraightDistance > 0 ? calculatedPolylineDistance / calculatedStraightDistance : 1;
-            const usePolyline = ratio > 1.05; // > 5% beda = jalan berbelok
-            
-            calculatedDistanceMeters = usePolyline ? calculatedPolylineDistance : calculatedStraightDistance;
-            autoModeUsed = usePolyline ? 'polyline' : 'straight';
+                const bounds = L.latLngBounds([[pointA.lat, pointA.lon], [pointB.lat, pointB.lon]]);
+                map.fitBounds(bounds, { padding: [30, 30] });
 
-            // Update UI jarak
-            calculatedDistanceElem.innerHTML = `${calculatedDistanceMeters.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
-            distanceKmSubElem.innerHTML = `(${(calculatedDistanceMeters / 1000).toFixed(3)} km)`;
-            
-            // Update legend
-            document.getElementById('legend-polyline-dist').textContent = calculatedPolylineDistance.toFixed(2) + ' m';
-            document.getElementById('legend-straight-dist').textContent = calculatedStraightDistance.toFixed(2) + ' m';
-            
-            const badge = document.getElementById('mode-badge');
-            if (usePolyline) {
-                badge.className = 'mode-badge mode-polyline';
-                badge.textContent = '🛣️ Ikuti Jalan';
-            } else {
-                badge.className = 'mode-badge mode-straight';
-                badge.textContent = '📏 Garis Lurus';
-            }
-            
-            const ratioInfo = document.getElementById('legend-ratio-info');
-            ratioInfo.classList.remove('hidden');
-            ratioInfo.innerHTML = `Rasio Polyline/Lurus: <b class="text-amber-400">${ratio.toFixed(3)}×</b> ${usePolyline ? '(berbelok)' : '(lurus)'}`;
-            
-            // Info alert
-            const modeText = usePolyline ? 'Mengikuti Jalan (Polyline)' : 'Garis Lurus (Haversine)';
-            showAlert(
-                "Pengukuran Selesai",
-                `Segmen #${segmentCounter + 1}: ${calculatedDistanceMeters.toFixed(2)} m\n` +
-                `Mode: ${modeText}\n` +
-                `Polyline: ${calculatedPolylineDistance.toFixed(2)} m\n` +
-                `Lurus: ${calculatedStraightDistance.toFixed(2)} m`
-            );
+                calculatedPolylineDistance = calculatePolylineDistance(pathCoords);
+                calculatedStraightDistance = calculateDistanceTwoPoints(pointA.lat, pointA.lon, pointB.lat, pointB.lon);
+
+                const ratio = calculatedStraightDistance > 0 ? calculatedPolylineDistance / calculatedStraightDistance : 1;
+                const usePolyline = ratio > 1.05;
+
+                calculatedDistanceMeters = usePolyline ? calculatedPolylineDistance : calculatedStraightDistance;
+                autoModeUsed = usePolyline ? 'polyline' : 'straight';
+
+                calculatedDistanceElem.innerHTML = `${calculatedDistanceMeters.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
+                distanceKmSubElem.innerHTML = `(${(calculatedDistanceMeters / 1000).toFixed(3)} km)`;
+
+                document.getElementById('legend-polyline-dist').textContent = calculatedPolylineDistance.toFixed(2) + ' m';
+                document.getElementById('legend-straight-dist').textContent = calculatedStraightDistance.toFixed(2) + ' m';
+
+                const badge = document.getElementById('mode-badge');
+                if (usePolyline) {
+                    badge.className = 'mode-badge mode-polyline';
+                    badge.textContent = '🛣️ Ikuti Jalan';
+                } else {
+                    badge.className = 'mode-badge mode-straight';
+                    badge.textContent = '📏 Garis Lurus';
+                }
+
+                const ratioInfo = document.getElementById('legend-ratio-info');
+                ratioInfo.classList.remove('hidden');
+                ratioInfo.innerHTML = `Rasio Polyline/Lurus: <b class="text-amber-400">${ratio.toFixed(3)}×</b> ${usePolyline ? '(berbelok)' : '(lurus)'}`;
+
+                const modeText = usePolyline ? 'Mengikuti Jalan (Polyline)' : 'Garis Lurus (Haversine)';
+                showAlert(
+                    "Pengukuran Selesai",
+                    `Segmen #${segmentCounter + 1}: ${calculatedDistanceMeters.toFixed(2)} m\n` +
+                    `Mode: ${modeText}\n` +
+                    `Polyline: ${calculatedPolylineDistance.toFixed(2)} m\n` +
+                    `Lurus: ${calculatedStraightDistance.toFixed(2)} m\n` +
+                    `Akurasi A: ±${pointA.accuracy}m | B: ±${pointB.accuracy}m`
+                );
+            });
         });
 
         // =========================================================
-        // 8. SEGMEN BARU & HAPUS SEMUA
+        // 9. SEGMEN BARU & HAPUS SEMUA
         // =========================================================
         document.getElementById('btn-new-segment').addEventListener('click', () => {
             if (!pointA || !pointB) {
                 showAlert("Belum Ada Segmen", "Tandai Titik A dan B terlebih dahulu untuk menyelesaikan segmen ini.");
                 return;
             }
-            
-            // Konfirmasi jika belum disimpan
+
             if (!confirm("Segmen saat ini akan dikunci & disimpan ke History Segmen.\n\nLanjut buat segmen baru?")) {
                 return;
             }
-            
-            // Simpan segmen ke completedSegments
+
             saveCurrentSegmentToHistory();
-            
-            // Reset untuk segmen baru
             resetForNewSegment();
-            
+
             showAlert("Segmen Baru", `Segmen #${segmentCounter} selesai. Siap untuk segmen #${segmentCounter + 1}.`);
         });
 
@@ -892,8 +1093,7 @@
             if (!confirm(`Hapus semua ${completedSegments.length} segmen dari peta?\n\nData di riwayat pengukuran tidak akan terhapus.`)) {
                 return;
             }
-            
-            // Hapus semua layer segmen
+
             completedSegments.forEach(seg => {
                 if (seg.layer) map.removeLayer(seg.layer);
                 if (seg.markerA) map.removeLayer(seg.markerA);
@@ -906,31 +1106,27 @@
             showAlert("Segmen Dihapus", "Semua segmen di peta telah dihapus.");
         });
 
-        // Simpan segmen yang selesai ke array completedSegments + gambar di peta
         function saveCurrentSegmentToHistory() {
             segmentCounter++;
-            
+
             const color = SEGMENT_COLORS[(segmentCounter - 1) % SEGMENT_COLORS.length];
-            
-            // Gambar polyline segmen permanen
+
             const segLayer = L.polyline(pathCoords, {
                 color: color,
                 weight: 4,
                 opacity: 0.9
             }).addTo(map);
-            
-            // Marker A & B permanen
+
             const markerASeg = L.circleMarker([pointA.lat, pointA.lon], {
                 radius: 6, fillColor: '#10b981', color: '#ffffff',
                 weight: 2, opacity: 1, fillOpacity: 1
             }).addTo(map).bindPopup(`<b>Segmen #${segmentCounter} - Titik A</b>`);
-            
+
             const markerBSeg = L.circleMarker([pointB.lat, pointB.lon], {
                 radius: 6, fillColor: '#ef4444', color: '#ffffff',
                 weight: 2, opacity: 1, fillOpacity: 1
             }).addTo(map).bindPopup(`<b>Segmen #${segmentCounter} - Titik B</b>`);
-            
-            // Label nomor segmen di tengah
+
             const midLat = (pointA.lat + pointB.lat) / 2;
             const midLon = (pointA.lon + pointB.lon) / 2;
             const labelIcon = L.divIcon({
@@ -940,8 +1136,7 @@
                 iconAnchor: [11, 11]
             });
             const labelMarker = L.marker([midLat, midLon], { icon: labelIcon }).addTo(map);
-            
-            // Simpan ke array
+
             completedSegments.push({
                 number: segmentCounter,
                 color: color,
@@ -957,51 +1152,50 @@
                 markerB: markerBSeg,
                 labelMarker: labelMarker
             });
-            
+
             updateSegmentsUI();
         }
 
-        // Reset semua state untuk segmen baru
         function resetForNewSegment() {
             pointA = null;
             pointB = null;
             pathCoords = [];
             polyline.setLatLngs([]);
             polyline.setStyle({ dashArray: '5, 10', color: '#3b82f6' });
-            
+
             if (markerA) { map.removeLayer(markerA); markerA = null; }
             if (markerB) { map.removeLayer(markerB); markerB = null; }
-            
+
             coordAText.textContent = 'Belum Ditandai';
             coordBText.textContent = 'Belum Ditandai';
-            
+
             thumbAContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
             textPhotoAStatus.textContent = "Belum ada foto";
             thumbBContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
             textPhotoBStatus.textContent = "Belum ada foto";
-            
+
             calculatedDistanceMeters = 0;
             calculatedPolylineDistance = 0;
             calculatedStraightDistance = 0;
             calculatedDistanceElem.innerHTML = `0.00 <span class="text-base font-medium text-slate-300">meter</span>`;
             distanceKmSubElem.textContent = `(0.000 km)`;
-            
+
             btnPointB.disabled = true;
             btnPointB.classList.add('opacity-60', 'cursor-not-allowed');
-            
+
             document.getElementById('map-legend').classList.add('hidden');
         }
 
         // =========================================================
-        // 9. UI HISTORY SEGMEN
+        // 10. UI HISTORY SEGMEN
         // =========================================================
         function updateSegmentsUI() {
             const list = document.getElementById('segments-list');
             const emptyMsg = document.getElementById('empty-segments-msg');
             const badge = document.getElementById('total-segments-badge');
-            
+
             badge.textContent = `${completedSegments.length} segmen`;
-            
+
             if (completedSegments.length === 0) {
                 emptyMsg.classList.remove('hidden');
                 list.innerHTML = '';
@@ -1009,15 +1203,15 @@
             } else {
                 emptyMsg.classList.add('hidden');
                 list.innerHTML = '';
-                
+
                 completedSegments.forEach(seg => {
                     const card = document.createElement('div');
                     card.className = "bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center space-x-2.5";
-                    
-                    const modeBadge = seg.mode === 'polyline' 
+
+                    const modeBadge = seg.mode === 'polyline'
                         ? '<span class="mode-badge mode-polyline">🛣️ Ikuti Jalan</span>'
                         : '<span class="mode-badge mode-straight">📏 Lurus</span>';
-                    
+
                     card.innerHTML = `
                         <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-slate-950 shrink-0"
                              style="background: ${seg.color}; border: 2px solid white;">
@@ -1044,18 +1238,17 @@
                     list.appendChild(card);
                 });
             }
-            
-            // Update totals
+
             const totalDist = completedSegments.reduce((sum, s) => sum + s.distanceMeters, 0);
             const avgDist = completedSegments.length > 0 ? totalDist / completedSegments.length : 0;
-            
+
             document.getElementById('total-distance-summary').textContent = totalDist.toFixed(2) + ' m';
             document.getElementById('total-distance-km').textContent = `(${(totalDist / 1000).toFixed(3)} km)`;
             document.getElementById('avg-distance-summary').textContent = avgDist.toFixed(2) + ' m';
         }
 
         // =========================================================
-        // 10. SIMPAN KE LOKAL
+        // 11. SIMPAN KE LOKAL
         // =========================================================
         document.getElementById('btn-save-log').addEventListener('click', () => {
             const ruas = inputRuas.value.trim() || 'Ruas Tanpa Nama';
@@ -1070,8 +1263,7 @@
                 return;
             }
 
-            // Simpan segmen ke history kalau belum
-            const alreadyInHistory = completedSegments.some(s => 
+            const alreadyInHistory = completedSegments.some(s =>
                 s.pointA.lat === pointA.lat && s.pointA.lon === pointA.lon &&
                 s.pointB.lat === pointB.lat && s.pointB.lon === pointB.lon
             );
@@ -1105,7 +1297,7 @@
         });
 
         // =========================================================
-        // 11. UPLOAD KE GOOGLE SHEET
+        // 12. UPLOAD KE GOOGLE SHEET
         // =========================================================
         document.getElementById('btn-upload-cloud').addEventListener('click', async () => {
             if (!GAS_URL || GAS_URL.includes('XXXXXXXX')) {
@@ -1227,7 +1419,7 @@
         }
 
         // =========================================================
-        // 12. LOAD SERVER
+        // 13. LOAD SERVER
         // =========================================================
         document.getElementById('btn-load-cloud').addEventListener('click', async () => {
             if (!GAS_URL || GAS_URL.includes('XXXXXXXX')) {
@@ -1270,7 +1462,7 @@
         });
 
         // =========================================================
-        // 13. TAB SWITCHING
+        // 14. TAB SWITCHING
         // =========================================================
         document.getElementById('tab-local').addEventListener('click', () => switchTab('local'));
         document.getElementById('tab-server').addEventListener('click', () => switchTab('server'));
@@ -1292,7 +1484,7 @@
         }
 
         // =========================================================
-        // 14. RENDER LOGS
+        // 15. RENDER LOGS
         // =========================================================
         function renderLogs() {
             document.getElementById('count-local').textContent = monevLogs.length;
@@ -1418,7 +1610,7 @@
         }
 
         // =========================================================
-        // 15. LOCALSTORAGE
+        // 16. LOCALSTORAGE
         // =========================================================
         function saveLocalLogs() {
             try {
@@ -1442,7 +1634,7 @@
         }
 
         // =========================================================
-        // 16. EXPORT EXCEL
+        // 17. EXPORT EXCEL
         // =========================================================
         function getUniqueDataForCurrentTab() {
             const allData = [...monevLogs, ...serverLogs];
@@ -1532,7 +1724,7 @@
         });
 
         // =========================================================
-        // 17. CETAK
+        // 18. CETAK
         // =========================================================
         document.getElementById('btn-print-report').addEventListener('click', () => {
             const dataToPrint = getUniqueDataForCurrentTab();
@@ -1559,8 +1751,11 @@
             });
             window.print();
         });
-		
-		document.getElementById('btn-clear-local').addEventListener('click', () => {
+
+        // =========================================================
+        // 19. CLEAR LOCAL
+        // =========================================================
+        document.getElementById('btn-clear-local').addEventListener('click', () => {
             if (confirm('Yakin ingin menghapus semua riwayat lokal? Data di Google Sheet tidak akan terhapus.')) {
                 monevLogs = [];
                 localStorage.removeItem('sirampog_logs');
@@ -1570,7 +1765,7 @@
         });
 
         // =========================================================
-        // 18. MODAL & ALERT
+        // 20. MODAL & ALERT
         // =========================================================
         const modalInfo = document.getElementById('modal-info');
         document.getElementById('btn-info').addEventListener('click', () => modalInfo.classList.remove('hidden'));
