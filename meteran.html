@@ -5,80 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sirampog PMD - Monev</title>
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-    <!-- FontAwesome Icons -->
+    <!-- SheetJS untuk Export Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            touch-action: manipulation;
-        }
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
 
-        /* Pulsing animation for Marker A */
         .pulse-marker-a {
-            background-color: #10b981;
-            border-radius: 50%;
-            border: 3px solid #ffffff;
+            background-color: #10b981; border-radius: 50%; border: 3px solid #ffffff;
             box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
             animation: pulse-a 1.5s infinite;
         }
-
         @keyframes pulse-a {
-            0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            }
-            70% {
-                transform: scale(1.1);
-                box-shadow: 0 0 0 14px rgba(16, 185, 129, 0);
-            }
-            100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-            }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
         .marker-pin-b {
-            background-color: #ef4444;
-            border-radius: 50%;
-            border: 3px solid #ffffff;
+            background-color: #ef4444; border-radius: 50%; border: 3px solid #ffffff;
             box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
         }
 
-        /* Custom Leaflet Map styling in dark mode */
-        .leaflet-container {
-            background-color: #0f172a !important;
-            font-family: 'Inter', sans-serif !important;
+        .segment-number-badge {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #0f172a;
+            font-weight: 900;
+            font-size: 11px;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
 
-        /* Printable layout */
+        .leaflet-container { background-color: #0f172a !important; font-family: 'Inter', sans-serif !important; }
+
+        .loading-spinner {
+            border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #f59e0b;
+            border-radius: 50%; width: 20px; height: 20px;
+            animation: spin 0.8s linear infinite; display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .mode-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 999px;
+            font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .mode-polyline { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.4); }
+        .mode-straight { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4); }
+
         @media print {
-            body {
-                background: white !important;
-                color: black !important;
-            }
-            header, nav, #camera-section, #form-section, .no-print {
-                display: none !important;
-            }
-            #print-report {
-                display: block !important;
-            }
+            body { background: white !important; color: black !important; }
+            header, nav, #camera-section, #form-section, #segments-history-section, #calibration-section, .no-print { display: none !important; }
+            #print-report { display: block !important; }
         }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased pb-12">
 
-    <!-- Header Lapangan (High-Contrast Outdoor View) -->
     <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50 shadow-lg flex justify-between items-center">
         <div class="flex items-center space-x-3">
             <div class="bg-amber-500 text-slate-950 p-2.5 rounded-xl font-black shadow-md shadow-amber-500/20">
@@ -97,7 +89,6 @@
         </div>
     </header>
 
-    <!-- Main Content Container -->
     <main class="flex-1 max-w-lg w-full mx-auto p-4 space-y-4">
 
         <!-- Form Identitas Ruas / STA -->
@@ -122,6 +113,99 @@
                     <input type="text" id="input-sta" placeholder="Contoh: STA 0+100 - 0+350" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400">
                 </div>
             </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Besar Anggaran (Rp)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-amber-400 pointer-events-none">Rp</span>
+                        <input type="text" inputmode="numeric" id="input-anggaran" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-semibold">
+                    </div>
+                    <p id="anggaran-formatted" class="text-[9px] text-amber-400/70 mt-1 h-3 font-medium"></p>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Sumber Dana</label>
+                    <select id="select-sumber-dana" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
+                        <option value="Dana Desa">Dana Desa</option>
+                        <option value="Alokasi Dana Desa">Alokasi Dana Desa</option>
+                        <option value="BK Provinsi">BK Provinsi</option>
+                        <option value="BK Kabupaten">BK Kabupaten</option>
+                        <option value="PAD">PAD</option>
+                        <option value="DBH">DBH</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Kalibrasi Manual -->
+        <div id="calibration-section" class="bg-slate-900 p-4 rounded-2xl border border-indigo-500/30 shadow-lg space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Kalibrasi Akurasi GPS</h2>
+                </div>
+                <span id="calibration-status-badge" class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-400 font-semibold">
+                    <i class="fa-solid fa-exclamation-triangle text-amber-400 mr-1"></i> Belum Terkalibrasi
+                </span>
+            </div>
+
+            <p class="text-[10px] text-slate-400 leading-relaxed">
+                💡 <b class="text-indigo-300">Tips Akurasi:</b> Untuk hasil presisi, ukur <b>10 meter</b> pakai meteran di lapangan, 
+                lalu kalibrasi. Semua pengukuran berikutnya akan otomatis dikoreksi.
+            </p>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Jarak Referensi (meteran)</label>
+                    <div class="relative">
+                        <input type="text" inputmode="decimal" id="input-calib-ref" placeholder="10" value="10" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-400 font-semibold pr-10">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400">m</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 mb-1 font-medium">Hasil GPS</label>
+                    <div class="relative">
+                        <input type="text" id="input-calib-gps" readonly placeholder="-" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-emerald-400 placeholder-slate-600 focus:outline-none font-semibold pr-10">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-400">m</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 rounded-xl p-2.5 border border-slate-800">
+                <div class="flex justify-between text-[10px] mb-1">
+                    <span class="text-slate-500">Faktor Koreksi:</span>
+                    <span id="calibration-factor-display" class="text-amber-400 font-bold">1.000×</span>
+                </div>
+                <div class="text-[9px] text-slate-500">
+                    Semua jarak yang diukur akan dikalikan faktor ini.
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button id="btn-start-manual-calib" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Mulai Kalibrasi</span>
+                </button>
+                <button id="btn-reset-manual-calib" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 border border-slate-700 transition">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset Faktor</span>
+                </button>
+            </div>
+
+            <!-- Panduan Kalibrasi -->
+            <div id="calib-guide" class="hidden bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-3 space-y-1.5">
+                <div class="flex items-center space-x-1.5 text-indigo-300 font-bold text-[10px]">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Mode Kalibrasi AKTIF</span>
+                </div>
+                <ol class="text-[10px] text-slate-300 space-y-1 list-decimal list-inside">
+                    <li>Tandai 2 titik di jalan dengan jarak <b id="calib-guide-ref">10</b> m (pakai meteran)</li>
+                    <li>Berdiri di titik pertama, klik <b class="text-emerald-400">Set Titik A</b></li>
+                    <li>Jalan pelan ke titik kedua, klik <b class="text-red-400">Set Titik B</b></li>
+                    <li>Faktor koreksi akan otomatis dihitung & disimpan</li>
+                </ol>
+            </div>
         </div>
 
         <!-- Section Peta Interaktif Leaflet -->
@@ -135,18 +219,32 @@
                     <button id="btn-layer-sat" class="bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-lg">Satelit</button>
                 </div>
             </div>
+            <div id="map" class="w-full h-72 rounded-xl border border-slate-800 z-10 overflow-hidden shadow-inner"></div>
 
-            <!-- Leaflet Container -->
-            <div id="map" class="w-full h-64 rounded-xl border border-slate-800 z-10 overflow-hidden shadow-inner"></div>
+            <div id="map-legend" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-[10px] space-y-1.5">
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-slate-300 uppercase tracking-wider">Info Pengukuran</span>
+                    <span id="mode-badge" class="mode-badge mode-straight">📏 Garis Lurus</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <div class="bg-slate-900 rounded-lg p-1.5">
+                        <div class="text-slate-500 text-[9px] uppercase font-bold">Ikuti Jalan</div>
+                        <div id="legend-polyline-dist" class="text-emerald-400 font-bold">- m</div>
+                    </div>
+                    <div class="bg-slate-900 rounded-lg p-1.5">
+                        <div class="text-slate-500 text-[9px] uppercase font-bold">Garis Lurus</div>
+                        <div id="legend-straight-dist" class="text-blue-400 font-bold">- m</div>
+                    </div>
+                </div>
+                <div id="legend-ratio-info" class="text-slate-500 text-[9px] text-center pt-0.5 hidden"></div>
+            </div>
         </div>
 
-        <!-- Section Live Camera Preview & Snapshots -->
+        <!-- Section Live Camera Preview -->
         <div id="camera-section" class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3">
             <div class="relative bg-black rounded-xl overflow-hidden border border-slate-800 h-52 flex items-center justify-center">
-                <!-- Live Video Feed -->
                 <video id="camera-feed" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
 
-                <!-- Initial Camera Button -->
                 <div id="camera-placeholder" class="text-center p-4 space-y-2">
                     <i class="fa-solid fa-camera text-3xl text-slate-600"></i>
                     <p class="text-xs text-slate-400 max-w-[200px] mx-auto">Aktifkan kamera untuk dokumentasi visual titik jalan.</p>
@@ -155,17 +253,18 @@
                     </button>
                 </div>
 
-                <!-- Hidden Canvas for Frame Capture -->
                 <canvas id="snapshot-canvas" class="hidden"></canvas>
 
-                <!-- Indicator Camera Status -->
                 <div id="camera-live-badge" class="absolute top-3 left-3 bg-red-600/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center space-x-1 hidden">
                     <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
                     <span>LIVE CAMERA</span>
                 </div>
+
+                <button id="btn-stop-camera" class="absolute top-3 right-3 bg-slate-900/90 hover:bg-red-600 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full border border-slate-700 hidden transition">
+                    <i class="fa-solid fa-power-off mr-1"></i> Stop
+                </button>
             </div>
 
-            <!-- Preview Hasil Foto Titik A & B -->
             <div class="grid grid-cols-2 gap-2">
                 <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center space-x-2">
                     <div id="thumb-a-container" class="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
@@ -176,13 +275,12 @@
                         <span id="text-photo-a-status" class="text-[9px] text-slate-500 block truncate">Belum ada foto</span>
                     </div>
                 </div>
-
                 <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center space-x-2">
                     <div id="thumb-b-container" class="w-10 h-10 bg-slate-900 border border-slate-800 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
                         <i class="fa-solid fa-image text-slate-700 text-sm"></i>
                     </div>
                     <div class="overflow-hidden">
-                        <span class="text-[10px] font-bold text-red-400 block">Foto Titik Akhir B)</span>
+                        <span class="text-[10px] font-bold text-red-400 block">Foto Titik Akhir (B)</span>
                         <span id="text-photo-b-status" class="text-[9px] text-slate-500 block truncate">Belum ada foto</span>
                     </div>
                 </div>
@@ -199,9 +297,12 @@
                 0.00 <span class="text-base font-medium text-slate-300">meter</span>
             </div>
             <p id="distance-km-sub" class="text-[11px] text-slate-400 font-semibold">(0.000 km)</p>
+            <p id="distance-calibration-info" class="text-[9px] text-indigo-400 font-bold hidden">
+                <i class="fa-solid fa-check-circle mr-1"></i>Terkalibrasi ×<span id="calibration-info-factor">1.000</span>
+            </p>
         </div>
 
-        <!-- Tombol Aksi Kontrol GPS (Set Titik A & B) -->
+        <!-- Tombol Aksi Kontrol GPS -->
         <div class="grid grid-cols-2 gap-3">
             <button id="btn-point-a" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black py-3.5 px-3 rounded-2xl shadow-lg text-xs flex flex-col items-center justify-center space-y-1 border border-emerald-400/30 transition">
                 <div class="flex items-center space-x-1.5">
@@ -220,25 +321,69 @@
             </button>
         </div>
 
-        <!-- Form Detail Temuan / Kerusakan Jalan -->
+        <!-- Tombol Bantu Segmen -->
+        <div class="grid grid-cols-2 gap-3">
+            <button id="btn-new-segment" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 px-3 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 border border-slate-700 transition">
+                <i class="fa-solid fa-plus text-amber-400"></i>
+                <span>Segmen Baru</span>
+            </button>
+            <button id="btn-clear-segments" class="bg-slate-800 hover:bg-red-900/30 text-slate-200 hover:text-red-400 font-bold py-2.5 px-3 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 border border-slate-700 transition">
+                <i class="fa-solid fa-trash"></i>
+                <span>Hapus Semua Segmen</span>
+            </button>
+        </div>
+
+        <!-- History Jarak per Segmen -->
+        <div id="segments-history-section" class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-route text-amber-400"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">History Segmen (A→B)</h2>
+                </div>
+                <span id="total-segments-badge" class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-extrabold px-2 py-0.5 rounded-md text-[10px]">
+                    0 segmen
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
+                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total Jarak</div>
+                    <div id="total-distance-summary" class="text-lg font-black text-amber-400">0.00 m</div>
+                    <div id="total-distance-km" class="text-[9px] text-slate-500">(0.000 km)</div>
+                </div>
+                <div class="bg-slate-950 rounded-xl border border-slate-800 p-2.5">
+                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Rata-rata</div>
+                    <div id="avg-distance-summary" class="text-lg font-black text-indigo-400">0.00 m</div>
+                    <div class="text-[9px] text-slate-500">per segmen</div>
+                </div>
+            </div>
+
+            <div id="segments-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                <div id="empty-segments-msg" class="text-center py-6 text-slate-600 text-xs">
+                    <i class="fa-solid fa-route text-2xl mb-2 block"></i>
+                    Belum ada segmen tercatat.
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Detail Temuan -->
         <div id="form-section" class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
             <div class="flex items-center space-x-2 border-b border-slate-800 pb-2">
                 <i class="fa-solid fa-pen-to-square text-amber-400"></i>
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Catatan Monev </h2>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Catatan Monev</h2>
             </div>
 
             <div>
-                <label class="block text-[11px] text-slate-400 mb-1 font-medium">Jenis Kerusakan / Temuan</label>
+                <label class="block text-[11px] text-slate-400 mb-1 font-medium">Jenis Pemeriksaan Lapangan</label>
                 <select id="select-finding-type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400">
                     <option value="Pekerjaan Pengaspalan / Overlay">Pekerjaan Pengaspalan / Overlay</option>
-                    <option value="Perbaikan Rigid Pavement">Perbaikan Rigid Pavement</option>
                     <option value="Pekerjaan Saluran / Drainase">Pekerjaan Saluran / Drainase</option>
-					<option value="Lubang Jalan (Pothole)">Lubang Jalan (Pothole)</option>
+                    <option value="Perbaikan Rigid Pavement">Perbaikan Rigid Pavement</option>
+                    <option value="Lubang Jalan (Pothole)">Lubang Jalan (Pothole)</option>
                     <option value="Retak Buaya (Alligator Cracking)">Retak Buaya (Alligator Cracking)</option>
                     <option value="Retak Memanjang / Melintang">Retak Memanjang / Melintang</option>
                     <option value="Longsor / Amblas (Subsidence)">Longsor / Amblas (Subsidence)</option>
                     <option value="Kerusakan Bahu Jalan">Kerusakan Bahu Jalan</option>
-                    
                     <option value="Lainnya">Lainnya</option>
                 </select>
             </div>
@@ -248,23 +393,37 @@
                 <textarea id="input-notes" rows="2" placeholder="Catat estimasi lebar/kedalaman, instruksi penanganan, atau kondisi fisik jalan..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 resize-none"></textarea>
             </div>
 
-            <button id="btn-save-log" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-xs uppercase tracking-wider">
-                <i class="fa-solid fa-floppy-disk text-sm"></i>
-                <span>Simpan Hasil Monev Segmen Ini</span>
-            </button>
+            <div class="grid grid-cols-1 gap-2">
+                <button id="btn-save-log" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-floppy-disk text-sm"></i>
+                    <span>Simpan Hasil Monev Segmen Ini</span>
+                </button>
+                <button id="btn-upload-cloud" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                    <span>Simpan & Kirim ke Google Sheet</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Tabel Log Riwayat Monev -->
+        <!-- Tabel Log Riwayat -->
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <button id="btn-clear-local" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-red-500/30 flex items-center space-x-1">
+                <i class="fa-solid fa-trash"></i>
+                <span>Reset Local Data</span>
+            </button>
             <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-list-check text-amber-400"></i>
                     <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Riwayat Pengukuran</h2>
                 </div>
                 <div class="flex items-center space-x-1.5">
+                    <button id="btn-load-cloud" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-indigo-500 flex items-center space-x-1">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                        <span>Muat Server</span>
+                    </button>
                     <button id="btn-export-csv" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-slate-700 flex items-center space-x-1">
-                        <i class="fa-solid fa-file-csv text-emerald-400"></i>
-                        <span>CSV</span>
+                        <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                        <span>Excel</span>
                     </button>
                     <button id="btn-print-report" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-slate-700 flex items-center space-x-1">
                         <i class="fa-solid fa-print text-indigo-400"></i>
@@ -273,7 +432,15 @@
                 </div>
             </div>
 
-            <!-- List Container Log -->
+            <div class="flex space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button id="tab-local" class="flex-1 bg-amber-500 text-slate-950 font-bold py-2 rounded-lg text-[11px] transition">
+                    <i class="fa-solid fa-mobile-screen mr-1"></i> Lokal (<span id="count-local">0</span>)
+                </button>
+                <button id="tab-server" class="flex-1 text-slate-400 font-bold py-2 rounded-lg text-[11px] transition hover:text-white">
+                    <i class="fa-solid fa-cloud mr-1"></i> Server (<span id="count-server">0</span>)
+                </button>
+            </div>
+
             <div id="log-list-container" class="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
                 <div id="empty-log-msg" class="text-center py-8 text-slate-600 text-xs">
                     <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
@@ -284,7 +451,7 @@
 
     </main>
 
-    <!-- Printable Report View (Only Visible in Print Mode) -->
+    <!-- Printable Report -->
     <div id="print-report" class="hidden p-8 text-black bg-white">
         <div class="border-b-2 border-black pb-4 mb-4 flex justify-between items-center">
             <div>
@@ -295,25 +462,24 @@
                 <p>Tanggal Cetak: <span id="print-date"></span></p>
             </div>
         </div>
-
         <table class="w-full text-xs border-collapse border border-black mb-4">
             <thead>
                 <tr class="bg-gray-200">
                     <th class="border border-black p-2">No</th>
                     <th class="border border-black p-2">Ruas / STA</th>
                     <th class="border border-black p-2">Jarak (m)</th>
+                    <th class="border border-black p-2">Anggaran (Rp)</th>
+                    <th class="border border-black p-2">Sumber Dana</th>
                     <th class="border border-black p-2">Jenis Temuan</th>
                     <th class="border border-black p-2">Koordinat A & B</th>
                     <th class="border border-black p-2">Catatan</th>
                 </tr>
             </thead>
-            <tbody id="print-table-body">
-                <!-- Dynamic Rows -->
-            </tbody>
+            <tbody id="print-table-body"></tbody>
         </table>
     </div>
 
-    <!-- Modal Panduan Penggunaan -->
+    <!-- Modal Panduan -->
     <div id="modal-info" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-xs">
             <div class="flex justify-between items-center border-b border-slate-800 pb-2">
@@ -323,17 +489,19 @@
                 <button id="close-modal" class="text-slate-400 hover:text-white text-base"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-2.5 text-slate-300 leading-relaxed">
-                <p><b>1. Buka Kamera HP:</b> Klik tombol "Buka Kamera HP" agar sistem merekam tampilan visual lokasi.</p>
-                <p><b>2. Tandai Titik A (Awal):</b> Tekan tombol <b>"1. SET TITIK AWAL (A)"</b>. Marker hijau berkedip akan muncul di peta dan foto awal akan diambil.</p>
-                <p><b>3. Berjalan ke Ujung Segmen:</b> Berjalanlah menyusuri jalan. Garis biru (*polyline*) akan otomatis ditarik mengikuti pergerakan GPS Anda secara real-time.</p>
-                <p><b>4. Tandai Titik B (Akhir):</b> Tekan tombol <b>"2. SET TITIK AKHIR (B)"</b>. Marker merah akan dikunci dan total jarak otomatis dihitung dalam satuan meter/km.</p>
-                <p><b>5. Simpan & Laporan:</b> Pilih jenis kerusakan, isi catatan, lalu simpan. Data bisa di-export ke CSV atau dicetak langsung.</p>
+                <p><b class="text-indigo-400">✨ KALIBRASI (Sangat Disarankan):</b> Ukur 10m pakai meteran, lalu klik "Mulai Kalibrasi" di section Kalibrasi. Faktor koreksi akan dihitung otomatis untuk akurasi maksimal.</p>
+                <p><b>1. Buka Kamera HP:</b> Klik tombol "Buka Kamera HP" untuk dokumentasi visual.</p>
+                <p><b>2. Tandai Titik A:</b> Klik "SET TITIK AWAL (A)". Kalibrasi GPS 5 detik — <b>diam di tempat</b>.</p>
+                <p><b>3. Jalan ke Ujung Segmen:</b> Garis biru otomatis mengikuti pergerakan GPS.</p>
+                <p><b>4. Tandai Titik B:</b> Klik "SET TITIK AKHIR (B)". Kalibrasi 5 detik lagi.</p>
+                <p><b>5. Auto-Mode:</b> Sistem otomatis pilih polyline (jalan berbelok) atau garis lurus.</p>
+                <p><b>6. Simpan & Kirim:</b> Isi catatan, klik "Simpan & Kirim ke Google Sheet".</p>
             </div>
             <button id="btn-close-modal" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl border border-slate-700 transition">Tutup Panduan</button>
         </div>
     </div>
 
-    <!-- Custom Alert Pop-up -->
+    <!-- Custom Alert -->
     <div id="custom-alert" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xs w-full p-4 space-y-3 text-center shadow-2xl">
             <div id="alert-icon" class="text-amber-400 text-3xl"><i class="fa-solid fa-circle-check"></i></div>
@@ -343,9 +511,23 @@
         </div>
     </div>
 
-    <!-- Application Script Logic -->
+    <!-- Loading -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 text-center shadow-2xl">
+            <div class="loading-spinner mx-auto"></div>
+            <p id="loading-text" class="text-xs text-slate-300 font-medium">Memproses data...</p>
+        </div>
+    </div>
+
     <script>
-        // State Global
+        // =========================================================
+        // KONFIGURASI
+        // =========================================================
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwryKVW7L1QcBr0f-RTWVhG7PXyMslWRYarYTsRz6CyDKxRBBUo1e9RRQu8yU6czedo/exec";
+
+        // =========================================================
+        // STATE GLOBAL
+        // =========================================================
         let map = null;
         let markerA = null;
         let markerB = null;
@@ -353,22 +535,54 @@
         let polyline = null;
         let pathCoords = [];
 
+        let isCalibrating = false;
+        let calibrationSamples = [];
+        let calibrationCallback = null;
+        let calibrationIntervalId = null;
+        const CALIBRATION_DURATION_MS = 5000;
+        const CALIBRATION_SAMPLE_COUNT = 10;
+
+        // Kalibrasi MANUAL (untuk akurasi monitoring pekerjaan jalan)
+        let manualCalibrationFactor = 1.0;
+        let manualCalibrationRefMeters = 0;
+        let manualCalibrationGpsMeters = 0;
+        let isCalibrationMode = false;
+
         let cameraStream = null;
-        let pointA = null; // { lat, lon, photo }
-        let pointB = null; // { lat, lon, photo }
+        let pointA = null;
+        let pointB = null;
         let calculatedDistanceMeters = 0;
+        let calculatedPolylineDistance = 0;
+        let calculatedStraightDistance = 0;
+        let rawDistanceMeters = 0;
+        let rawPolylineDistance = 0;
+        let rawStraightDistance = 0;
+        let autoModeUsed = 'straight';
+
         let monevLogs = [];
+        let serverLogs = [];
+        let currentTab = 'local';
         let lastKnownCoords = null;
         let watchPositionId = null;
 
-        // Leaflet Tile Layers
         let streetLayer = null;
         let satLayer = null;
 
+        let completedSegments = [];
+        let segmentCounter = 0;
+
+        const SEGMENT_COLORS = [
+            '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16',
+            '#f97316', '#14b8a6', '#a855f7', '#ef4444', '#3b82f6'
+        ];
+
+        // =========================================================
         // DOM Elements
+        // =========================================================
         const videoElement = document.getElementById('camera-feed');
         const cameraPlaceholder = document.getElementById('camera-placeholder');
         const btnStartCamera = document.getElementById('btn-start-camera');
+        const btnStopCamera = document.getElementById('btn-stop-camera');
         const snapshotCanvas = document.getElementById('snapshot-canvas');
         const cameraLiveBadge = document.getElementById('camera-live-badge');
 
@@ -387,22 +601,30 @@
 
         const inputRuas = document.getElementById('input-ruas');
         const inputSta = document.getElementById('input-sta');
+        const inputAnggaran = document.getElementById('input-anggaran');
+        const anggaranFormatted = document.getElementById('anggaran-formatted');
+        const selectSumberDana = document.getElementById('select-sumber-dana');
         const selectFindingType = document.getElementById('select-finding-type');
         const inputNotes = document.getElementById('input-notes');
-        const btnSaveLog = document.getElementById('btn-save-log');
         const logListContainer = document.getElementById('log-list-container');
-        const emptyLogMsg = document.getElementById('empty-log-msg');
 
-        // Initialize Application
+        // =========================================================
+        // INIT
+        // =========================================================
         window.onload = function() {
             initLeafletMap();
             initGPS();
+            loadLocalLogs();
+            initAnggaranFormatter();
+            initManualCalibration();
+            updateSegmentsUI();
         };
 
-        // 1. Inisialisasi Peta Leaflet.js
+        // =========================================================
+        // 1. PETA LEAFLET
+        // =========================================================
         function initLeafletMap() {
-            // Center default di Jakarta/Indonesia jika belum ada GPS
-            map = L.map('map', { zoomControl: false }).setView([-6.2088, 106.8456], 13);
+            map = L.map('map', { zoomControl: false }).setView([-7.204085942429819, 109.06250470580751], 13);
 
             streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
@@ -414,7 +636,6 @@
                 attribution: 'Tiles © Esri'
             });
 
-            // Layer Toggle
             document.getElementById('btn-layer-street').addEventListener('click', () => {
                 map.removeLayer(satLayer);
                 map.addLayer(streetLayer);
@@ -429,11 +650,12 @@
                 document.getElementById('btn-layer-street').className = "bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-lg";
             });
 
-            // Initialize Polyline Path
-            polyline = L.polyline([], { color: '#3b82f6', weight: 5, opacity: 0.8, dashArray: '5, 10' }).addTo(map);
+            polyline = L.polyline([], { color: '#3b82f6', weight: 5, opacity: 0.85, dashArray: '5, 10' }).addTo(map);
         }
 
-        // 2. Inisialisasi GPS Real-Time Watch Position
+        // =========================================================
+        // 2. GPS WATCH POSITION
+        // =========================================================
         function initGPS() {
             if ("geolocation" in navigator) {
                 watchPositionId = navigator.geolocation.watchPosition(
@@ -443,196 +665,84 @@
                         const acc = Math.round(position.coords.accuracy);
 
                         lastKnownCoords = { lat, lon, acc };
-
                         gpsAccuracyBadge.innerHTML = `<i class="fa-solid fa-satellite text-emerald-400 mr-1"></i> Akurat: ±${acc}m`;
 
-                        // Update Marker Posisi Sekarang jika sedang berjalan
                         const currentLatLng = [lat, lon];
-                        
+
                         if (!currentPosMarker) {
                             currentPosMarker = L.circleMarker(currentLatLng, {
-                                radius: 7,
-                                fillColor: "#3b82f6",
-                                color: "#ffffff",
-                                weight: 2,
-                                opacity: 1,
-                                fillOpacity: 0.9
+                                radius: 7, fillColor: "#3b82f6", color: "#ffffff",
+                                weight: 2, opacity: 1, fillOpacity: 0.9
                             }).addTo(map);
                             map.setView(currentLatLng, 17);
                         } else {
                             currentPosMarker.setLatLng(currentLatLng);
                         }
 
-                        // Jika Titik A sudah ditentukan dan Titik B belum, gambar garis jejak real-time!
+                        // Kalau sedang kalibrasi (auto), kumpulkan sampel
+                        if (isCalibrating) {
+                            calibrationSamples.push({ lat, lon, acc });
+                            return;
+                        }
+
+                        // Real-time update saat berjalan dari A ke B
                         if (pointA && !pointB) {
+                            // FILTER 1: Akurasi sangat buruk
+                            if (acc > 25) return;
+
+                            const lastPoint = pathCoords[pathCoords.length - 1];
+
+                            if (lastPoint) {
+                                const distFromLast = calculateDistanceTwoPoints(lastPoint[0], lastPoint[1], lat, lon);
+
+                                // FILTER 2: Noise diam ADAPTIF
+                                const noiseThreshold = Math.max(1.5, acc * 0.5);
+                                if (distFromLast < noiseThreshold) return;
+
+                                // FILTER 3: Anti lompat
+                                if (distFromLast > 100) return;
+
+                                // FILTER 4: Belokan tajam (hanya kalau jarak > 3m)
+                                if (pathCoords.length >= 2 && distFromLast > 3) {
+                                    const prevPoint = pathCoords[pathCoords.length - 2];
+                                    const angle = calculateTurnAngle(prevPoint, lastPoint, [lat, lon]);
+                                    if (angle > 150) return;
+                                }
+                            }
+
                             pathCoords.push(currentLatLng);
                             polyline.setLatLngs(pathCoords);
-                            
-                            // Hitung estimasi jarak sementara saat berjalan
-                            const liveDist = calculateDistanceTwoPoints(pointA.lat, pointA.lon, lat, lon);
-                            calculatedDistanceElem.innerHTML = `${liveDist.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
-                            distanceKmSubElem.textContent = `(${(liveDist / 1000).toFixed(3)} km)`;
+
+                            const rawLivePolyline = calculatePolylineDistance(pathCoords);
+                            const rawLiveStraight = calculateDistanceTwoPoints(pointA.lat, pointA.lon, lat, lon);
+
+                            // Terapkan faktor kalibrasi manual
+                            const livePolyline = rawLivePolyline * manualCalibrationFactor;
+                            const liveStraight = rawLiveStraight * manualCalibrationFactor;
+
+                            calculatedDistanceElem.innerHTML = `${livePolyline.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
+                            distanceKmSubElem.textContent = `(${(livePolyline / 1000).toFixed(3)} km)`;
+
+                            document.getElementById('legend-polyline-dist').textContent = livePolyline.toFixed(2) + ' m';
+                            document.getElementById('legend-straight-dist').textContent = liveStraight.toFixed(2) + ' m';
                         }
                     },
                     (error) => {
                         console.warn("GPS Error:", error.message);
                         gpsAccuracyBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 mr-1"></i> GPS Lemah`;
                     },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
-                    }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             } else {
                 showAlert("GPS Tidak Didukung", "Browser perangkat Anda tidak mendukung geolokasi.");
             }
         }
 
-        // 3. Kontrol Kamera Live Preview
-        btnStartCamera.addEventListener('click', async () => {
-            try {
-                const constraints = {
-                    video: {
-                        facingMode: { ideal: "environment" },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                };
-
-                try {
-                    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-                } catch (e) {
-                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                }
-
-                videoElement.srcObject = cameraStream;
-                videoElement.classList.remove('hidden');
-                cameraPlaceholder.classList.add('hidden');
-                cameraLiveBadge.classList.remove('hidden');
-
-            } catch (err) {
-                console.error("Gagal membuka kamera:", err);
-                showAlert("Akses Kamera Ditolak", "Pastikan izin kamera telah diberikan di browser.");
-            }
-        });
-
-        // Frame Capture dari Kamera Video
-        function capturePhoto() {
-            if (!cameraStream || videoElement.classList.contains('hidden')) return null;
-            snapshotCanvas.width = videoElement.videoWidth || 640;
-            snapshotCanvas.height = videoElement.videoHeight || 480;
-            const ctx = snapshotCanvas.getContext('2d');
-            ctx.drawImage(videoElement, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
-            return snapshotCanvas.toDataURL('image/jpeg', 0.7);
-        }
-
-        // 4. Action: Set Titik Awal (A)
-        btnPointA.addEventListener('click', () => {
-            if (!lastKnownCoords) {
-                showAlert("Mencari Sinyal GPS", "Mohon tunggu sejenak hingga posisi GPS terkunci.");
-                return;
-            }
-
-            const photo = capturePhoto();
-            pointA = {
-                lat: lastKnownCoords.lat,
-                lon: lastKnownCoords.lon,
-                photo: photo
-            };
-
-            coordAText.textContent = `${pointA.lat.toFixed(5)}, ${pointA.lon.toFixed(5)}`;
-
-            // UI Foto Preview A
-            if (photo) {
-                thumbAContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
-                textPhotoAStatus.textContent = "Foto Terekam";
-            }
-
-            // Peta Marker A (Green Pulsing Icon)
-            if (markerA) map.removeLayer(markerA);
-            
-            const customIconA = L.divIcon({
-                className: 'pulse-marker-a',
-                iconSize: [18, 18],
-                iconAnchor: [9, 9]
-            });
-
-            markerA = L.marker([pointA.lat, pointA.lon], { icon: customIconA }).addTo(map)
-                .bindPopup("<b>Titik Awal (A)</b>").openPopup();
-
-            map.setView([pointA.lat, pointA.lon], 18);
-
-            // Reset jalur jejak
-            pathCoords = [[pointA.lat, pointA.lon]];
-            polyline.setLatLngs(pathCoords);
-            polyline.setStyle({ dashArray: null, color: '#3b82f6' });
-
-            // Aktifkan Tombol Titik B
-            btnPointB.disabled = false;
-            btnPointB.classList.remove('opacity-60', 'cursor-not-allowed');
-
-            showAlert("Titik Awal Terkunci", `Marker A diset di koordinat ${pointA.lat.toFixed(5)}, ${pointA.lon.toFixed(5)}. Sekarang berjalanlah ke Titik B.`);
-        });
-
-        // 5. Action: Set Titik Akhir (B)
-        btnPointB.addEventListener('click', () => {
-            if (!pointA) {
-                showAlert("Peringatan", "Atur Titik Awal (A) terlebih dahulu!");
-                return;
-            }
-
-            if (!lastKnownCoords) {
-                showAlert("Mencari Sinyal GPS", "Mohon tunggu sejenak hingga posisi GPS terkunci.");
-                return;
-            }
-
-            const photo = capturePhoto();
-            pointB = {
-                lat: lastKnownCoords.lat,
-                lon: lastKnownCoords.lon,
-                photo: photo
-            };
-
-            coordBText.textContent = `${pointB.lat.toFixed(5)}, ${pointB.lon.toFixed(5)}`;
-
-            // UI Foto Preview B
-            if (photo) {
-                thumbBContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
-                textPhotoBStatus.textContent = "Foto Terekam";
-            }
-
-            // Peta Marker B (Red Icon)
-            if (markerB) map.removeLayer(markerB);
-
-            const customIconB = L.divIcon({
-                className: 'marker-pin-b',
-                iconSize: [18, 18],
-                iconAnchor: [9, 9]
-            });
-
-            markerB = L.marker([pointB.lat, pointB.lon], { icon: customIconB }).addTo(map)
-                .bindPopup("<b>Titik Akhir (B)</b>").openPopup();
-
-            // Kunci Garis Jalur
-            pathCoords.push([pointB.lat, pointB.lon]);
-            polyline.setLatLngs(pathCoords);
-
-            // Zoom map fit bounds segmen A-B
-            const bounds = L.latLngBounds([ [pointA.lat, pointA.lon], [pointB.lat, pointB.lon] ]);
-            map.fitBounds(bounds, { padding: [30, 30] });
-
-            // Hitung Jarak Final
-            calculatedDistanceMeters = calculateDistanceTwoPoints(pointA.lat, pointA.lon, pointB.lat, pointB.lon);
-            calculatedDistanceElem.innerHTML = `${calculatedDistanceMeters.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
-            distanceKmSubElem.textContent = `(${(calculatedDistanceMeters / 1000).toFixed(3)} km)`;
-
-            showAlert("Pengukuran Selesai", `Jarak segmen A ke B adalah ${calculatedDistanceMeters.toFixed(2)} meter.`);
-        });
-
-        // Hitung Jarak Haversine Formula
+        // =========================================================
+        // 3. FUNGSI HITUNG JARAK
+        // =========================================================
         function calculateDistanceTwoPoints(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Earth radius in meters
+            const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -642,71 +752,1086 @@
             return R * c;
         }
 
-        // 6. Simpan Log Riwayat Pengukuran
-        btnSaveLog.addEventListener('click', () => {
+        function calculatePolylineDistance(coords) {
+            if (!coords || coords.length < 2) return 0;
+            let totalDistance = 0;
+            for (let i = 0; i < coords.length - 1; i++) {
+                const p1 = coords[i];
+                const p2 = coords[i + 1];
+                totalDistance += calculateDistanceTwoPoints(p1[0], p1[1], p2[0], p2[1]);
+            }
+            return totalDistance;
+        }
+
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+            const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                      Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+            const brng = Math.atan2(y, x) * 180 / Math.PI;
+            return (brng + 360) % 360;
+        }
+
+        function calculateTurnAngle(p1, p2, p3) {
+            const bearing1 = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
+            const bearing2 = calculateBearing(p2[0], p2[1], p3[0], p3[1]);
+            let diff = Math.abs(bearing2 - bearing1);
+            if (diff > 180) diff = 360 - diff;
+            return diff;
+        }
+
+        // =========================================================
+        // 4. KALIBRASI MANUAL (untuk akurasi monitoring pekerjaan jalan)
+        // =========================================================
+        function initManualCalibration() {
+            const inputCalibRef = document.getElementById('input-calib-ref');
+            const inputCalibGps = document.getElementById('input-calib-gps');
+            const calibrationFactorDisplay = document.getElementById('calibration-factor-display');
+            const calibrationStatusBadge = document.getElementById('calibration-status-badge');
+            const calibGuide = document.getElementById('calib-guide');
+            const btnStartManualCalib = document.getElementById('btn-start-manual-calib');
+            const btnResetManualCalib = document.getElementById('btn-reset-manual-calib');
+
+            // Load dari localStorage
+            try {
+                const savedFactor = localStorage.getItem('sirampog_calib_factor');
+                const savedRef = localStorage.getItem('sirampog_calib_ref');
+                const savedGps = localStorage.getItem('sirampog_calib_gps');
+                if (savedFactor) {
+                    manualCalibrationFactor = parseFloat(savedFactor);
+                    manualCalibrationRefMeters = parseFloat(savedRef) || 0;
+                    manualCalibrationGpsMeters = parseFloat(savedGps) || 0;
+                }
+            } catch (e) { console.warn("Gagal load kalibrasi:", e); }
+
+            // Update UI awal
+            updateCalibrationUI();
+
+            // Event handler: Mulai kalibrasi
+            btnStartManualCalib.addEventListener('click', () => {
+                isCalibrationMode = true;
+                calibGuide.classList.remove('hidden');
+                btnStartManualCalib.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Menunggu...</span>';
+                btnStartManualCalib.className = 'bg-amber-500 text-slate-950 font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition';
+
+                inputCalibGps.value = '';
+                document.getElementById('calib-guide-ref').textContent = inputCalibRef.value || '10';
+
+                showAlert("Mode Kalibrasi Aktif",
+                    "1. Ukur " + (inputCalibRef.value || '10') + " meter pakai meteran\n" +
+                    "2. Klik 'SET TITIK AWAL (A)' di titik pertama\n" +
+                    "3. Jalan ke titik kedua\n" +
+                    "4. Klik 'SET TITIK AKHIR (B)'\n\n" +
+                    "Faktor koreksi akan dihitung otomatis.");
+            });
+
+            // Event handler: Reset faktor
+            btnResetManualCalib.addEventListener('click', () => {
+                if (!confirm("Reset faktor koreksi ke 1.000×?\n\nSemua pengukuran akan kembali ke hasil GPS mentah.")) return;
+                manualCalibrationFactor = 1.0;
+                manualCalibrationRefMeters = 0;
+                manualCalibrationGpsMeters = 0;
+                isCalibrationMode = false;
+                localStorage.removeItem('sirampog_calib_factor');
+                localStorage.removeItem('sirampog_calib_ref');
+                localStorage.removeItem('sirampog_calib_gps');
+                inputCalibGps.value = '';
+                updateCalibrationUI();
+                calibGuide.classList.add('hidden');
+                btnStartManualCalib.innerHTML = '<i class="fa-solid fa-play"></i><span>Mulai Kalibrasi</span>';
+                btnStartManualCalib.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition';
+                showAlert("Kalibrasi Direset", "Faktor koreksi kembali ke 1.000× (GPS mentah).");
+            });
+
+            // Update label saat input berubah
+            inputCalibRef.addEventListener('input', () => {
+                document.getElementById('calib-guide-ref').textContent = inputCalibRef.value || '10';
+            });
+        }
+
+        function updateCalibrationUI() {
+            const calibrationFactorDisplay = document.getElementById('calibration-factor-display');
+            const calibrationStatusBadge = document.getElementById('calibration-status-badge');
+            const inputCalibGps = document.getElementById('input-calib-gps');
+            const distanceCalibrationInfo = document.getElementById('distance-calibration-info');
+            const calibrationInfoFactor = document.getElementById('calibration-info-factor');
+
+            calibrationFactorDisplay.textContent = manualCalibrationFactor.toFixed(3) + '×';
+
+            if (manualCalibrationFactor !== 1.0 && manualCalibrationRefMeters > 0) {
+                calibrationStatusBadge.className = 'text-[10px] bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 rounded-full text-emerald-300 font-bold';
+                calibrationStatusBadge.innerHTML = '<i class="fa-solid fa-check-circle mr-1"></i> Aktif ×' + manualCalibrationFactor.toFixed(3);
+
+                if (manualCalibrationGpsMeters > 0) {
+                    inputCalibGps.value = manualCalibrationGpsMeters.toFixed(2);
+                }
+            } else {
+                calibrationStatusBadge.className = 'text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-400 font-semibold';
+                calibrationStatusBadge.innerHTML = '<i class="fa-solid fa-exclamation-triangle text-amber-400 mr-1"></i> Belum Terkalibrasi';
+            }
+
+            // Update banner info kalibrasi
+            if (distanceCalibrationInfo && calibrationInfoFactor) {
+                if (manualCalibrationFactor !== 1.0) {
+                    distanceCalibrationInfo.classList.remove('hidden');
+                    calibrationInfoFactor.textContent = manualCalibrationFactor.toFixed(3);
+                } else {
+                    distanceCalibrationInfo.classList.add('hidden');
+                }
+            }
+        }
+
+        // Terapkan faktor kalibrasi ke jarak mentah
+        function applyCalibration(rawMeters) {
+            return rawMeters * manualCalibrationFactor;
+        }
+
+        // Hitung & simpan faktor kalibrasi (dipanggil setelah Set Titik B saat mode kalibrasi)
+        function computeAndApplyCalibration(gpsMeters) {
+            if (!isCalibrationMode) return false;
+
+            const inputCalibRef = document.getElementById('input-calib-ref');
+            const refMeters = parseFloat(inputCalibRef.value) || 0;
+
+            if (refMeters <= 0) {
+                showAlert("Input Tidak Valid", "Masukkan jarak referensi meteran (misal 10m).");
+                return false;
+            }
+
+            manualCalibrationRefMeters = refMeters;
+            manualCalibrationGpsMeters = gpsMeters;
+
+            if (gpsMeters > 0.5) {
+                manualCalibrationFactor = refMeters / gpsMeters;
+
+                // Batasi faktor agar tidak ekstrem
+                if (manualCalibrationFactor < 0.5) manualCalibrationFactor = 0.5;
+                if (manualCalibrationFactor > 2.5) manualCalibrationFactor = 2.5;
+
+                // Simpan ke localStorage
+                localStorage.setItem('sirampog_calib_factor', manualCalibrationFactor.toString());
+                localStorage.setItem('sirampog_calib_ref', refMeters.toString());
+                localStorage.setItem('sirampog_calib_gps', gpsMeters.toString());
+
+                // Reset mode kalibrasi
+                isCalibrationMode = false;
+                document.getElementById('calib-guide').classList.add('hidden');
+                const btnStart = document.getElementById('btn-start-manual-calib');
+                btnStart.innerHTML = '<i class="fa-solid fa-play"></i><span>Mulai Kalibrasi</span>';
+                btnStart.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-[11px] flex items-center justify-center space-x-1.5 transition';
+
+                updateCalibrationUI();
+
+                showAlert("Kalibrasi Berhasil! ✅",
+                    "Referensi (meteran): " + refMeters + " m\n" +
+                    "GPS mengukur: " + gpsMeters.toFixed(2) + " m\n" +
+                    "Faktor koreksi: ×" + manualCalibrationFactor.toFixed(3) + "\n\n" +
+                    "Mulai sekarang, semua pengukuran otomatis dikoreksi."
+                );
+
+                return true;
+            } else {
+                showAlert("Kalibrasi Gagal", "GPS mengukur < 0.5m. Coba lagi dengan jarak lebih jauh (min 10m).");
+                return false;
+            }
+        }
+
+        // =========================================================
+        // 5. KAMERA ON/OFF
+        // =========================================================
+        btnStartCamera.addEventListener('click', startCamera);
+        btnStopCamera.addEventListener('click', stopCamera);
+
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                };
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (e) {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                }
+                videoElement.srcObject = cameraStream;
+                videoElement.classList.remove('hidden');
+                cameraPlaceholder.classList.add('hidden');
+                cameraLiveBadge.classList.remove('hidden');
+                btnStopCamera.classList.remove('hidden');
+                btnStartCamera.innerHTML = '<i class="fa-solid fa-camera-rotate mr-1.5"></i> Kamera Aktif';
+            } catch (err) {
+                console.error("Gagal membuka kamera:", err);
+                showAlert("Akses Kamera Ditolak", "Pastikan izin kamera telah diberikan di browser.");
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            videoElement.srcObject = null;
+            videoElement.classList.add('hidden');
+            cameraPlaceholder.classList.remove('hidden');
+            cameraLiveBadge.classList.add('hidden');
+            btnStopCamera.classList.add('hidden');
+            btnStartCamera.innerHTML = '<i class="fa-solid fa-power-off mr-1.5"></i> Buka Kamera HP';
+        }
+
+        function capturePhoto() {
+            if (!cameraStream || videoElement.classList.contains('hidden')) return null;
+            snapshotCanvas.width = videoElement.videoWidth || 640;
+            snapshotCanvas.height = videoElement.videoHeight || 480;
+            const ctx = snapshotCanvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+            return snapshotCanvas.toDataURL('image/jpeg', 0.7);
+        }
+
+        // =========================================================
+        // 6. KALIBRASI GPS OTOMATIS (5 detik)
+        // =========================================================
+        function startCalibration(callback) {
+            if (isCalibrating) {
+                showAlert("Sedang Kalibrasi", "Mohon tunggu kalibrasi sebelumnya selesai.");
+                return;
+            }
+
+            isCalibrating = true;
+            calibrationSamples = [];
+            calibrationCallback = callback;
+
+            showCalibrationOverlay();
+
+            const startTime = Date.now();
+
+            calibrationIntervalId = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                const timeRemaining = Math.max(0, (CALIBRATION_DURATION_MS - elapsed) / 1000);
+
+                const timerEl = document.getElementById('calibration-timer');
+                if (timerEl) timerEl.textContent = timeRemaining.toFixed(1) + ' s';
+
+                updateCalibrationProgress();
+
+                const goodSamples = calibrationSamples.filter(s => s.acc <= 20).length;
+                if (elapsed >= CALIBRATION_DURATION_MS || goodSamples >= CALIBRATION_SAMPLE_COUNT) {
+                    clearInterval(calibrationIntervalId);
+                    calibrationIntervalId = null;
+                    finishCalibration();
+                }
+            }, 100);
+        }
+
+        function finishCalibration() {
+            if (!isCalibrating) return;
+            isCalibrating = false;
+
+            if (calibrationIntervalId) {
+                clearInterval(calibrationIntervalId);
+                calibrationIntervalId = null;
+            }
+
+            hideCalibrationOverlay();
+
+            let goodSamples = calibrationSamples.filter(s => s.acc <= 20);
+            if (goodSamples.length < 3) {
+                goodSamples = calibrationSamples;
+            }
+
+            if (goodSamples.length === 0) {
+                showAlert("Kalibrasi Gagal", "Tidak ada sinyal GPS yang layak. Coba lagi di area terbuka.");
+                return;
+            }
+
+            const lats = goodSamples.map(s => s.lat).sort((a, b) => a - b);
+            const lons = goodSamples.map(s => s.lon).sort((a, b) => a - b);
+            const accs = goodSamples.map(s => s.acc).sort((a, b) => a - b);
+
+            const medianLat = lats[Math.floor(lats.length / 2)];
+            const medianLon = lons[Math.floor(lons.length / 2)];
+            const medianAcc = accs[Math.floor(accs.length / 2)];
+
+            const calibratedPoint = {
+                lat: medianLat,
+                lon: medianLon,
+                accuracy: medianAcc,
+                sampleCount: goodSamples.length
+            };
+
+            console.log(`Kalibrasi selesai: ${goodSamples.length} sampel, akurasi ±${medianAcc}m`);
+            calibrationSamples = [];
+
+            if (calibrationCallback) {
+                const cb = calibrationCallback;
+                calibrationCallback = null;
+                cb(calibratedPoint);
+            }
+        }
+
+        function showCalibrationOverlay() {
+            let overlay = document.getElementById('calibration-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'calibration-overlay';
+                overlay.className = 'fixed inset-0 bg-black/85 backdrop-blur-sm z-[70] flex items-center justify-center p-4';
+                overlay.innerHTML = `
+                    <div class="bg-slate-900 border border-amber-500/30 rounded-2xl max-w-xs w-full p-5 space-y-4 text-center shadow-2xl">
+                        <div class="relative w-20 h-20 mx-auto">
+                            <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+                            <div class="absolute inset-0 rounded-full border-4 border-amber-400 border-t-transparent animate-spin"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fa-solid fa-satellite-dish text-amber-400 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">📡 Kalibrasi GPS</h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Diam di tempat, jangan bergerak...</p>
+                        </div>
+                        <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 space-y-2">
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">Sampel:</span>
+                                <span id="calibration-sample-count" class="text-amber-400 font-bold">0 / 10</span>
+                            </div>
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">Waktu:</span>
+                                <span id="calibration-timer" class="text-amber-400 font-bold">5.0 s</span>
+                            </div>
+                            <div class="flex justify-between text-[10px]">
+                                <span class="text-slate-500">Akurasi:</span>
+                                <span id="calibration-accuracy" class="text-emerald-400 font-bold">-</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="calibration-progress-bar" class="bg-amber-400 h-full rounded-full transition-all duration-200" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-slate-500">💡 Untuk hasil terbaik, tunggu sampai akurasi ≤ ±10m</p>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            }
+            overlay.classList.remove('hidden');
+        }
+
+        function hideCalibrationOverlay() {
+            const overlay = document.getElementById('calibration-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        function updateCalibrationProgress() {
+            const sampleEl = document.getElementById('calibration-sample-count');
+            const accEl = document.getElementById('calibration-accuracy');
+            const barEl = document.getElementById('calibration-progress-bar');
+
+            if (!sampleEl) return;
+
+            const goodSamples = calibrationSamples.filter(s => s.acc <= 20).length;
+            sampleEl.textContent = `${goodSamples} / 10`;
+
+            if (calibrationSamples.length > 0) {
+                const lastAcc = calibrationSamples[calibrationSamples.length - 1].acc;
+                accEl.textContent = `±${lastAcc}m`;
+                accEl.className = lastAcc <= 10 ? 'text-emerald-400 font-bold'
+                                : lastAcc <= 20 ? 'text-amber-400 font-bold'
+                                : 'text-red-400 font-bold';
+            }
+
+            const progress = Math.min(100, Math.max(
+                (goodSamples / CALIBRATION_SAMPLE_COUNT) * 100,
+                (calibrationSamples.length / 20) * 100
+            ));
+            if (barEl) barEl.style.width = progress + '%';
+        }
+
+        // =========================================================
+        // 7. FORMATTER RUPIAH
+        // =========================================================
+        function initAnggaranFormatter() {
+            inputAnggaran.addEventListener('input', (e) => {
+                let raw = e.target.value.replace(/\D/g, '');
+                if (!raw) {
+                    e.target.value = '';
+                    anggaranFormatted.textContent = '';
+                    return;
+                }
+                const formatted = parseInt(raw, 10).toLocaleString('id-ID');
+                e.target.value = formatted;
+                anggaranFormatted.textContent = `≈ Rp ${formatted}`;
+            });
+        }
+
+        // =========================================================
+        // 8. SET TITIK A
+        // =========================================================
+        btnPointA.addEventListener('click', () => {
+            if (!lastKnownCoords) {
+                showAlert("Mencari Sinyal GPS", "Mohon tunggu sejenak hingga posisi GPS terkunci.");
+                return;
+            }
+
+            startCalibration((calibratedPoint) => {
+                const photo = capturePhoto();
+                pointA = {
+                    lat: calibratedPoint.lat,
+                    lon: calibratedPoint.lon,
+                    photo: photo,
+                    accuracy: calibratedPoint.accuracy
+                };
+                pointB = null;
+                coordAText.textContent = `${pointA.lat.toFixed(5)}, ${pointA.lon.toFixed(5)}`;
+
+                if (photo) {
+                    thumbAContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
+                    textPhotoAStatus.textContent = "Foto Terekam";
+                } else {
+                    thumbAContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
+                    textPhotoAStatus.textContent = "Kamera off";
+                }
+
+                thumbBContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
+                textPhotoBStatus.textContent = "Belum ada foto";
+
+                if (markerB) { map.removeLayer(markerB); markerB = null; }
+
+                if (markerA) map.removeLayer(markerA);
+                const customIconA = L.divIcon({ className: 'pulse-marker-a', iconSize: [18, 18], iconAnchor: [9, 9] });
+                markerA = L.marker([pointA.lat, pointA.lon], { icon: customIconA }).addTo(map)
+                    .bindPopup(`<b>Titik Awal (A)</b><br>Segmen #${segmentCounter + 1}<br><small>Akurasi: ±${pointA.accuracy}m</small>`).openPopup();
+
+                map.setView([pointA.lat, pointA.lon], 18);
+                pathCoords = [[pointA.lat, pointA.lon]];
+                polyline.setLatLngs(pathCoords);
+                polyline.setStyle({ dashArray: '5, 10', color: '#3b82f6' });
+
+                calculatedDistanceMeters = 0;
+                calculatedPolylineDistance = 0;
+                calculatedStraightDistance = 0;
+                calculatedDistanceElem.innerHTML = `0.00 <span class="text-base font-medium text-slate-300">meter</span>`;
+                distanceKmSubElem.textContent = `(0.000 km)`;
+
+                document.getElementById('map-legend').classList.remove('hidden');
+
+                btnPointB.disabled = false;
+                btnPointB.classList.remove('opacity-60', 'cursor-not-allowed');
+
+                if (isCalibrationMode) {
+                    showAlert("Titik A Terkunci (Mode Kalibrasi)", 
+                        `Segmen #${segmentCounter + 1} siap dimulai.\nAkurasi terkunci: ±${pointA.accuracy}m.\n\n` +
+                        `🎯 Jalan ke titik B yang berjarak ${document.getElementById('input-calib-ref').value}m dari titik A.`);
+                } else {
+                    showAlert("Titik A Terkunci", `Segmen #${segmentCounter + 1} siap dimulai.\nAkurasi terkunci: ±${pointA.accuracy}m.\n\nBerjalanlah ke Titik B.`);
+                }
+            });
+        });
+
+        // =========================================================
+        // 9. SET TITIK B
+        // =========================================================
+        btnPointB.addEventListener('click', () => {
+            if (!pointA) {
+                showAlert("Peringatan", "Atur Titik Awal (A) terlebih dahulu!");
+                return;
+            }
+            if (!lastKnownCoords) {
+                showAlert("Mencari Sinyal GPS", "Mohon tunggu sejenak hingga posisi GPS terkunci.");
+                return;
+            }
+
+            startCalibration((calibratedPoint) => {
+                const photo = capturePhoto();
+                pointB = {
+                    lat: calibratedPoint.lat,
+                    lon: calibratedPoint.lon,
+                    photo: photo,
+                    accuracy: calibratedPoint.accuracy
+                };
+                coordBText.textContent = `${pointB.lat.toFixed(5)}, ${pointB.lon.toFixed(5)}`;
+
+                if (photo) {
+                    thumbBContainer.innerHTML = `<img src="${photo}" class="w-full h-full object-cover rounded-md">`;
+                    textPhotoBStatus.textContent = "Foto Terekam";
+                }
+
+                if (markerB) map.removeLayer(markerB);
+                const customIconB = L.divIcon({ className: 'marker-pin-b', iconSize: [18, 18], iconAnchor: [9, 9] });
+                markerB = L.marker([pointB.lat, pointB.lon], { icon: customIconB }).addTo(map)
+                    .bindPopup(`<b>Titik Akhir (B)</b><br>Segmen #${segmentCounter + 1}<br><small>Akurasi: ±${pointB.accuracy}m</small>`).openPopup();
+
+                // Pastikan B masuk ke path
+                const lastPoint = pathCoords[pathCoords.length - 1];
+                if (!lastPoint || lastPoint[0] !== pointB.lat || lastPoint[1] !== pointB.lon) {
+                    pathCoords.push([pointB.lat, pointB.lon]);
+                }
+                polyline.setLatLngs(pathCoords);
+                polyline.setStyle({ dashArray: null, color: '#3b82f6' });
+
+                const bounds = L.latLngBounds([[pointA.lat, pointA.lon], [pointB.lat, pointB.lon]]);
+                map.fitBounds(bounds, { padding: [30, 30] });
+
+                // ============ HITUNG JARAK MENTAH (RAW GPS) ============
+                rawPolylineDistance = calculatePolylineDistance(pathCoords);
+                rawStraightDistance = calculateDistanceTwoPoints(pointA.lat, pointA.lon, pointB.lat, pointB.lon);
+
+                const ratio = rawStraightDistance > 0 ? rawPolylineDistance / rawStraightDistance : 1;
+                const usePolyline = ratio > 1.05;
+
+                rawDistanceMeters = usePolyline ? rawPolylineDistance : rawStraightDistance;
+                autoModeUsed = usePolyline ? 'polyline' : 'straight';
+
+                // ============ TERAPKAN FAKTOR KALIBRASI ============
+                calculatedPolylineDistance = rawPolylineDistance * manualCalibrationFactor;
+                calculatedStraightDistance = rawStraightDistance * manualCalibrationFactor;
+                calculatedDistanceMeters = rawDistanceMeters * manualCalibrationFactor;
+
+                // ============ CEK MODE KALIBRASI MANUAL ============
+                if (isCalibrationMode) {
+                    // Kalibrasi pakai straight raw (paling stabil)
+                    const calibSuccess = computeAndApplyCalibration(rawStraightDistance);
+                    if (calibSuccess) {
+                        // Update setelah kalibrasi
+                        calculatedPolylineDistance = rawPolylineDistance * manualCalibrationFactor;
+                        calculatedStraightDistance = rawStraightDistance * manualCalibrationFactor;
+                        calculatedDistanceMeters = rawDistanceMeters * manualCalibrationFactor;
+                    }
+                }
+
+                // Update UI
+                calculatedDistanceElem.innerHTML = `${calculatedDistanceMeters.toFixed(2)} <span class="text-base font-medium text-slate-300">meter</span>`;
+                distanceKmSubElem.innerHTML = `(${(calculatedDistanceMeters / 1000).toFixed(3)} km)`;
+
+                document.getElementById('legend-polyline-dist').textContent = calculatedPolylineDistance.toFixed(2) + ' m';
+                document.getElementById('legend-straight-dist').textContent = calculatedStraightDistance.toFixed(2) + ' m';
+
+                const badge = document.getElementById('mode-badge');
+                if (usePolyline) {
+                    badge.className = 'mode-badge mode-polyline';
+                    badge.textContent = '🛣️ Ikuti Jalan';
+                } else {
+                    badge.className = 'mode-badge mode-straight';
+                    badge.textContent = '📏 Garis Lurus';
+                }
+
+                const ratioInfo = document.getElementById('legend-ratio-info');
+                ratioInfo.classList.remove('hidden');
+                ratioInfo.innerHTML = `Rasio Polyline/Lurus: <b class="text-amber-400">${ratio.toFixed(3)}×</b> ${usePolyline ? '(berbelok)' : '(lurus)'}`;
+
+                // Update banner info kalibrasi
+                updateCalibrationUI();
+
+                // Alert hasil (skip kalau baru kalibrasi, sudah ada alert sendiri)
+                if (!isCalibrationMode) {
+                    const modeText = usePolyline ? 'Mengikuti Jalan (Polyline)' : 'Garis Lurus (Haversine)';
+                    const calibText = manualCalibrationFactor !== 1.0 
+                        ? `\nKalibrasi: ×${manualCalibrationFactor.toFixed(3)}` 
+                        : '';
+
+                    showAlert(
+                        "Pengukuran Selesai",
+                        `Segmen #${segmentCounter + 1}: ${calculatedDistanceMeters.toFixed(2)} m\n` +
+                        `Mode: ${modeText}\n` +
+                        `Polyline: ${calculatedPolylineDistance.toFixed(2)} m\n` +
+                        `Lurus: ${calculatedStraightDistance.toFixed(2)} m` +
+                        calibText +
+                        `\nAkurasi A: ±${pointA.accuracy}m | B: ±${pointB.accuracy}m`
+                    );
+                }
+            });
+        });
+
+        // =========================================================
+        // 10. SEGMEN BARU & HAPUS SEMUA
+        // =========================================================
+        document.getElementById('btn-new-segment').addEventListener('click', () => {
+            if (!pointA || !pointB) {
+                showAlert("Belum Ada Segmen", "Tandai Titik A dan B terlebih dahulu untuk menyelesaikan segmen ini.");
+                return;
+            }
+
+            if (!confirm("Segmen saat ini akan dikunci & disimpan ke History Segmen.\n\nLanjut buat segmen baru?")) {
+                return;
+            }
+
+            saveCurrentSegmentToHistory();
+            resetForNewSegment();
+
+            showAlert("Segmen Baru", `Segmen #${segmentCounter} selesai. Siap untuk segmen #${segmentCounter + 1}.`);
+        });
+
+        document.getElementById('btn-clear-segments').addEventListener('click', () => {
+            if (completedSegments.length === 0) {
+                showAlert("Tidak Ada Segmen", "Belum ada segmen yang tercatat di peta.");
+                return;
+            }
+            if (!confirm(`Hapus semua ${completedSegments.length} segmen dari peta?\n\nData di riwayat pengukuran tidak akan terhapus.`)) {
+                return;
+            }
+
+            completedSegments.forEach(seg => {
+                if (seg.layer) map.removeLayer(seg.layer);
+                if (seg.markerA) map.removeLayer(seg.markerA);
+                if (seg.markerB) map.removeLayer(seg.markerB);
+                if (seg.labelMarker) map.removeLayer(seg.labelMarker);
+            });
+            completedSegments = [];
+            segmentCounter = 0;
+            updateSegmentsUI();
+            showAlert("Segmen Dihapus", "Semua segmen di peta telah dihapus.");
+        });
+
+        function saveCurrentSegmentToHistory() {
+            segmentCounter++;
+
+            const color = SEGMENT_COLORS[(segmentCounter - 1) % SEGMENT_COLORS.length];
+
+            const segLayer = L.polyline(pathCoords, {
+                color: color,
+                weight: 4,
+                opacity: 0.9
+            }).addTo(map);
+
+            const markerASeg = L.circleMarker([pointA.lat, pointA.lon], {
+                radius: 6, fillColor: '#10b981', color: '#ffffff',
+                weight: 2, opacity: 1, fillOpacity: 1
+            }).addTo(map).bindPopup(`<b>Segmen #${segmentCounter} - Titik A</b>`);
+
+            const markerBSeg = L.circleMarker([pointB.lat, pointB.lon], {
+                radius: 6, fillColor: '#ef4444', color: '#ffffff',
+                weight: 2, opacity: 1, fillOpacity: 1
+            }).addTo(map).bindPopup(`<b>Segmen #${segmentCounter} - Titik B</b>`);
+
+            const midLat = (pointA.lat + pointB.lat) / 2;
+            const midLon = (pointA.lon + pointB.lon) / 2;
+            const labelIcon = L.divIcon({
+                className: 'segment-number-badge',
+                html: `${segmentCounter}`,
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+            const labelMarker = L.marker([midLat, midLon], { icon: labelIcon }).addTo(map);
+
+            completedSegments.push({
+                number: segmentCounter,
+                color: color,
+                pathCoords: [...pathCoords],
+                pointA: { ...pointA },
+                pointB: { ...pointB },
+                polylineDistance: calculatedPolylineDistance,
+                straightDistance: calculatedStraightDistance,
+                distanceMeters: calculatedDistanceMeters,
+                rawPolylineDistance: rawPolylineDistance,
+                rawStraightDistance: rawStraightDistance,
+                mode: autoModeUsed,
+                calibrationFactor: manualCalibrationFactor,
+                layer: segLayer,
+                markerA: markerASeg,
+                markerB: markerBSeg,
+                labelMarker: labelMarker
+            });
+
+            updateSegmentsUI();
+        }
+
+        function resetForNewSegment() {
+            pointA = null;
+            pointB = null;
+            pathCoords = [];
+            polyline.setLatLngs([]);
+            polyline.setStyle({ dashArray: '5, 10', color: '#3b82f6' });
+
+            if (markerA) { map.removeLayer(markerA); markerA = null; }
+            if (markerB) { map.removeLayer(markerB); markerB = null; }
+
+            coordAText.textContent = 'Belum Ditandai';
+            coordBText.textContent = 'Belum Ditandai';
+
+            thumbAContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
+            textPhotoAStatus.textContent = "Belum ada foto";
+            thumbBContainer.innerHTML = `<i class="fa-solid fa-image text-slate-700 text-sm"></i>`;
+            textPhotoBStatus.textContent = "Belum ada foto";
+
+            calculatedDistanceMeters = 0;
+            calculatedPolylineDistance = 0;
+            calculatedStraightDistance = 0;
+            rawDistanceMeters = 0;
+            rawPolylineDistance = 0;
+            rawStraightDistance = 0;
+            calculatedDistanceElem.innerHTML = `0.00 <span class="text-base font-medium text-slate-300">meter</span>`;
+            distanceKmSubElem.textContent = `(0.000 km)`;
+
+            btnPointB.disabled = true;
+            btnPointB.classList.add('opacity-60', 'cursor-not-allowed');
+
+            document.getElementById('map-legend').classList.add('hidden');
+        }
+
+        // =========================================================
+        // 11. UI HISTORY SEGMEN
+        // =========================================================
+        function updateSegmentsUI() {
+            const list = document.getElementById('segments-list');
+            const emptyMsg = document.getElementById('empty-segments-msg');
+            const badge = document.getElementById('total-segments-badge');
+
+            badge.textContent = `${completedSegments.length} segmen`;
+
+            if (completedSegments.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                list.innerHTML = '';
+                list.appendChild(emptyMsg);
+            } else {
+                emptyMsg.classList.add('hidden');
+                list.innerHTML = '';
+
+                completedSegments.forEach(seg => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center space-x-2.5";
+
+                    const modeBadge = seg.mode === 'polyline'
+                        ? '<span class="mode-badge mode-polyline">🛣️ Ikuti Jalan</span>'
+                        : '<span class="mode-badge mode-straight">📏 Lurus</span>';
+
+                    const calibBadge = seg.calibrationFactor && seg.calibrationFactor !== 1.0
+                        ? `<span class="text-[9px] bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-bold px-1.5 py-0.5 rounded">×${seg.calibrationFactor.toFixed(3)}</span>`
+                        : '';
+
+                    card.innerHTML = `
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-slate-950 shrink-0"
+                             style="background: ${seg.color}; border: 2px solid white;">
+                            ${seg.number}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-white">Segmen #${seg.number}</span>
+                                <div class="flex items-center space-x-1">
+                                    ${modeBadge}
+                                    ${calibBadge}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 text-[10px] text-slate-500 mt-0.5">
+                                <span>Polyline: <b class="text-emerald-400">${seg.polylineDistance.toFixed(2)}m</b></span>
+                                <span>Lurus: <b class="text-blue-400">${seg.straightDistance.toFixed(2)}m</b></span>
+                            </div>
+                            <div class="text-[10px] text-slate-600 font-mono">
+                                ${seg.pointA.lat.toFixed(4)},${seg.pointA.lon.toFixed(4)} → ${seg.pointB.lat.toFixed(4)},${seg.pointB.lon.toFixed(4)}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-amber-400 font-black text-base leading-none">${seg.distanceMeters.toFixed(2)}</div>
+                            <div class="text-[9px] text-slate-500 uppercase">meter</div>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            }
+
+            const totalDist = completedSegments.reduce((sum, s) => sum + s.distanceMeters, 0);
+            const avgDist = completedSegments.length > 0 ? totalDist / completedSegments.length : 0;
+
+            document.getElementById('total-distance-summary').textContent = totalDist.toFixed(2) + ' m';
+            document.getElementById('total-distance-km').textContent = `(${(totalDist / 1000).toFixed(3)} km)`;
+            document.getElementById('avg-distance-summary').textContent = avgDist.toFixed(2) + ' m';
+        }
+
+        // =========================================================
+        // 12. SIMPAN KE LOKAL
+        // =========================================================
+        document.getElementById('btn-save-log').addEventListener('click', () => {
             const ruas = inputRuas.value.trim() || 'Ruas Tanpa Nama';
             const sta = inputSta.value.trim() || 'STA 0+000';
             const findingType = selectFindingType.value;
             const notes = inputNotes.value.trim() || '-';
+            const anggaran = inputAnggaran.value.replace(/\D/g, '') || '0';
+            const sumberDana = selectSumberDana.value;
 
             if (!pointA || !pointB) {
-                showAlert("Data Belum Lengkap", "Harap tandai Titik A dan Titik B terlebih dahulu sebelum menyimpan log!");
+                showAlert("Data Belum Lengkap", "Harap tandai Titik A dan Titik B terlebih dahulu!");
                 return;
+            }
+
+            const alreadyInHistory = completedSegments.some(s =>
+                s.pointA.lat === pointA.lat && s.pointA.lon === pointA.lon &&
+                s.pointB.lat === pointB.lat && s.pointB.lon === pointB.lon
+            );
+            if (!alreadyInHistory) {
+                saveCurrentSegmentToHistory();
             }
 
             const logItem = {
                 id: Date.now(),
                 timestamp: new Date().toLocaleString('id-ID'),
-                ruas: ruas,
-                sta: sta,
-                findingType: findingType,
+                ruas: ruas, sta: sta, findingType: findingType,
+                anggaran: anggaran, sumberDana: sumberDana,
                 distanceMeters: calculatedDistanceMeters.toFixed(2),
                 distanceKm: (calculatedDistanceMeters / 1000).toFixed(3),
+                polylineDistance: calculatedPolylineDistance.toFixed(2),
+                straightDistance: calculatedStraightDistance.toFixed(2),
+                rawDistance: rawDistanceMeters.toFixed(2),
+                calibrationFactor: manualCalibrationFactor.toFixed(3),
+                mode: autoModeUsed,
                 coordA: `${pointA.lat.toFixed(6)}, ${pointA.lon.toFixed(6)}`,
                 coordB: `${pointB.lat.toFixed(6)}, ${pointB.lon.toFixed(6)}`,
-                photoA: pointA.photo,
-                photoB: pointB.photo,
+                latA: pointA.lat, lonA: pointA.lon,
+                latB: pointB.lat, lonB: pointB.lon,
+                photoA: pointA.photo, photoB: pointB.photo,
                 notes: notes
             };
 
             monevLogs.unshift(logItem);
+            saveLocalLogs();
             renderLogs();
-
-            // Reset Form Input
             inputNotes.value = '';
-            showAlert("Berhasil Disimpan", `Data Monev segmen ${sta} telah ditambahkan ke riwayat.`);
+            showAlert("Berhasil Disimpan", `Data Monev segmen ${sta} tersimpan (${calculatedDistanceMeters.toFixed(2)} m).`);
         });
 
-        // Render List Log ke Layar
-        function renderLogs() {
-            if (monevLogs.length === 0) {
-                emptyLogMsg.classList.remove('hidden');
+        // =========================================================
+        // 13. UPLOAD KE GOOGLE SHEET
+        // =========================================================
+        document.getElementById('btn-upload-cloud').addEventListener('click', async () => {
+            if (!GAS_URL || GAS_URL.includes('XXXXXXXX')) {
+                showAlert("URL Server Belum Diisi", "Silakan edit file tracker.html dan isi GAS_URL dengan URL Web App Google Apps Script Anda.");
+                return;
+            }
+            if (!pointA || !pointB) {
+                showAlert("Data Belum Lengkap", "Harap tandai Titik A dan Titik B terlebih dahulu!");
                 return;
             }
 
-            emptyLogMsg.classList.add('hidden');
-            logListContainer.innerHTML = '';
+            const ruas = inputRuas.value.trim() || 'Ruas Tanpa Nama';
+            const sta = inputSta.value.trim() || 'STA 0+000';
+            const findingType = selectFindingType.value;
+            const notes = inputNotes.value.trim() || '-';
+            const anggaran = inputAnggaran.value.replace(/\D/g, '') || '0';
+            const sumberDana = selectSumberDana.value;
 
+            showLoading("Mengirim data ke Google Sheet...");
+
+            try {
+                const combinedPhoto = await combinePhotos(pointA.photo, pointB.photo);
+
+                const payload = {
+                    ruas: ruas,
+                    staMulai: sta,
+                    staSelesai: sta,
+                    anggaran: anggaran,
+                    sumberDana: sumberDana,
+                    jarakMeter: calculatedDistanceMeters.toFixed(2),
+                    polylineMeter: calculatedPolylineDistance.toFixed(2),
+                    straightMeter: calculatedStraightDistance.toFixed(2),
+                    rawMeter: rawDistanceMeters.toFixed(2),
+                    calibrationFactor: manualCalibrationFactor.toFixed(4),
+                    calibrationRefMeters: manualCalibrationRefMeters,
+                    calibrationGpsMeters: manualCalibrationGpsMeters,
+                    mode: autoModeUsed,
+                    keterangan: `[${findingType}] ${notes}`,
+                    latA: pointA.lat, lonA: pointA.lon,
+                    latB: pointB.lat, lonB: pointB.lon,
+                    imageb64: combinedPhoto ? combinedPhoto.split(',')[1] : '',
+                    imagename: `Monev_${ruas.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.jpg`,
+                    mimetype: 'image/jpeg'
+                };
+
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const logItem = {
+                    id: Date.now(),
+                    timestamp: new Date().toLocaleString('id-ID'),
+                    ruas: ruas, sta: sta, findingType: findingType,
+                    anggaran: anggaran, sumberDana: sumberDana,
+                    distanceMeters: calculatedDistanceMeters.toFixed(2),
+                    distanceKm: (calculatedDistanceMeters / 1000).toFixed(3),
+                    polylineDistance: calculatedPolylineDistance.toFixed(2),
+                    straightDistance: calculatedStraightDistance.toFixed(2),
+                    rawDistance: rawDistanceMeters.toFixed(2),
+                    calibrationFactor: manualCalibrationFactor.toFixed(3),
+                    mode: autoModeUsed,
+                    coordA: `${pointA.lat.toFixed(6)}, ${pointA.lon.toFixed(6)}`,
+                    coordB: `${pointB.lat.toFixed(6)}, ${pointB.lon.toFixed(6)}`,
+                    latA: pointA.lat, lonA: pointA.lon,
+                    latB: pointB.lat, lonB: pointB.lon,
+                    photoA: pointA.photo, photoB: pointB.photo,
+                    notes: notes, synced: true
+                };
+
+                monevLogs.unshift(logItem);
+                saveLocalLogs();
+                renderLogs();
+                inputNotes.value = '';
+                hideLoading();
+                showAlert("Berhasil Dikirim", `Data Monev segmen ${sta} telah dikirim ke Google Sheet.`);
+
+            } catch (err) {
+                hideLoading();
+                console.error("Upload error:", err);
+                showAlert("Gagal Mengirim", "Data tetap tersimpan di lokal. Periksa koneksi internet.");
+            }
+        });
+
+        function combinePhotos(photoA, photoB) {
+            return new Promise((resolve) => {
+                if (!photoA && !photoB) { resolve(null); return; }
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const imgA = new Image();
+                const imgB = new Image();
+                let loaded = 0;
+                const checkDone = () => {
+                    loaded++;
+                    if (loaded === 2) {
+                        const wA = imgA.width || 640;
+                        const hA = imgA.height || 480;
+                        const wB = imgB.width || 640;
+                        const hB = imgB.height || 480;
+                        canvas.width = wA + wB;
+                        canvas.height = Math.max(hA, hB);
+                        if (photoA) ctx.drawImage(imgA, 0, 0);
+                        if (photoB) ctx.drawImage(imgB, wA, 0);
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+                        ctx.fillRect(10, 10, 60, 30);
+                        ctx.fillStyle = 'white';
+                        ctx.font = 'bold 18px Inter, sans-serif';
+                        ctx.fillText('A', 30, 32);
+                        ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+                        ctx.fillRect(wA + 10, 10, 60, 30);
+                        ctx.fillStyle = 'white';
+                        ctx.fillText('B', wA + 30, 32);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    }
+                };
+                imgA.onload = checkDone;
+                imgB.onload = checkDone;
+                imgA.onerror = checkDone;
+                imgB.onerror = checkDone;
+                imgA.src = photoA || 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+                imgB.src = photoB || 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+            });
+        }
+
+        // =========================================================
+        // 14. LOAD SERVER
+        // =========================================================
+        document.getElementById('btn-load-cloud').addEventListener('click', async () => {
+            if (!GAS_URL || GAS_URL.includes('XXXXXXXX')) {
+                showAlert("URL Server Belum Diisi", "Silakan edit file tracker.html dan isi GAS_URL.");
+                return;
+            }
+            showLoading("Memuat data dari Google Sheet...");
+            try {
+                const response = await fetch(GAS_URL, { method: 'GET' });
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    serverLogs = data.reverse().map((row, idx) => ({
+                        id: 'server_' + idx,
+                        timestamp: row.timestamp ? new Date(row.timestamp).toLocaleString('id-ID') : '-',
+                        ruas: row.ruas || 'Data Server',
+                        sta: row.staMulai || row.staSelesai || '-',
+                        findingType: row.keterangan || '-',
+                        anggaran: row.anggaran || '0',
+                        sumberDana: row.sumberDana || '-',
+                        distanceMeters: row.jarakMeter || '0',
+                        distanceKm: ((parseFloat(row.jarakMeter) || 0) / 1000).toFixed(3),
+                        coordA: `${row.latA || '-'}, ${row.lonA || '-'}`,
+                        coordB: `${row.latB || '-'}, ${row.lonB || '-'}`,
+                        photoUrl: row.fotoUrl || null,
+                        notes: row.keterangan || '-'
+                    }));
+                    document.getElementById('count-server').textContent = serverLogs.length;
+                    switchTab('server');
+                    hideLoading();
+                    showAlert("Berhasil Dimuat", `${serverLogs.length} data dimuat dari Google Sheet.`);
+                } else {
+                    hideLoading();
+                    showAlert("Data Kosong", "Tidak ada data di server.");
+                }
+            } catch (err) {
+                hideLoading();
+                console.error("Load error:", err);
+                showAlert("Gagal Memuat", "Tidak dapat terhubung ke server.");
+            }
+        });
+
+        // =========================================================
+        // 15. TAB SWITCHING
+        // =========================================================
+        document.getElementById('tab-local').addEventListener('click', () => switchTab('local'));
+        document.getElementById('tab-server').addEventListener('click', () => switchTab('server'));
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabLocal = document.getElementById('tab-local');
+            const tabServer = document.getElementById('tab-server');
+
+            if (tab === 'local') {
+                tabLocal.className = "flex-1 bg-amber-500 text-slate-950 font-bold py-2 rounded-lg text-[11px] transition";
+                tabServer.className = "flex-1 text-slate-400 font-bold py-2 rounded-lg text-[11px] transition hover:text-white";
+                renderLogs();
+            } else {
+                tabServer.className = "flex-1 bg-indigo-600 text-white font-bold py-2 rounded-lg text-[11px] transition";
+                tabLocal.className = "flex-1 text-slate-400 font-bold py-2 rounded-lg text-[11px] transition hover:text-white";
+                renderServerLogs();
+            }
+        }
+
+        // =========================================================
+        // 16. RENDER LOGS
+        // =========================================================
+        function renderLogs() {
+            document.getElementById('count-local').textContent = monevLogs.length;
+            if (monevLogs.length === 0) {
+                logListContainer.innerHTML = `
+                    <div class="text-center py-8 text-slate-600 text-xs">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                        Belum ada data segmen yang tersimpan.
+                    </div>`;
+                return;
+            }
+            logListContainer.innerHTML = '';
             monevLogs.forEach(log => {
                 const card = document.createElement('div');
                 card.className = "bg-slate-950 border border-slate-800 p-3 rounded-xl space-y-2 text-xs";
-
+                const anggaranFormatted = log.anggaran && log.anggaran !== '0'
+                    ? `Rp ${parseInt(log.anggaran, 10).toLocaleString('id-ID')}`
+                    : '-';
+                const modeBadge = log.mode === 'polyline'
+                    ? '<span class="mode-badge mode-polyline">🛣️ Ikuti Jalan</span>'
+                    : '<span class="mode-badge mode-straight">📏 Lurus</span>';
+                const calibBadge = log.calibrationFactor && log.calibrationFactor !== '1.000'
+                    ? `<span class="text-[9px] bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-bold px-1.5 py-0.5 rounded">×${log.calibrationFactor}</span>`
+                    : '';
                 card.innerHTML = `
                     <div class="flex justify-between items-start border-b border-slate-800 pb-1.5">
                         <div>
                             <span class="font-extrabold text-amber-400 block">${log.ruas} (${log.sta})</span>
                             <span class="text-[10px] text-slate-500"><i class="fa-regular fa-clock mr-1"></i>${log.timestamp}</span>
                         </div>
-                        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-extrabold px-2 py-0.5 rounded-md text-[11px]">
-                            ${log.distanceMeters} m
-                        </span>
+                        <div class="flex flex-col items-end space-y-1">
+                            <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-extrabold px-2 py-0.5 rounded-md text-[11px]">
+                                ${log.distanceMeters} m
+                            </span>
+                            ${log.synced ? '<span class="text-[9px] text-emerald-400"><i class="fa-solid fa-cloud-arrow-up"></i> Tersinkron</span>' : '<span class="text-[9px] text-slate-500"><i class="fa-solid fa-mobile-screen"></i> Lokal</span>'}
+                        </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
                         <div><b class="text-slate-500">Temuan:</b> ${log.findingType}</div>
                         <div><b class="text-slate-500">Catatan:</b> ${log.notes}</div>
                     </div>
-
+                    <div class="flex items-center gap-2 text-[9px] flex-wrap">
+                        ${modeBadge}
+                        ${calibBadge}
+                        <span class="text-slate-500">Polyline: <b class="text-emerald-400">${log.polylineDistance || '-'}m</b> • Lurus: <b class="text-blue-400">${log.straightDistance || '-'}m</b></span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-1.5">
+                            <b class="text-emerald-400 block text-[9px] uppercase tracking-wider">Anggaran</b>
+                            <span class="text-emerald-300 font-bold">${anggaranFormatted}</span>
+                        </div>
+                        <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-1.5">
+                            <b class="text-indigo-400 block text-[9px] uppercase tracking-wider">Sumber Dana</b>
+                            <span class="text-indigo-300 font-bold">${log.sumberDana || '-'}</span>
+                        </div>
+                    </div>
                     <div class="flex items-center justify-between pt-1">
                         <div class="text-[9px] text-slate-500 font-mono space-y-0.5">
                             <div>A: ${log.coordA}</div>
@@ -718,88 +1843,245 @@
                         </div>
                     </div>
                 `;
-
                 logListContainer.appendChild(card);
             });
         }
 
-        // 7. Export Data ke File CSV
+        function renderServerLogs() {
+            const localKeys = new Set(monevLogs.map(l => `${l.timestamp}|${l.sta}|${l.distanceMeters}`));
+            const uniqueServerLogs = serverLogs.filter(s => {
+                const key = `${s.timestamp}|${s.sta}|${s.distanceMeters}`;
+                return !localKeys.has(key);
+            });
+            document.getElementById('count-server').textContent = uniqueServerLogs.length;
+            if (uniqueServerLogs.length === 0) {
+                logListContainer.innerHTML = `
+                    <div class="text-center py-8 text-slate-600 text-xs">
+                        <i class="fa-solid fa-cloud text-3xl mb-2 block"></i>
+                        ${serverLogs.length > 0 ? 'Semua data server sudah tampil di tab Lokal.' : 'Belum ada data dari server. Klik "Muat Server".'}
+                    </div>`;
+                return;
+            }
+            logListContainer.innerHTML = '';
+            uniqueServerLogs.forEach(log => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-950 border border-indigo-900/30 p-3 rounded-xl space-y-2 text-xs";
+                const anggaranFormatted = log.anggaran && log.anggaran !== '0'
+                    ? `Rp ${parseInt(log.anggaran, 10).toLocaleString('id-ID')}`
+                    : '-';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start border-b border-slate-800 pb-1.5">
+                        <div>
+                            <span class="font-extrabold text-indigo-400 block">${log.sta}</span>
+                            <span class="text-[10px] text-slate-500"><i class="fa-regular fa-clock mr-1"></i>${log.timestamp}</span>
+                        </div>
+                        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-extrabold px-2 py-0.5 rounded-md text-[11px]">
+                            ${log.distanceMeters} m
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-slate-300">
+                        <b class="text-slate-500">Keterangan:</b> ${log.findingType}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-1.5">
+                            <b class="text-emerald-400 block text-[9px] uppercase tracking-wider">Anggaran</b>
+                            <span class="text-emerald-300 font-bold">${anggaranFormatted}</span>
+                        </div>
+                        <div class="bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-1.5">
+                            <b class="text-indigo-400 block text-[9px] uppercase tracking-wider">Sumber Dana</b>
+                            <span class="text-indigo-300 font-bold">${log.sumberDana || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-1">
+                        <div class="text-[9px] text-slate-500 font-mono space-y-0.5">
+                            <div>A: ${log.coordA}</div>
+                            <div>B: ${log.coordB}</div>
+                        </div>
+                        ${log.photoUrl ? `<a href="${log.photoUrl}" target="_blank" class="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-2.5 py-1 rounded-lg"><i class="fa-solid fa-image mr-1"></i>Foto</a>` : ''}
+                    </div>
+                `;
+                logListContainer.appendChild(card);
+            });
+        }
+
+        // =========================================================
+        // 17. LOCALSTORAGE
+        // =========================================================
+        function saveLocalLogs() {
+            try {
+                const limited = monevLogs.slice(0, 10);
+                localStorage.setItem('sirampog_logs', JSON.stringify(limited));
+            } catch (e) {
+                console.warn("Gagal menyimpan:", e);
+            }
+        }
+
+        function loadLocalLogs() {
+            try {
+                const saved = localStorage.getItem('sirampog_logs');
+                if (saved) {
+                    monevLogs = JSON.parse(saved);
+                    renderLogs();
+                }
+            } catch (e) {
+                console.warn("Gagal memuat:", e);
+            }
+        }
+
+        // =========================================================
+        // 18. EXPORT EXCEL
+        // =========================================================
+        function getUniqueDataForCurrentTab() {
+            const allData = [...monevLogs, ...serverLogs];
+            const seen = new Set();
+            const uniqueData = allData.filter(item => {
+                const key = `${item.sta}|${item.distanceMeters}|${item.coordA}|${item.anggaran || '0'}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+            uniqueData.sort((a, b) => {
+                const ta = new Date(a.timestamp || 0).getTime() || 0;
+                const tb = new Date(b.timestamp || 0).getTime() || 0;
+                return tb - ta;
+            });
+            return uniqueData;
+        }
+
         document.getElementById('btn-export-csv').addEventListener('click', () => {
-            if (monevLogs.length === 0) {
+            const dataToExport = getUniqueDataForCurrentTab();
+            if (dataToExport.length === 0) {
                 showAlert("Export Gagal", "Belum ada riwayat data untuk diexport.");
                 return;
             }
-
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "ID,Waktu,Nama Ruas,STA Segmen,Jarak (m),Jarak (km),Jenis Temuan,Koordinat A,Koordinat B,Catatan\n";
-
-            monevLogs.forEach(item => {
-                const row = [
-                    item.id,
-                    `"${item.timestamp}"`,
-                    `"${item.ruas}"`,
-                    `"${item.sta}"`,
-                    item.distanceMeters,
-                    item.distanceKm,
-                    `"${item.findingType}"`,
-                    `"${item.coordA}"`,
-                    `"${item.coordB}"`,
-                    `"${item.notes}"`
-                ].join(",");
-                csvContent += row + "\n";
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Laporan_Monev_Jalan_${Date.now()}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-
-        // 8. Cetak PDF / Laporan Print Mode
-        document.getElementById('btn-print-report').addEventListener('click', () => {
-            if (monevLogs.length === 0) {
-                showAlert("Print Gagal", "Belum ada riwayat data untuk dicetak.");
+            if (typeof XLSX === 'undefined') {
+                showAlert("Library Belum Siap", "Library Excel belum termuat. Periksa koneksi internet, lalu refresh.");
                 return;
             }
+            try {
+                const rows = dataToExport.map((item, idx) => ({
+                    "No": idx + 1,
+                    "Waktu": item.timestamp || '-',
+                    "Nama Kegiatan": item.ruas || '-',
+                    "Ruas / STA": item.sta || '-',
+                    "Anggaran (Rp)": item.anggaran && item.anggaran !== '0' ? parseInt(item.anggaran, 10) : 0,
+                    "Sumber Dana": item.sumberDana || '-',
+                    "Jarak (m)": parseFloat(item.distanceMeters) || 0,
+                    "Jarak (km)": parseFloat(item.distanceKm) || 0,
+                    "Polyline (m)": parseFloat(item.polylineDistance) || 0,
+                    "Lurus (m)": parseFloat(item.straightDistance) || 0,
+                    "Faktor Kalibrasi": item.calibrationFactor || '1.000',
+                    "Mode": item.mode === 'polyline' ? 'Ikuti Jalan' : 'Garis Lurus',
+                    "Jenis Temuan": item.findingType || '-',
+                    "Koordinat A": item.coordA || '-',
+                    "Koordinat B": item.coordB || '-',
+                    "Catatan": item.notes || '-',
+                    "Foto": item.photoUrl || (item.photoA || item.photoB ? '(Tersimpan lokal)' : '-')
+                }));
 
+                const ws = XLSX.utils.json_to_sheet(rows);
+                ws['!cols'] = [
+                    { wch: 5 }, { wch: 20 }, { wch: 28 }, { wch: 22 },
+                    { wch: 16 }, { wch: 18 }, { wch: 11 }, { wch: 11 },
+                    { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 },
+                    { wch: 30 }, { wch: 24 }, { wch: 24 }, { wch: 40 }, { wch: 30 }
+                ];
+
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                    const anggaranCell = ws[XLSX.utils.encode_cell({ r: R, c: 4 })];
+                    if (anggaranCell) { anggaranCell.t = 'n'; anggaranCell.z = '#,##0'; }
+                }
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Laporan Monev");
+
+                const metaRows = [
+                    { "Keterangan": "Judul Laporan", "Nilai": "Laporan Monev Kegiatan Infrastruktur" },
+                    { "Keterangan": "Sumber Data", "Nilai": currentTab === 'local' ? 'Data Lokal' : 'Data Server' },
+                    { "Keterangan": "Tanggal Export", "Nilai": new Date().toLocaleString('id-ID') },
+                    { "Keterangan": "Faktor Kalibrasi Aktif", "Nilai": manualCalibrationFactor.toFixed(3) + '×' },
+                    { "Keterangan": "Referensi Kalibrasi", "Nilai": manualCalibrationRefMeters > 0 ? manualCalibrationRefMeters + ' m (meteran)' : '-' },
+                    { "Keterangan": "Total Segmen", "Nilai": dataToExport.length },
+                    { "Keterangan": "Total Anggaran", "Nilai": dataToExport.reduce((sum, it) => sum + (parseFloat(it.anggaran) || 0), 0) },
+                    { "Keterangan": "Total Jarak (m)", "Nilai": dataToExport.reduce((sum, it) => sum + (parseFloat(it.distanceMeters) || 0), 0) }
+                ];
+                const wsMeta = XLSX.utils.json_to_sheet(metaRows);
+                wsMeta['!cols'] = [{ wch: 22 }, { wch: 40 }];
+                XLSX.utils.book_append_sheet(wb, wsMeta, "Info Laporan");
+
+                const filename = `Laporan_Monev_${currentTab}_${new Date().toISOString().slice(0,10)}_${Date.now()}.xlsx`;
+                XLSX.writeFile(wb, filename);
+                showAlert("Export Berhasil", `File Excel diunduh: ${filename}`);
+            } catch (err) {
+                console.error("Export error:", err);
+                showAlert("Export Gagal", "Error: " + err.message);
+            }
+        });
+
+        // =========================================================
+        // 19. CETAK
+        // =========================================================
+        document.getElementById('btn-print-report').addEventListener('click', () => {
+            const dataToPrint = getUniqueDataForCurrentTab();
+            if (dataToPrint.length === 0) {
+                showAlert("Print Gagal", "Belum ada data untuk dicetak.");
+                return;
+            }
             document.getElementById('print-date').textContent = new Date().toLocaleDateString('id-ID');
             const tbody = document.getElementById('print-table-body');
             tbody.innerHTML = '';
-
-            monevLogs.forEach((item, idx) => {
+            dataToPrint.forEach((item, idx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="border border-black p-2 text-center">${idx + 1}</td>
-                    <td class="border border-black p-2"><b>${item.ruas}</b><br>${item.sta}</td>
+                    <td class="border border-black p-2"><b>${item.ruas || 'Server'}</b><br>${item.sta}</td>
                     <td class="border border-black p-2 text-center">${item.distanceMeters} m</td>
+                    <td class="border border-black p-2 text-right">${item.anggaran && item.anggaran !== '0' ? parseInt(item.anggaran, 10).toLocaleString('id-ID') : '-'}</td>
+                    <td class="border border-black p-2">${item.sumberDana || '-'}</td>
                     <td class="border border-black p-2">${item.findingType}</td>
                     <td class="border border-black p-2 font-mono text-[10px]">A: ${item.coordA}<br>B: ${item.coordB}</td>
                     <td class="border border-black p-2">${item.notes}</td>
                 `;
                 tbody.appendChild(tr);
             });
-
             window.print();
         });
 
-        // Modal Handlers
+        // =========================================================
+        // 20. CLEAR LOCAL
+        // =========================================================
+        document.getElementById('btn-clear-local').addEventListener('click', () => {
+            if (confirm('Yakin ingin menghapus semua riwayat lokal? Data di Google Sheet tidak akan terhapus.')) {
+                monevLogs = [];
+                localStorage.removeItem('sirampog_logs');
+                renderLogs();
+                showAlert("Data Dihapus", "Semua riwayat lokal berhasil dihapus.");
+            }
+        });
+
+        // =========================================================
+        // 21. MODAL & ALERT
+        // =========================================================
         const modalInfo = document.getElementById('modal-info');
         document.getElementById('btn-info').addEventListener('click', () => modalInfo.classList.remove('hidden'));
         document.getElementById('close-modal').addEventListener('click', () => modalInfo.classList.add('hidden'));
         document.getElementById('btn-close-modal').addEventListener('click', () => modalInfo.classList.add('hidden'));
 
-        // Custom Alert Handlers
         function showAlert(title, message) {
             document.getElementById('alert-title').textContent = title;
             document.getElementById('alert-message').textContent = message;
             document.getElementById('custom-alert').classList.remove('hidden');
         }
-
         function closeCustomAlert() {
             document.getElementById('custom-alert').classList.add('hidden');
+        }
+        function showLoading(text) {
+            document.getElementById('loading-text').textContent = text || 'Memproses...';
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
         }
     </script>
 </body>
