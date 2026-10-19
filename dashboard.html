@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Monev Jalan</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+    min-height: 100vh;
+  }
+  .header {
+    background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+    color: #fff;
+    padding: 24px 20px;
+  }
+  .header h1 { font-size: 1.5em; margin-bottom: 4px; }
+  .header p { font-size: 0.85em; opacity: 0.9; }
+  .header .right {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .header button {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85em;
+  }
+  .header button:hover { background: rgba(255,255,255,0.3); }
+  .updated { font-size: 0.75em; opacity: 0.85; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .stat-card .label {
+    font-size: 0.75em;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-card .value {
+    font-size: 2em;
+    font-weight: 800;
+    color: #0ea5e9;
+    margin-top: 6px;
+  }
+  .stat-card .sub {
+    font-size: 0.8em;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .chart-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .chart-card h3 {
+    font-size: 0.95em;
+    margin-bottom: 14px;
+    color: #0f172a;
+  }
+  .chart-wrap { height: 260px; position: relative; }
+
+  .table-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 14px;
+    overflow-x: auto;
+  }
+  .table-card h3 {
+    font-size: 0.95em;
+    margin-bottom: 14px;
+    color: #0f172a;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    font-size: 0.9em;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  tr:hover td { background: #f8fafc; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75em;
+    font-weight: 700;
+  }
+  .badge-baik { background: #dcfce7; color: #15803d; }
+  .badge-sedang { background: #fef3c7; color: #b45309; }
+  .badge-rr { background: #ffedd5; color: #c2410c; }
+  .badge-rb { background: #fee2e2; color: #991b1b; }
+
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #0ea5e9;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 16px;
+    border-radius: 10px;
+    font-size: 0.9em;
+  }
+
+  .foto-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="right">
+      <div>
+        <h1>📊 Dashboard Monev Jalan</h1>
+        <p>Rekap lintas petugas dari Google Sheets</p>
+      </div>
+      <div style="text-align:right;">
+        <button onclick="loadDashboard()">🔄 Refresh</button>
+        <div class="updated" id="updated">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Memuat data dari Google Sheets...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GANTI DENGAN URL APPS SCRIPT ANDA
+// ============================================================
+const DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxveayx7vBte7OTIzQcjLppSt1LQu6hw57_z9NyFGpwudJSTs4a2tY5614R4JEpxf-W/exec?action=dashboard';
+
+let chartPetugas = null;
+let chartKondisi = null;
+
+async function loadDashboard() {
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div><p>Memuat data...</p></div>`;
+
+  try {
+    const response = await fetch(DASHBOARD_API, { redirect: 'follow' });
+    const result = await response.json();
+
+    if (result.status !== 'success') {
+      throw new Error(result.message || 'Gagal memuat');
+    }
+
+    renderDashboard(result.data);
+    document.getElementById('updated').textContent =
+      'Diperbarui: ' + new Date().toLocaleTimeString('id-ID');
+  } catch (err) {
+    content.innerHTML = `<div class="error">❌ Gagal memuat: ${err.message}</div>`;
+    console.error(err);
+  }
+}
+
+function fmtDist(m) {
+  if (m < 1000) return m.toFixed(1) + ' m';
+  return (m / 1000).toFixed(2) + ' km';
+}
+
+function renderDashboard(data) {
+  const content = document.getElementById('content');
+
+  const petugasCount = data.petugas.length;
+  const ruasCount = data.ruas.length;
+  const totalTitik = data.totalTitik;
+  const totalPanjang = data.totalPanjang;
+  const totalFoto = data.petugas.reduce((s, p) => s + (p.foto || 0), 0);
+
+  // Stat cards
+  const statsHtml = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Petugas</div>
+        <div class="value">${petugasCount}</div>
+        <div class="sub">aktif mengukur</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Ruas Jalan</div>
+        <div class="value">${ruasCount}</div>
+        <div class="sub">terukur</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Panjang</div>
+        <div class="value">${fmtDist(totalPanjang)}</div>
+        <div class="sub">${totalTitik} titik</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Foto Kondisi</div>
+        <div class="value">${totalFoto}</div>
+        <div class="sub">dokumentasi</div>
+      </div>
+    </div>
+  `;
+
+  // Charts
+  const chartsHtml = `
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>📈 Titik per Petugas</h3>
+        <div class="chart-wrap"><canvas id="chartPetugas"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>🚦 Sebaran Kondisi Jalan (per Ruas)</h3>
+        <div class="chart-wrap"><canvas id="chartKondisi"></canvas></div>
+      </div>
+    </div>
+  `;
+
+  // Tabel petugas
+  const petugasRows = data.petugas
+    .sort((a, b) => b.titik - a.titik)
+    .map(p => `
+      <tr>
+        <td><strong>${escapeHtml(p.nama)}</strong></td>
+        <td>${p.titik}</td>
+        <td>${p.ruas}</td>
+        <td>${p.foto}</td>
+        <td>${safeDateStr(p.terakhir)}</td>
+      </tr>
+    `).join('');
+
+  const petugasTable = `
+    <div class="table-card">
+      <h3>👥 Rekap per Petugas</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Petugas</th>
+            <th>Titik</th>
+            <th>Ruas</th>
+            <th>Foto</th>
+            <th>Aktivitas Terakhir</th>
+          </tr>
+        </thead>
+        <tbody>${petugasRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">Belum ada data</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+
+  // Tabel ruas
+  const badgeMap = { baik: 'badge-baik', sedang: 'badge-sedang', rr: 'badge-rr', rb: 'badge-rb' };
+  const labelMap = { baik: 'Baik', sedang: 'Sedang', rr: 'Rusak Ringan', rb: 'Rusak Berat' };
+  const ruasRows = data.ruas
+    .sort((a, b) => b.panjang - a.panjang)
+    .map(r => `
+      <tr>
+        <td><strong>${escapeHtml(r.nama)}</strong></td>
+        <td><span class="badge ${badgeMap[r.kondisi] || ''}">${labelMap[r.kondisi] || '-'}</span></td>
+        <td>${fmtDist(r.panjang)}</td>
+        <td>${r.titik}</td>
+        <td>${r.petugas.map(p => escapeHtml(p)).join(', ')}</td>
+      </tr>
+    `).join('');
+
+  const ruasTable = `
+    <div class="table-card">
+      <h3>🛣️ Rekap per Ruas Jalan</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Ruas</th>
+            <th>Kondisi</th>
+            <th>Panjang</th>
+            <th>Titik</th>
+            <th>Petugas</th>
+          </tr>
+        </thead>
+        <tbody>${ruasRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">Belum ada data</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+
+  content.innerHTML = statsHtml + chartsHtml + petugasTable + ruasTable;
+
+  // Render charts
+  renderCharts(data);
+}
+
+function renderCharts(data) {
+  // Chart 1: Bar per petugas
+  const ctx1 = document.getElementById('chartPetugas').getContext('2d');
+  if (chartPetugas) chartPetugas.destroy();
+  chartPetugas = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: data.petugas.map(p => p.nama),
+      datasets: [{
+        label: 'Jumlah Titik',
+        data: data.petugas.map(p => p.titik),
+        backgroundColor: '#0ea5e9',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+
+  // Chart 2: Doughnut kondisi
+  const ctx2 = document.getElementById('chartKondisi').getContext('2d');
+  if (chartKondisi) chartKondisi.destroy();
+  chartKondisi = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['Baik', 'Sedang', 'Rusak Ringan', 'Rusak Berat'],
+      datasets: [{
+        data: [
+          data.kondisi.baik || 0,
+          data.kondisi.sedang || 0,
+          data.kondisi.rr || 0,
+          data.kondisi.rb || 0
+        ],
+        backgroundColor: ['#22c55e', '#eab308', '#f97316', '#ef4444']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
+function safeDateStr(v, opts) {
+  if (!v) return '-';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleString('id-ID', opts || {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// Auto-load saat buka
+loadDashboard();
+
+// Auto-refresh tiap 60 detik (opsional)
+setInterval(loadDashboard, 60000);
+</script>
+</body>
+</html>
