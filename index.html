@@ -1191,7 +1191,7 @@
 <div class="tabs-wrap">
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('track')">📍 Ukur</button>
-    <button class="tab-btn" onclick="switchTab('ruas')">📋 Data Ruas</button>
+    <button class="tab-btn" onclick="switchTab('ruas')">📋 Data Kegiatan</button>
     <button class="tab-btn" onclick="switchTab('rekap')">📊 Rekap</button>
     <button class="tab-btn" onclick="switchTab('export')">📥 Export</button>
   </div>
@@ -1206,12 +1206,12 @@
       <input type="text" id="petugasName" placeholder="Nama pengukur" oninput="savePetugasName(this.value)">
     </div>
     <div class="form-group">
-      <label>🛣️ Pilih Ruas Jalan</label>
+      <label>🛣️ Pilih Kegiatan</label>
       <select id="activeRuasSelect" onchange="setActiveRuas(this.value)">
-        <option value="">-- Pilih Ruas --</option>
+        <option value="">-- Pilih Kegiatan --</option>
       </select>
     </div>
-    <button class="btn btn-outline btn-full btn-sm" onclick="openNewRuasModal()">+ Buat Ruas Baru</button>
+    <button class="btn btn-outline btn-full btn-sm" onclick="openNewRuasModal()">+ Buat Kegiatan Baru</button>
   </div>
 
   <div class="tracking-panel">
@@ -1333,12 +1333,12 @@
 <div class="modal" id="modalRuas">
   <div class="modal-content">
     <div class="modal-title">
-      <span>🛣️ Ruas Jalan Baru</span>
+      <span>🛣️ Entry Kegiatan Baru</span>
       <button class="modal-close" onclick="closeModal('modalRuas')">✕</button>
     </div>
     <div class="form-group">
-      <label>Nama Ruas / Jalan *</label>
-      <input type="text" id="newRuasName" placeholder="Contoh: Jl. Sudirman STA 0+000">
+      <label>Nama Kegiatan *</label>
+      <input type="text" id="newRuasName" placeholder="Contoh: Peningkatan Jalan Lingkungan">
     </div>
     <div class="row-2">
       <div class="form-group">
@@ -1352,11 +1352,11 @@
     </div>
     <div class="row-2">
       <div class="form-group">
-        <label>Kecamatan</label>
-        <input type="text" id="newRuasKec" placeholder="Kecamatan">
+        <label>Desa / Kecamatan</label>
+        <input type="text" id="newRuasKec" placeholder="Batursari / Kecamatan" >
       </div>
       <div class="form-group">
-        <label>Kondisi Jalan</label>
+        <label>Kondisi</label>
         <select id="newRuasKondisi">
           <option value="baik">Baik</option>
           <option value="sedang">Sedang</option>
@@ -1366,7 +1366,7 @@
       </div>
     </div>
     <div class="form-group">
-      <label>Keterangan (opsional)</label>
+      <label>Catatan Monev</label>
       <textarea id="newRuasKet" rows="2" placeholder="Catatan tambahan..."></textarea>
     </div>
     <button class="btn btn-primary btn-full" onclick="saveNewRuas()">💾 Simpan Ruas</button>
@@ -1452,7 +1452,7 @@
     </div>
 
     <div class="form-group">
-      <label>Pilih Ruas Jalan</label>
+      <label>Pilih Kegiatan</label>
       <select id="pdfRuasSelect"></select>
     </div>
 
@@ -1706,7 +1706,7 @@ function toggleTracking() {
 }
 
 function startTracking() {
-  if (!state.activeRuasId) { toast('⚠️ Pilih ruas jalan dulu!'); return; }
+  if (!state.activeRuasId) { toast('⚠️ Pilih kegiatan dulu!'); return; }
   if (!navigator.geolocation) { toast('❌ GPS tidak didukung browser'); return; }
 
   isTracking = true;
@@ -1855,7 +1855,7 @@ function renderPoints() {
    MANUAL POINT
    ================================================================ */
 function addManualPoint() {
-  if (!state.activeRuasId) { toast('⚠️ Pilih ruas dulu!'); return; }
+  if (!state.activeRuasId) { toast('⚠️ Pilih kegiatan dulu!'); return; }
   document.getElementById('manLat').value = '';
   document.getElementById('manLon').value = '';
   document.getElementById('manKondisi').value = '';
@@ -2070,7 +2070,7 @@ function deleteRuas(id) {
 
 function renderRuasSelect() {
   const sel = document.getElementById('activeRuasSelect');
-  sel.innerHTML = '<option value="">-- Pilih Ruas --</option>' +
+  sel.innerHTML = '<option value="">-- Pilih Kegiatan --</option>' +
     state.ruas.map(r => `<option value="${r.id}">${r.nama}${r.staAwal?' ('+r.staAwal+')':''}</option>`).join('');
   if (state.activeRuasId) sel.value = state.activeRuasId;
 }
@@ -2962,3 +2962,4 @@ updateSyncUI();
 </script>
 </body>
 </html>
+
