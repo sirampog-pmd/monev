@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Monev Jalan</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -36,6 +39,7 @@
     font-weight: 600;
     cursor: pointer;
     font-size: 0.85em;
+    transition: 0.2s;
   }
   .header button:hover { background: rgba(255,255,255,0.3); }
   .updated { font-size: 0.75em; opacity: 0.85; }
@@ -160,15 +164,22 @@
     border-radius: 10px;
     font-size: 0.9em;
   }
-
-  .foto-thumb {
-    width: 36px;
-    height: 36px;
+  
+  .btn-print-ruas {
+    padding: 5px 10px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
     border-radius: 6px;
-    object-fit: cover;
     cursor: pointer;
-    border: 2px solid #e2e8f0;
-    background: #f8fafc;
+    font-size: 0.75em;
+    font-weight: 700;
+    color: #0f172a;
+    transition: all 0.2s;
+  }
+  .btn-print-ruas:hover {
+    background: #e0e7ff;
+    border-color: #6366f1;
+    color: #4f46e5;
   }
 </style>
 </head>
@@ -182,8 +193,11 @@
         <p>Rekap lintas petugas dari Google Sheets</p>
       </div>
       <div style="text-align:right;">
-        <button onclick="loadDashboard()">🔄 Refresh</button>
-        <div class="updated" id="updated">—</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+		  <button onclick="openPdfOptions()" title="Cetak Laporan">🖨️ Cetak Laporan</button>
+		  <button onclick="loadDashboard()">🔄 Refresh</button>
+		</div>
+		<div class="updated" id="updated" style="margin-top:8px;text-align:right;">—</div>
       </div>
     </div>
   </div>
@@ -198,10 +212,59 @@
   </div>
 </div>
 
+<!-- Modal Cetak Dashboard -->
+<div id="modalPdfDash" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 25px 50px rgba(0,0,0,0.4);">
+    <div style="font-weight:800;font-size:1.1em;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+      <span>🖨️ Cetak Laporan Rekap</span>
+      <button onclick="closePdfModal()" style="background:none;border:none;font-size:1.2em;cursor:pointer;">✕</button>
+    </div>
+    
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700;font-size:0.85em;margin-bottom:8px;">Isi Laporan:</div>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:0.9em;"><input type="checkbox" id="chkStat" checked> Statistik Utama</label>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:0.9em;"><input type="checkbox" id="chkChart" checked> Grafik Chart</label>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:0.9em;"><input type="checkbox" id="chkPetugas" checked> Tabel Per Petugas</label>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:0.9em;"><input type="checkbox" id="chkRuas" checked> Tabel Per Ruas</label>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:0.8em;font-weight:700;margin-bottom:4px;">Nama Penanggung Jawab</label>
+      <input type="text" id="pdfAdminName" placeholder="Nama Anda" style="width:100%;padding:10px;border:2px solid #e2e8f0;border-radius:8px;margin-bottom:10px;">
+      <label style="display:block;font-size:0.8em;font-weight:700;margin-bottom:4px;">NIP / Jabatan</label>
+      <input type="text" id="pdfAdminNip" placeholder="NIP" style="width:100%;padding:10px;border:2px solid #e2e8f0;border-radius:8px;">
+    </div>
+
+    <button onclick="generatePdfDashboard()" style="width:100%;padding:12px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">📄 Generate PDF</button>
+  </div>
+</div>
+
+<!-- Modal Cetak Per Ruas -->
+<div id="modalCetakRuas" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.3);">
+    <div style="font-weight:800;font-size:1.1em;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+      <span>🖨️ Cetak Laporan Ruas</span>
+      <button onclick="document.getElementById('modalCetakRuas').style.display='none'" style="background:none;border:none;font-size:1.2em;cursor:pointer;">✕</button>
+    </div>
+    
+    <input type="hidden" id="cetakRuasId">
+    
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:0.8em;font-weight:700;margin-bottom:4px;">Nama Petugas / Penanggung Jawab</label>
+      <input type="text" id="cetakNama" placeholder="Nama Anda" style="width:100%;padding:10px;border:2px solid #e2e8f0;border-radius:8px;">
+    </div>
+    
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:0.8em;font-weight:700;margin-bottom:4px;">NIP / Jabatan</label>
+      <input type="text" id="cetakNip" placeholder="NIP" style="width:100%;padding:10px;border:2px solid #e2e8f0;border-radius:8px;">
+    </div>
+
+    <button onclick="eksekusiCetakRuas()" style="width:100%;padding:12px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">📄 Mulai Cetak PDF</button>
+  </div>
+</div>
+
 <script>
-// ============================================================
-// GANTI DENGAN URL APPS SCRIPT ANDA
-// ============================================================
+
 const DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxveayx7vBte7OTIzQcjLppSt1LQu6hw57_z9NyFGpwudJSTs4a2tY5614R4JEpxf-W/exec?action=dashboard';
 
 let chartPetugas = null;
@@ -242,7 +305,6 @@ function renderDashboard(data) {
   const totalPanjang = data.totalPanjang;
   const totalFoto = data.petugas.reduce((s, p) => s + (p.foto || 0), 0);
 
-  // Stat cards
   const statsHtml = `
     <div class="stats-grid">
       <div class="stat-card">
@@ -268,7 +330,6 @@ function renderDashboard(data) {
     </div>
   `;
 
-  // Charts
   const chartsHtml = `
     <div class="charts-grid">
       <div class="chart-card">
@@ -282,7 +343,6 @@ function renderDashboard(data) {
     </div>
   `;
 
-  // Tabel petugas
   const petugasRows = data.petugas
     .sort((a, b) => b.titik - a.titik)
     .map(p => `
@@ -313,7 +373,6 @@ function renderDashboard(data) {
     </div>
   `;
 
-  // Tabel ruas
   const badgeMap = { baik: 'badge-baik', sedang: 'badge-sedang', rr: 'badge-rr', rb: 'badge-rb' };
   const labelMap = { baik: 'Baik', sedang: 'Sedang', rr: 'Rusak Ringan', rb: 'Rusak Berat' };
   const ruasRows = data.ruas
@@ -325,6 +384,9 @@ function renderDashboard(data) {
         <td>${fmtDist(r.panjang)}</td>
         <td>${r.titik}</td>
         <td>${r.petugas.map(p => escapeHtml(p)).join(', ')}</td>
+        <td>
+          <button onclick="printRuas('${escapeHtml(r.nama).replace(/'/g, "\\'")}')" class="btn-print-ruas">🖨️ Cetak</button>
+        </td> 
       </tr>
     `).join('');
 
@@ -339,21 +401,19 @@ function renderDashboard(data) {
             <th>Panjang</th>
             <th>Titik</th>
             <th>Petugas</th>
+			<th>Aksi</th> 
           </tr>
         </thead>
-        <tbody>${ruasRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">Belum ada data</td></tr>'}</tbody>
+        <tbody>${ruasRows || '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">Belum ada data</td></tr>'}</tbody>
       </table>
     </div>
   `;
 
   content.innerHTML = statsHtml + chartsHtml + petugasTable + ruasTable;
-
-  // Render charts
   renderCharts(data);
 }
 
 function renderCharts(data) {
-  // Chart 1: Bar per petugas
   const ctx1 = document.getElementById('chartPetugas').getContext('2d');
   if (chartPetugas) chartPetugas.destroy();
   chartPetugas = new Chart(ctx1, {
@@ -375,7 +435,6 @@ function renderCharts(data) {
     }
   });
 
-  // Chart 2: Doughnut kondisi
   const ctx2 = document.getElementById('chartKondisi').getContext('2d');
   if (chartKondisi) chartKondisi.destroy();
   chartKondisi = new Chart(ctx2, {
@@ -407,6 +466,428 @@ function safeDateStr(v, opts) {
   return d.toLocaleString('id-ID', opts || {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 }
 
+let currentData = null;
+
+const originalRenderDashboard = renderDashboard;
+renderDashboard = function(data) {
+  currentData = data;
+  originalRenderDashboard(data);
+};
+
+function openPdfOptions() {
+  if (!currentData) { alert('Data belum dimuat. Tunggu sebentar.'); return; }
+  document.getElementById('modalPdfDash').style.display = 'flex';
+}
+
+function closePdfModal() {
+  document.getElementById('modalPdfDash').style.display = 'none';
+}
+
+async function generatePdfDashboard() {
+  if (!currentData) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Membuat PDF...';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageW = 210, pageH = 297, margin = 15;
+    let y = margin;
+
+    const includeStat = document.getElementById('chkStat').checked;
+    const includeChart = document.getElementById('chkChart').checked;
+    const includePetugas = document.getElementById('chkPetugas').checked;
+    const includeRuas = document.getElementById('chkRuas').checked;
+    const nama = document.getElementById('pdfAdminName').value.trim() || '____________';
+    const nip = document.getElementById('pdfAdminNip').value.trim() || '____________';
+
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 0, pageW, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('LAPORAN REKAP MONEV INFRASTRUKTUR KEC. SIRAMPOG', pageW / 2, 15, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, pageW / 2, 23, { align: 'center' });
+    y = 40;
+
+    if (includeStat) {
+      const totalPanjang = currentData.totalPanjang || 0;
+      const totalTitik = currentData.totalTitik || 0;
+      const petugasCount = currentData.petugas.length;
+      const ruasCount = currentData.ruas.length;
+
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('STATISTIK UTAMA', margin, y);
+      y += 6;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total Petugas: ${petugasCount}`, margin, y);
+      doc.text(`Total Ruas: ${ruasCount}`, margin + 90, y);
+      y += 6;
+      doc.text(`Total Titik: ${totalTitik}`, margin, y);
+      doc.text(`Total Panjang: ${(totalPanjang/1000).toFixed(2)} km`, margin + 90, y);
+      y += 12;
+    }
+
+    if (includeChart) {
+      const chart1 = document.getElementById('chartPetugas');
+      const chart2 = document.getElementById('chartKondisi');
+      
+      if (chart1 && chart2) {
+        if (y > pageH - 100) { doc.addPage(); y = margin; }
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('GRAFIK VISUAL', margin, y);
+        y += 6;
+
+        const img1 = chart1.toDataURL('image/jpeg', 0.8);
+        doc.addImage(img1, 'JPEG', margin, y, 85, 50);
+        
+        const img2 = chart2.toDataURL('image/jpeg', 0.8);
+        doc.addImage(img2, 'JPEG', margin + 90, y, 85, 50);
+        
+        y += 56;
+      }
+    }
+
+    if (includePetugas && currentData.petugas.length > 0) {
+      if (y > pageH - 60) { doc.addPage(); y = margin; }
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('REKAP PER PETUGAS', margin, y);
+      y += 3;
+
+      const tablePetugas = currentData.petugas
+        .sort((a, b) => b.titik - a.titik)
+        .map(p => [
+          p.nama, p.titik, p.ruas, p.foto, 
+          p.terakhir ? new Date(p.terakhir).toLocaleDateString('id-ID') : '-'
+        ]);
+
+      doc.autoTable({
+        startY: y,
+        head: [['Nama Petugas', 'Titik', 'Ruas', 'Foto', 'Aktivitas Terakhir']],
+        body: tablePetugas,
+        theme: 'grid',
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [99, 102, 241] },
+        columnStyles: { 0: { cellWidth: 60 }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' } }
+      });
+      y = doc.lastAutoTable.finalY + 10;
+    }
+
+    if (includeRuas && currentData.ruas.length > 0) {
+      if (y > pageH - 60) { doc.addPage(); y = margin; }
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('REKAP PER RUAS', margin, y);
+      y += 3;
+
+      const tableRuas = currentData.ruas
+        .sort((a, b) => b.panjang - a.panjang)
+        .map(r => [ r.nama, (r.kondisi || '-').toUpperCase(), (r.panjang/1000).toFixed(2) + ' km', r.titik, (r.petugas || []).join(', ') ]);
+
+      doc.autoTable({
+        startY: y,
+        head: [['Ruas', 'Kondisi', 'Panjang', 'Titik', 'Petugas']],
+        body: tableRuas,
+        theme: 'grid',
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [14, 165, 233] },
+        columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 25, halign: 'center' }, 2: { cellWidth: 25, halign: 'center' }, 3: { cellWidth: 15, halign: 'center' }, 4: { cellWidth: 'auto' } }
+      });
+      y = doc.lastAutoTable.finalY + 10;
+    }
+
+    if (y > pageH - 60) { doc.addPage(); y = margin; }
+    y = Math.max(y + 10, pageH - 55);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Dicetak: ${new Date().toLocaleDateString('id-ID')}`, margin, y);
+
+    const ttdX = pageW - margin - 60;
+    doc.text('Penanggung Jawab,', ttdX, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(nama, ttdX, y + 25);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`NIP: ${nip}`, ttdX, y + 31);
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Dashboard Monev Infrastruktur · Rekap Lintas Petugas', pageW / 2, pageH - 8, { align: 'center' });
+      doc.text(`Hal ${i} / ${pageCount}`, pageW - margin, pageH - 8, { align: 'right' });
+    }
+
+    doc.save(`Laporan-Monev-${new Date().toISOString().slice(0,10)}.pdf`);
+    
+    btn.disabled = false;
+    btn.textContent = '📄 Generate PDF';
+    closePdfModal();
+
+  } catch (err) {
+    console.error(err);
+    alert('Gagal membuat PDF: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = '📄 Generate PDF';
+  }
+}
+
+// ============================================================
+// CETAK PDF PER RUAS (FOTO DIPERBAIKI)
+// ============================================================
+function printRuas(namaRuas) {
+  if (!currentData || !currentData.rawPoints) {
+    alert('Data belum siap. Silakan refresh.');
+    return;
+  }
+  
+  document.getElementById('cetakRuasId').value = namaRuas;
+  document.getElementById('cetakNama').value = '';
+  document.getElementById('cetakNip').value = '';
+  document.getElementById('modalCetakRuas').style.display = 'flex';
+}
+
+async function eksekusiCetakRuas() {
+  const namaRuas = document.getElementById('cetakRuasId').value;
+  const petugas = document.getElementById('cetakNama').value.trim() || '____________';
+  const nip = document.getElementById('cetakNip').value.trim() || '____________';
+  
+  document.getElementById('modalCetakRuas').style.display = 'none'; 
+
+  const ruasInfo = currentData.ruas.find(r => r.nama === namaRuas);
+  if (!ruasInfo) { alert('Ruas tidak ditemukan'); return; }
+
+  const pts = currentData.rawPoints
+    .filter(p => p.ruas === namaRuas)
+    .sort((a, b) => a.noTitik - b.noTitik);
+
+  if (pts.length === 0) { alert('Ruas ini belum memiliki titik.'); return; }
+
+  const loadingToast = document.createElement('div');
+  loadingToast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+  loadingToast.textContent = '⏳ Menyiapkan dokumen PDF...';
+  document.body.appendChild(loadingToast);
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageW = 210, pageH = 297, margin = 15;
+    let y = margin;
+
+    // --- TYPO DIPERBAIKI: INFRASTRUKTUR ---
+    doc.setFillColor(14, 165, 233);
+    doc.rect(0, 0, pageW, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('LAPORAN MONEV INFRASTRUKTUR KEC. SIRAMPOG', pageW / 2, 13, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Monitoring & Evaluasi Kondisi Infrastruktur', pageW / 2, 21, { align: 'center' });
+
+    y = 38;
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ruasInfo.nama, margin, y);
+    y += 7;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    const infoLines = [
+      `Kondisi Ruas: ${ruasInfo.kondisi.toUpperCase()}`,
+      `Petugas Pengukur: ${ruasInfo.petugas.join(', ')}`,
+      `Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`
+    ];
+    infoLines.forEach(line => {
+      doc.text(line, margin, y);
+      y += 5;
+    });
+    y += 3;
+
+    const fotoCount = pts.filter(p => p.fotoUrl).length;
+    const kondisiCount = { baik: 0, sedang: 0, rr: 0, rb: 0 };
+    pts.forEach(p => { if (p.kondisiSegmen) kondisiCount[p.kondisiSegmen]++; });
+
+    doc.setFillColor(240, 249, 255);
+    doc.rect(margin, y, pageW - margin * 2, 30, 'F');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text('RINGKASAN', margin + 4, y + 7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(9);
+    doc.text(`Total Panjang Terukur: ${(ruasInfo.panjang / 1000).toFixed(3)} km`, margin + 4, y + 14);
+    doc.text(`Jumlah Titik: ${pts.length}`, margin + 4, y + 20);
+    doc.text(`Jumlah Foto: ${fotoCount}`, margin + 4, y + 26);
+    y += 35;
+
+    if (y > pageH - 60) { doc.addPage(); y = margin; }
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text('TABEL TITIK KOORDINAT', margin, y);
+    y += 3;
+
+    const tableRows = pts.map((p, i) => [
+      p.noTitik || (i + 1),
+      p.lat.toFixed(6),
+      p.lon.toFixed(6),
+      (p.akurasi || 0).toFixed(0) + ' m',
+      i > 0 ? p.jarakSegmen.toFixed(1) + ' m' : '-',
+      p.kondisiSegmen ? p.kondisiSegmen.toUpperCase() : '-'
+    ]);
+
+    doc.autoTable({
+      startY: y + 2,
+      head: [['No', 'Latitude', 'Longitude', 'Akurasi', 'Jarak Segmen', 'Kondisi']],
+      body: tableRows,
+      theme: 'grid',
+      margin: { left: margin, right: margin },
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [14, 165, 233], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 249, 255] },
+      columnStyles: {
+        0: { cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 32 },
+        2: { cellWidth: 32 },
+        3: { cellWidth: 22, halign: 'center' },
+        4: { cellWidth: 28, halign: 'right' },
+        5: { cellWidth: 'auto', halign: 'center' }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    const photoPoints = pts.filter(p => p.fotoUrl);
+    if (photoPoints.length > 0) {
+      doc.addPage();
+      y = margin;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(14, 165, 233);
+      doc.text('DOKUMENTASI FOTO KONDISI', margin, y);
+      y += 8;
+
+      const imgW = (pageW - margin * 2 - 4) / 2;
+      const imgH = imgW * 0.7;
+      let col = 0;
+
+      for (const p of photoPoints) {
+        loadingToast.textContent = `⏳ Mengunduh foto titik #${p.noTitik}...`;
+
+        let imgData = null;
+        try {
+          const match = p.fotoUrl.match(/[-\w]{25,}/);
+          if (match) {
+            const fileId = match[0];
+            // ⬇️ PENGGUNAAN PROXY WESERV UNTUK BYPASS CORS GOOGLE DRIVE ⬇️
+            const proxyUrl = `https://images.weserv.nl/?url=drive.google.com/thumbnail?id=${fileId}%26sz=w1000`;
+            
+            imgData = await new Promise((resolve, reject) => {
+              const img = new Image();
+              img.crossOrigin = "Anonymous"; 
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
+              };
+              img.onerror = () => reject(new Error('Gagal load image via proxy'));
+              img.src = proxyUrl;
+            });
+          }
+        } catch (err) {
+          console.warn('Gagal unduh foto:', p.fotoUrl, err);
+        }
+
+        if (y + imgH + 20 > pageH - margin) { doc.addPage(); y = margin; col = 0; }
+        const x = margin + col * (imgW + 4);
+
+        if (imgData) {
+          try {
+            doc.addImage(imgData, 'JPEG', x, y, imgW, imgH);
+          } catch (e) {
+            doc.setDrawColor(200); doc.rect(x, y, imgW, imgH);
+            doc.setFontSize(8); doc.text('Foto gagal dimuat', x + 10, y + 15);
+          }
+        } else {
+          doc.setDrawColor(200); doc.rect(x, y, imgW, imgH);
+          doc.setFontSize(8); doc.setTextColor(150);
+          doc.text('Foto tidak tersedia', x + 10, y + 15);
+        }
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text(`Titik #${p.noTitik}`, x + 1, y + imgH + 4);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text(`${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`, x + 1, y + imgH + 8);
+        if (p.kondisiSegmen) doc.text(`Kondisi: ${p.kondisiSegmen.toUpperCase()}`, x + 1, y + imgH + 12);
+        if (p.keterangan) {
+          const lines = doc.splitTextToSize(p.keterangan, imgW - 2);
+          doc.text(lines.slice(0, 2), x + 1, y + imgH + 16);
+        }
+
+        col++;
+        if (col >= 2) { col = 0; y += imgH + 22; }
+      }
+      if (col > 0) y += imgH + 22;
+    }
+
+    if (y > pageH - 60) { doc.addPage(); y = margin; }
+    else y = Math.max(y + 10, pageH - 60);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Dibuat: ${new Date().toLocaleDateString('id-ID')}`, margin, y);
+
+    const ttdX = pageW - margin - 60;
+    doc.text('Petugas Pengukur,', ttdX, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(petugas, ttdX, y + 30);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`NIP: ${nip}`, ttdX, y + 36);
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`PMD Kec. Sirampog - Monev Infrastruktur · ${ruasInfo.nama}`, pageW / 2, pageH - 8, { align: 'center' });
+      doc.text(`Halaman ${i} dari ${pageCount}`, pageW - margin, pageH - 8, { align: 'right' });
+    }
+
+    doc.save(`Laporan-${ruasInfo.nama.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().slice(0,10)}.pdf`);
+    loadingToast.textContent = '✅ PDF berhasil dibuat!';
+    setTimeout(() => loadingToast.remove(), 2000);
+
+  } catch (err) {
+    console.error(err);
+    loadingToast.textContent = '❌ Gagal membuat PDF: ' + err.message;
+    setTimeout(() => loadingToast.remove(), 3000);
+  }
+}
+
 function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -414,11 +895,12 @@ function escapeHtml(s) {
   }[c]));
 }
 
+
 // Auto-load saat buka
 loadDashboard();
 
-// Auto-refresh tiap 60 detik (opsional)
-setInterval(loadDashboard, 60000);
+// setInterval(loadDashboard, 60000);
+
 </script>
 </body>
 </html>
