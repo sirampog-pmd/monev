@@ -1495,6 +1495,27 @@
 
 <script>
 /* ================================================================
+   KEAMANAN KONFIGURASI (OBFUSCATION V2 - ANTI GAGAL)
+   ================================================================ */
+// URL dan Secret diubah menjadi kode ASCII agar tidak terbaca mata.
+// Ini 100% aman dari karakter aneh (- atau _) dan pasti bisa di-rakit kembali.
+
+const _urlCodes = [104,116,116,112,115,58,47,47,115,99,114,105,112,116,46,103,111,111,103,108,101,46,99,111,109,47,109,97,99,114,111,115,47,115,47,65,75,102,121,99,98,120,118,101,97,121,120,55,118,66,116,101,55,79,84,73,122,81,99,106,76,112,112,83,116,49,76,81,117,54,104,119,53,55,95,122,57,78,121,70,71,112,119,117,100,74,83,84,115,52,97,50,116,89,53,54,49,52,82,52,74,69,112,120,102,45,87,47,101,120,101,99];
+const _secretCodes = [109,111,110,101,118,45,106,97,108,97,110,45,50,48,50,53,45,114,97,104,97,115,105,97];
+
+function getSyncUrl() {
+  return _urlCodes.map(c => String.fromCharCode(c)).join('');
+}
+
+function getSyncSecret() {
+  return _secretCodes.map(c => String.fromCharCode(c)).join('');
+}
+
+const DASHBOARD_URL = 'dashboard.html';
+const STORAGE_KEY = 'monev_jalan_v2';
+const PETUGAS_KEY = 'monev_petugas';
+
+/* ================================================================
    THEME
    ================================================================ */
 function initTheme() {
@@ -1519,15 +1540,6 @@ function updateThemeIcon(theme) {
 }
 
 initTheme();
-
-/* ================================================================
-   KONFIGURASI
-   ================================================================ */
-const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxveayx7vBte7OTIzQcjLppSt1LQu6hw57_z9NyFGpwudJSTs4a2tY5614R4JEpxf-W/exec';
-const SYNC_SECRET = 'monev-jalan-2025-rahasia';
-const DASHBOARD_URL = 'dashboard.html';
-const STORAGE_KEY = 'monev_jalan_v2';
-const PETUGAS_KEY = 'monev_petugas';
 
 /* ================================================================
    STATE & STORAGE
@@ -1640,7 +1652,7 @@ function getPetugasName() {
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.toggle('active', b.textContent.includes(
-      { track: 'Ukur', ruas: 'Data Ruas', rekap: 'Rekap', export: 'Export' }[name]
+      { track: 'Ukur', ruas: 'Data Kegiatan', rekap: 'Rekap', export: 'Export' }[name]
     ));
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -2344,7 +2356,8 @@ function updateSyncUI() {
   const syncedPoints = state.points.filter(p => p.synced).length;
   const pending = totalPoints - syncedPoints;
 
-  const urlConfigured = SYNC_URL && !SYNC_URL.includes('GANTI_URL_ANDA');
+  // Cek URL yang sudah di-decode
+  const urlConfigured = getSyncUrl().includes('exec');
 
   if (!urlConfigured) {
     el.innerHTML = `<span style="color:var(--danger);">🔴 Belum dikonfigurasi</span>`;
@@ -2364,8 +2377,11 @@ function updateSyncUI() {
 }
 
 async function syncAllToSheets(forceResend = false) {
-  if (!SYNC_URL || SYNC_URL.includes('GANTI_URL_ANDA')) {
-    toast('❌ URL Apps Script belum diisi di kode!');
+  const url = getSyncUrl();
+  const secret = getSyncSecret();
+
+  if (!url || !secret) {
+    toast('❌ Konfigurasi gagal dimuat!');
     return;
   }
 
@@ -2409,7 +2425,7 @@ async function syncAllToSheets(forceResend = false) {
     }
 
     const payload = {
-      secret: SYNC_SECRET,
+      secret: secret, // Menggunakan secret hasil dekripsi
       petugas: petugasName,
       ruas: ruas.nama,
       staAwal: ruas.staAwal || '',
@@ -2431,7 +2447,7 @@ async function syncAllToSheets(forceResend = false) {
     };
 
     try {
-      const response = await fetch(SYNC_URL, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload),
@@ -2477,8 +2493,11 @@ async function syncAllToSheets(forceResend = false) {
    PULL DARI SHEETS
    ================================================================ */
 async function pullFromSheets(ev) {
-  if (!SYNC_URL || SYNC_URL.includes('GANTI_URL_ANDA')) {
-    toast('❌ SYNC_URL belum diisi di kode');
+  const urlBase = getSyncUrl();
+  const secret = getSyncSecret();
+
+  if (!urlBase || !secret) {
+    toast('❌ Konfigurasi gagal dimuat!');
     return;
   }
 
@@ -2489,7 +2508,7 @@ async function pullFromSheets(ev) {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Mengambil data...'; }
 
   try {
-    const url = `${SYNC_URL}?action=pull&secret=${encodeURIComponent(SYNC_SECRET)}`;
+    const url = `${urlBase}?action=pull&secret=${encodeURIComponent(secret)}`;
     const response = await fetch(url, { redirect: 'follow' });
     const result = await response.json();
 
@@ -2980,6 +2999,6 @@ refreshMap();
 updateStorageInfo();
 updateSyncUI();
 </script>
+
 </body>
 </html>
-
