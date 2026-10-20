@@ -1700,6 +1700,12 @@ function refreshMap() {
 let watchId = null;
 let isTracking = false;
 let lastGpsPos = null;
+let trackingStartedAt = 0;
+
+const MIN_INTERVAL_MS = 5000;   
+const MIN_DIST_M = 8;           
+const MIN_ACCURACY_M = 50;      
+const WARMUP_MS = 10000;        
 
 function toggleTracking() {
   isTracking ? stopTracking() : startTracking();
@@ -1710,14 +1716,16 @@ function startTracking() {
   if (!navigator.geolocation) { toast('❌ GPS tidak didukung browser'); return; }
 
   isTracking = true;
+  trackingStartedAt = Date.now();
   document.getElementById('pulseDot').classList.remove('off');
-  document.getElementById('statusText').textContent = 'Mencari sinyal GPS...';
+  document.getElementById('statusText').textContent =
+    `Mencari sinyal GPS... (tunggu ${WARMUP_MS/1000} detik)`;
   document.getElementById('btnTrack').textContent = '⏸️ Stop Tracking';
   document.getElementById('btnTrack').className = 'btn btn-danger btn-full';
 
   watchId = navigator.geolocation.watchPosition(
     onGpsUpdate, onGpsError,
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
 
@@ -1732,8 +1740,6 @@ function stopTracking() {
 }
 
 let lastAddTs = 0;
-const MIN_INTERVAL_MS = 2000;
-const MIN_DIST_M = 3;
 
 function onGpsUpdate(pos) {
   const { latitude: lat, longitude: lon, accuracy: acc } = pos.coords;
@@ -1750,8 +1756,22 @@ function onGpsUpdate(pos) {
     currentMarker.setLatLng([lat, lon]);
   }
   if (!map.getBounds().contains([lat, lon])) map.setView([lat, lon], 17);
-
   if (!state.activeRuasId) return;
+
+  const elapsed = Date.now() - trackingStartedAt;
+  if (elapsed < WARMUP_MS) {
+    const remain = Math.ceil((WARMUP_MS - elapsed) / 1000);
+    document.getElementById('statusText').textContent =
+      `Kalibrasi GPS... (${remain}s) — akurasi ±${acc.toFixed(0)}m`;
+    return;
+  }
+
+  if (acc > MIN_ACCURACY_M) {
+    document.getElementById('statusText').textContent =
+      `GPS lemah (±${acc.toFixed(0)}m) — menunggu sinyal lebih baik...`;
+    return;
+  }
+
   const now = Date.now();
   if (now - lastAddTs < MIN_INTERVAL_MS) return;
 
@@ -2611,7 +2631,7 @@ async function generatePdf() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('LAPORAN MONEV PENGUKURAN JALAN', pageW / 2, 13, { align: 'center' });
+      doc.text('LAPORAN MONEV INFRASTRUKTUR KEC. SIRAMPOG', pageW / 2, 13, { align: 'center' });
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text('Monitoring & Evaluasi Kondisi Ruas Jalan', pageW / 2, 21, { align: 'center' });
@@ -2795,12 +2815,12 @@ async function generatePdf() {
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184);
-      doc.text(`Monev Pengukur Jalan · ${ruas.nama}`,
+      doc.text(`Monev Infrastuktur · ${ruas.nama}`,
         pageW / 2, pageH - 8, { align: 'center' });
       doc.text(`Halaman ${i} dari ${pageCount}`, pageW - margin, pageH - 8, { align: 'right' });
     }
 
-    const filename = `Laporan-${ruas.nama.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().slice(0,10)}.pdf`;
+    const filename = `Laporan-Monev-${ruas.nama.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(filename);
     toast('✅ PDF berhasil dibuat!');
   } catch (err) {
