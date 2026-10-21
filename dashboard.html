@@ -691,6 +691,7 @@ async function eksekusiCetakRuas() {
     let y = margin;
 
     // --- TYPO DIPERBAIKI: INFRASTRUKTUR ---
+        // ================= HEADER =================
     doc.setFillColor(14, 165, 233);
     doc.rect(0, 0, pageW, 28, 'F');
     doc.setTextColor(255, 255, 255);
@@ -703,24 +704,34 @@ async function eksekusiCetakRuas() {
 
     y = 38;
     doc.setTextColor(30, 41, 59);
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(ruasInfo.nama, margin, y);
-    y += 7;
+	const splitTitle = doc.splitTextToSize(ruasInfo.nama, pageW - (margin * 2));
+    doc.text(splitTitle, margin, y);
+    y += (splitTitle.length * 6) + 2;
 
+    // Ambil data anggaran dari titik pertama ruas ini
+    const firstPt = pts[0] || {};
+    
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     const infoLines = [
-      `Kondisi Ruas: ${ruasInfo.kondisi.toUpperCase()}`,
-      `Petugas Pengukur: ${ruasInfo.petugas.join(', ')}`,
-      `Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`
+      `Desa: ${firstPt.desa || '-'}  |  Tahun: ${firstPt.tahun || '-'}`,
+      `Sumber Dana: ${firstPt.sumberDana || '-'}`,
+      `Kategori: ${firstPt.kategori || '-'}`,
+      `Kondisi Ruas: ${ruasInfo.kondisi.toUpperCase()}  |  Tanggal Monev: ${firstPt.tanggalMonev ? new Date(firstPt.tanggalMonev).toLocaleDateString('id-ID') : '-'}`
     ];
     infoLines.forEach(line => {
       doc.text(line, margin, y);
       y += 5;
     });
-    y += 3;
+    
+    const fAnggaran = Number(firstPt.anggaran || 0).toLocaleString('id-ID');
+    const fRealisasi = Number(firstPt.realisasi || 0).toLocaleString('id-ID');
+    doc.text(`Anggaran: Rp ${fAnggaran}  |  Realisasi: Rp ${fRealisasi}  |  Progress: ${firstPt.progress || 0}%`, margin, y);
+    y += 8;
 
+    // ================= RINGKASAN =================
     const fotoCount = pts.filter(p => p.fotoUrl).length;
     const kondisiCount = { baik: 0, sedang: 0, rr: 0, rb: 0 };
     pts.forEach(p => { if (p.kondisiSegmen) kondisiCount[p.kondisiSegmen]++; });
@@ -730,7 +741,7 @@ async function eksekusiCetakRuas() {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(14, 165, 233);
-    doc.text('RINGKASAN', margin + 4, y + 7);
+    doc.text('RINGKASAN PENGUKURAN', margin + 4, y + 7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(9);
@@ -898,8 +909,10 @@ function escapeHtml(s) {
 
 // Auto-load saat buka
 loadDashboard();
-setInterval(loadDashboard, 600000);
+
+// setInterval(loadDashboard, 60000);
 
 </script>
 </body>
+	
 </html>
