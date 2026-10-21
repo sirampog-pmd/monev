@@ -1175,6 +1175,76 @@
 </head>
 <body>
 
+<!-- ============ LAYAR KUNCI PIN ============ -->
+<div id="lockscreen" style="position:fixed;inset:0;background:#0f172a;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Inter',sans-serif;color:#fff;">
+  
+  <!-- Tombol Reset (Kiri Bawah) -->
+  <div style="position:absolute;bottom:30px;left:30px;font-size:0.8em;color:#64748b;cursor:pointer;" onclick="resetPinApp()">Reset Aplikasi</div>
+
+  <div style="text-align:center;margin-top:-30px;">
+    <div style="width:70px;height:70px;border-radius:50%;border:2px solid #38bdf8;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:2em;background:rgba(56,189,248,0.1);color:#38bdf8;box-shadow:0 0 20px rgba(56,189,248,0.2);">
+      🔒
+    </div>
+    <h2 style="font-size:1.4em;font-weight:800;margin-bottom:8px;">Verifikasi Akses Petugas</h2>
+    <p style="font-size:0.9em;color:#94a3b8;max-width:300px;margin:0 auto;line-height:1.4;">Masukkan PIN untuk membuka Formulir monev.</p>
+  </div>
+
+  <!-- Indikator Titik PIN -->
+  <div id="pinDots" style="display:flex;gap:16px;margin-bottom:40px;">
+    <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+
+  <!-- Keypad Angka -->
+  <div style="display:grid;grid-template-columns:repeat(3, 70px);gap:18px;margin-top:-25px;">
+    <button class="keypad-btn" onclick="enterPin('1')">1</button>
+    <button class="keypad-btn" onclick="enterPin('2')">2</button>
+    <button class="keypad-btn" onclick="enterPin('3')">3</button>
+    <button class="keypad-btn" onclick="enterPin('4')">4</button>
+    <button class="keypad-btn" onclick="enterPin('5')">5</button>
+    <button class="keypad-btn" onclick="enterPin('6')">6</button>
+    <button class="keypad-btn" onclick="enterPin('7')">7</button>
+    <button class="keypad-btn" onclick="enterPin('8')">8</button>
+    <button class="keypad-btn" onclick="enterPin('9')">9</button>
+    <button class="keypad-btn" onclick="enterPin('C')" style="font-size:1em;color:#94a3b8;">C</button>
+    <button class="keypad-btn" onclick="enterPin('0')">0</button>
+    <button class="keypad-btn" onclick="enterPin('DEL')" style="font-size:1em;color:#94a3b8;">⌫</button>
+  </div>
+
+  <!-- Link Tambahan (Bawah) -->
+  <div style="position:absolute;bottom:30px;display:flex;gap:40px;font-size:0.85em;font-weight:600;">
+    <a href="transparansi.html" style="color:#38bdf8;text-decoration:none;">🌐 Dashboard</a>
+    <a href="#" onclick="gantiPinApp()" style="color:#38bdf8;text-decoration:none;">⚙️ Ganti PIN</a>
+  </div>
+</div>
+
+<style>
+  /* Style untuk Keypad PIN */
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid #475569; transition: all 0.2s;
+  }
+  .pin-dot.active {
+    background: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.5); transform: scale(1.2);
+  }
+  .keypad-btn {
+    width: 70px; height: 70px; border-radius: 20px;
+    background: #1e293b; border: 1px solid #334155;
+    color: #fff; font-size: 1.5em; font-weight: 700;
+    cursor: pointer; transition: all 0.1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .keypad-btn:active {
+    background: #334155; transform: scale(0.95);
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+  .shake { animation: shake 0.3s ease-in-out; }
+</style>
+
 <header class="app-header">
   <div class="app-header-inner">
     <div class="app-logo">
@@ -1330,48 +1400,123 @@
 </div>
 
 <!-- ============ MODAL: RUAS BARU ============ -->
+<!-- ============ MODAL: RUAS BARU ============ -->
 <div class="modal" id="modalRuas">
-  <div class="modal-content">
+  <div class="modal-content" style="max-width: 600px;">
     <div class="modal-title">
-      <span>🛣️ Entry Kegiatan Baru</span>
+      <span>🏗️ Entry Kegiatan Baru</span>
       <button class="modal-close" onclick="closeModal('modalRuas')">✕</button>
     </div>
-    <div class="form-group">
-      <label>Nama Kegiatan *</label>
-      <input type="text" id="newRuasName" placeholder="Contoh: Peningkatan Jalan Lingkungan">
-    </div>
-    <div class="row-2">
-      <div class="form-group">
-        <label>STA Awal</label>
-        <input type="text" id="newRuasStaAwal" placeholder="0+000">
+
+    <!-- SECTION 1: INFORMASI UMUM -->
+    <div style="background: rgba(99, 102, 241, 0.05); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(99, 102, 241, 0.1);">
+      <h3 style="color: var(--primary); font-size: 0.95em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span style="background: var(--primary); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7em;">1</span>
+        Informasi Umum
+      </h3>
+      
+      <div class="row-2">
+        <div class="form-group">
+          <label>Nama Kegiatan / Pembangunan *</label>
+          <input type="text" id="newRuasName" placeholder="Contoh: Peningkatan Jalan Lingkungan">
+        </div>
+        <div class="form-group">
+          <label>Desa</label>
+          <select id="newRuasDesa">
+            <option value="">-- Pilih Desa --</option>
+            <option value="Batursari">Batursari</option>
+            <option value="Benda">Benda</option>
+            <option value="Buniwah">Buniwah</option>
+            <option value="Dawuhan">Dawuhan</option>
+            <option value="Igirklanceng">Igirklanceng</option>
+            <option value="Kaligiri">Kaligiri</option>
+            <option value="Kaliloka">Kaliloka</option>
+            <option value="Sridadi">Sridadi</option>
+            <option value="Wanareja">Wanareja</option>
+            <!-- Tambahkan desa lain sesuai wilayah Sirampog -->
+          </select>
+        </div>
       </div>
-      <div class="form-group">
-        <label>STA Akhir</label>
-        <input type="text" id="newRuasStaAkhir" placeholder="1+500">
+
+      <div class="row-2">
+        <div class="form-group">
+          <label>Tahun Anggaran</label>
+          <input type="number" id="newRuasTahun" value="2026" placeholder="2026">
+        </div>
+        <div class="form-group">
+          <label>Sumber Dana</label>
+          <select id="newRuasSumberDana">
+            <option value="">-- Pilih Sumber Dana --</option>
+            <option value="Dana Desa">Dana Desa (DD)</option>
+            <option value="BKK">Bantuan Keuangan Khusus (BKK)</option>
+            <option value="PAD">Pendapatan Asli Desa (PAD)</option>
+            <option value="Bantuan Provinsi">Bantuan Provinsi</option>
+            <option value="Bantuan Pusat">Bantuan Pusat</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Lokasi Kegiatan</label>
+        <input type="text" id="newRuasKategori" placeholder="Contoh: Dukuh Sidamulya RT 01/RW 02">
       </div>
     </div>
-    <div class="row-2">
-      <div class="form-group">
-        <label>Desa / Kecamatan</label>
-        <input type="text" id="newRuasKec" placeholder="Batursari / Kecamatan" >
+
+    <!-- SECTION 2: ANGGARAN & PROGRESS -->
+    <div style="background: rgba(14, 165, 233, 0.05); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(14, 165, 233, 0.1);">
+      <h3 style="color: var(--accent); font-size: 0.95em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span style="background: var(--accent); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7em;">2</span>
+        Anggaran & Progress
+      </h3>
+      
+      <div class="row-2">
+        <div class="form-group">
+          <label>Anggaran (Rp)</label>
+          <input type="number" id="newRuasAnggaran" placeholder="0" oninput="formatRupiah(this)">
+        </div>
+        <div class="form-group">
+          <label>Realisasi (Rp)</label>
+          <input type="number" id="newRuasRealisasi" placeholder="0" oninput="formatRupiah(this)">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Kondisi</label>
-        <select id="newRuasKondisi">
-          <option value="baik">Baik</option>
-          <option value="sedang">Sedang</option>
-          <option value="rr">Rusak Ringan</option>
-          <option value="rb">Rusak Berat</option>
-        </select>
+
+      <div class="row-2" style="margin-bottom: 0;">
+        <div class="form-group">
+          <label>Progress (%)</label>
+          <input type="number" id="newRuasProgress" min="0" max="100" placeholder="0-100">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Monev</label>
+          <input type="date" id="newRuasTanggal">
+        </div>
       </div>
     </div>
-    <div class="form-group">
-      <label>Catatan Monev</label>
-      <textarea id="newRuasKet" rows="2" placeholder="Catatan tambahan..."></textarea>
+
+    <!-- SECTION 3: CATATAN -->
+    <div style="background: rgba(245, 158, 11, 0.05); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(245, 158, 11, 0.1);">
+      <h3 style="color: var(--warning); font-size: 0.95em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span style="background: var(--warning); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7em;">3</span>
+        Catatan Monev
+      </h3>
+      <div class="form-group" style="margin-bottom: 0;">
+        <textarea id="newRuasKet" rows="3" placeholder="Catatan hasil monev, kendala, atau informasi tambahan..."></textarea>
+      </div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="saveNewRuas()">💾 Simpan Ruas</button>
+
+    <!-- FIELD HIDDEN LAMA (Agar fungsi yang sudah ada tidak error) -->
+    <div style="display: none;">
+      <input type="text" id="newRuasStaAwal" value="">
+      <input type="text" id="newRuasStaAkhir" value="">
+      <input type="text" id="newRuasKec" value="Sirampog">
+      <select id="newRuasKondisi">
+        <option value="baik">Baik</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="saveNewRuas()">💾 Simpan Kegiatan</button>
   </div>
 </div>
+
 
 <!-- ============ MODAL: TITIK MANUAL ============ -->
 <div class="modal" id="modalManual">
@@ -1387,7 +1532,7 @@
       </div>
       <div class="form-group">
         <label>Bujur</label>
-        <input type="number" step="any" id="manLon" placeholder="109.081660">
+        <input type="number" step="any" id="manLon" placeholder="109.081666">
       </div>
     </div>
     <div class="form-group">
@@ -2055,26 +2200,39 @@ function openNewRuasModal() {
 
 function saveNewRuas() {
   const nama = document.getElementById('newRuasName').value.trim();
-  if (!nama) { toast('❌ Nama ruas wajib diisi'); return; }
+  if (!nama) { toast('❌ Nama kegiatan wajib diisi'); return; }
+  
   const newRuas = {
     id: uid(),
-    nama,
-    staAwal: document.getElementById('newRuasStaAwal').value.trim(),
-    staAkhir: document.getElementById('newRuasStaAkhir').value.trim(),
-    kec: document.getElementById('newRuasKec').value.trim(),
-    kondisi: document.getElementById('newRuasKondisi').value,
+    nama: nama,
+    desa: document.getElementById('newRuasDesa').value,
+    tahun: document.getElementById('newRuasTahun').value,
+    sumberDana: document.getElementById('newRuasSumberDana').value,
+    kategori: document.getElementById('newRuasKategori').value.trim(),
+    anggaran: document.getElementById('newRuasAnggaran').value,
+    realisasi: document.getElementById('newRuasRealisasi').value,
+    progress: document.getElementById('newRuasProgress').value,
+    tanggalMonev: document.getElementById('newRuasTanggal').value,
     ket: document.getElementById('newRuasKet').value.trim(),
+    
+    // Field lama yang dipertahankan (disembunyikan)
+    staAwal: '',
+    staAkhir: '',
+    kec: 'Sirampog',
+    kondisi: 'baik',
+    
     createdAt: Date.now()
   };
+
   state.ruas.push(newRuas);
   state.activeRuasId = newRuas.id;
   saveState();
   closeModal('modalRuas');
   renderRuasSelect();
   renderPoints();
-  refreshMap();
+  renderMap(); // Fungsi lama namanya mungkin refreshMap
   updateSyncUI();
-  toast('✅ Ruas "' + nama + '" dibuat');
+  toast('✅ Kegiatan "' + nama + '" berhasil dibuat');
 }
 
 function setActiveRuas(id) {
@@ -2123,9 +2281,10 @@ function renderRuasList() {
       <div class="ruas-header">
         <div>
           <div class="ruas-name">${r.nama}</div>
-          <div class="ruas-meta">
-            ${r.staAwal || '-'} s/d ${r.staAkhir || '-'}
-            ${r.kec ? ' · ' + r.kec : ''}
+		  <div class="ruas-meta">
+            ${r.desa ? 'Desa ' + r.desa : ''} 
+            ${r.tahun ? ' · Tahun ' + r.tahun : ''}
+            ${r.anggaran ? ' · Rp ' + Number(r.anggaran).toLocaleString('id-ID') : ''}
           </div>
         </div>
         <div>${kondisiBadge(r.kondisi)}</div>
@@ -2428,8 +2587,16 @@ async function syncAllToSheets(forceResend = false) {
       secret: secret, // Menggunakan secret hasil dekripsi
       petugas: petugasName,
       ruas: ruas.nama,
-      staAwal: ruas.staAwal || '',
-      staAkhir: ruas.staAkhir || '',
+	  desa: ruas.desa || '',
+      tahun: ruas.tahun || '',
+      sumberDana: ruas.sumberDana || '',
+      kategori: ruas.kategori || '',
+      anggaran: ruas.anggaran || 0,
+      realisasi: ruas.realisasi || 0,
+      progress: ruas.progress || 0,
+      tanggalMonev: ruas.tanggalMonev || '',
+      staAwal: ruas.staAwal || '0+000',
+      staAkhir: ruas.staAkhir || '1+500',
       kecamatan: ruas.kec || '',
       kondisiRuas: ruas.kondisi || '',
       noTitik: i + 1,
@@ -2596,7 +2763,15 @@ function mergeRowsIntoState(rows) {
       kondisi: row.kondisiSegmen || '',
       synced: true,
       syncedAt: Date.now(),
-      driveUrl: row.fotoUrl || ''
+      driveUrl: row.fotoUrl || '',
+	  anggaran: row.anggaran || 0,
+      realisasi: row.realisasi || 0,
+      progress: row.progress || 0,
+      tanggalMonev: row.tanggalMonev || '',
+      desa: row.desa || '',
+      tahun: row.tahun || '',
+      sumberDana: row.sumberDana || '',
+      kategori: row.kategori || ''
     });
 
     seen.add(key);
@@ -2644,7 +2819,7 @@ async function generatePdf() {
     const margin = 15;
     let y = margin;
 
-    if (optHeader) {
+        if (optHeader) {
       doc.setFillColor(14, 165, 233);
       doc.rect(0, 0, pageW, 28, 'F');
       doc.setTextColor(255, 255, 255);
@@ -2653,31 +2828,38 @@ async function generatePdf() {
       doc.text('LAPORAN MONEV INFRASTRUKTUR KEC. SIRAMPOG', pageW / 2, 13, { align: 'center' });
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text('Monitoring & Evaluasi Kondisi Ruas Jalan', pageW / 2, 21, { align: 'center' });
+      doc.text('Monitoring & Evaluasi Kondisi Infrastruktur', pageW / 2, 21, { align: 'center' });
 
       y = 38;
       doc.setTextColor(30, 41, 59);
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(ruas.nama, margin, y);
-      y += 7;
+	  const splitTitle = doc.splitTextToSize(ruas.nama, pageW - (margin * 2));
+	  doc.text(splitTitle, margin, y);
+      y += (splitTitle.length * 6) + 2;
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
+      
+      // Data Info Umum
       const infoLines = [
-        `STA Awal: ${ruas.staAwal || '-'}`,
-        `STA Akhir: ${ruas.staAkhir || '-'}`,
-        `Kecamatan: ${ruas.kec || '-'}`,
-        `Kondisi Ruas: ${kondisiLabel(ruas.kondisi)}`,
-        `Tanggal Pengukuran: ${fmtDate(ruas.createdAt)}`
+        `Desa: ${ruas.desa || '-'}  |  Tahun: ${ruas.tahun || '-'}`,
+        `Sumber Dana: ${ruas.sumberDana || '-'}`,
+        `Kategori: ${ruas.kategori || '-'}`,
+        `Kondisi Ruas: ${kondisiLabel(ruas.kondisi)}  |  Tanggal Monev: ${ruas.tanggalMonev ? fmtDate(ruas.tanggalMonev) : fmtDate(ruas.createdAt)}`
       ];
-      if (ruas.ket) infoLines.push(`Keterangan: ${ruas.ket}`);
+      if (ruas.ket) infoLines.push(`Catatan: ${ruas.ket}`);
 
       infoLines.forEach(line => {
         doc.text(line, margin, y);
         y += 5;
       });
-      y += 3;
+      
+      // Data Anggaran
+      const fAnggaran = Number(ruas.anggaran || 0).toLocaleString('id-ID');
+      const fRealisasi = Number(ruas.realisasi || 0).toLocaleString('id-ID');
+      doc.text(`Anggaran: Rp ${fAnggaran}  |  Realisasi: Rp ${fRealisasi}  |  Progress: ${ruas.progress || 0}%`, margin, y);
+      y += 8;
     }
 
     if (optRingkasan) {
@@ -2694,7 +2876,7 @@ async function generatePdf() {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(14, 165, 233);
-      doc.text('RINGKASAN', margin + 4, y + 7);
+      doc.text('RINGKASAN PENGUKURAN', margin + 4, y + 7);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(30, 41, 59);
       doc.setFontSize(9);
@@ -2986,6 +3168,103 @@ document.addEventListener('keydown', e => {
     closeLightbox();
   }
 });
+
+/* ================================================================
+   LOGIKA LAYAR KUNCI PIN (PIN Lock Screen)
+   ================================================================ */
+let currentPin = '';
+const DEFAULT_PIN = '522721'; // Ganti dengan PIN rahasia Anda
+
+// Cek saat halaman dimuat: apakah PIN sudah benar di sesi ini?
+window.addEventListener('load', () => {
+  const isUnlocked = sessionStorage.getItem('monev_unlocked');
+  if (isUnlocked === 'true') {
+    document.getElementById('lockscreen').style.display = 'none';
+  }
+});
+
+function enterPin(val) {
+  if (val === 'C') {
+    currentPin = '';
+    updatePinDots();
+    return;
+  }
+  
+  if (val === 'DEL') {
+    currentPin = currentPin.slice(0, -1);
+    updatePinDots();
+    return;
+  }
+
+  if (currentPin.length < 6) {
+    currentPin += val;
+    updatePinDots();
+  }
+
+  if (currentPin.length === 6) {
+    // Cek PIN (ambil dari localStorage jika sudah pernah diganti, atau DEFAULT_PIN)
+    const savedPin = localStorage.getItem('monev_pin') || DEFAULT_PIN;
+    
+    if (currentPin === savedPin) {
+      // Jika benar
+      sessionStorage.setItem('monev_unlocked', 'true');
+      const lockScreen = document.getElementById('lockscreen');
+      lockScreen.style.transition = 'opacity 0.3s';
+      lockScreen.style.opacity = '0';
+      setTimeout(() => { lockScreen.style.display = 'none'; }, 300);
+    } else {
+      // Jika salah
+      const dots = document.getElementById('pinDots');
+      dots.classList.add('shake');
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Getar di HP
+      setTimeout(() => {
+        dots.classList.remove('shake');
+        currentPin = '';
+        updatePinDots();
+      }, 400);
+    }
+  }
+}
+
+function updatePinDots() {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((dot, index) => {
+    if (index < currentPin.length) {
+      dot.classList.add('active');
+    } else {
+      dot.classList.remove('active');
+    }
+  });
+}
+
+function gantiPinApp() {
+  const oldPin = prompt('Masukkan PIN Lama untuk verifikasi:');
+  const savedPin = localStorage.getItem('monev_pin') || DEFAULT_PIN;
+  
+  if (oldPin === savedPin) {
+    const newPin = prompt('Masukkan PIN Baru (6 Angka):');
+    if (newPin && newPin.length === 6 && !isNaN(newPin)) {
+      localStorage.setItem('monev_pin', newPin);
+      alert('✅ PIN berhasil diubah!');
+    } else {
+      alert('❌ PIN baru harus 6 angka!');
+    }
+  } else if (oldPin !== null) {
+    alert('❌ PIN Lama salah!');
+  }
+}
+
+function resetPinApp() {
+  if (confirm('⚠️ PERINGATAN!\n\nIni akan menghapus SEMUA DATA MONEV di HP ini dan mereset PIN. Anda yakin?')) {
+    if (confirm('Apakah Anda sudah melakukan BACKUP/ SYNC data ke Google Sheets?')) {
+      localStorage.removeItem('monev_jalan_v2');
+      localStorage.removeItem('monev_petugas');
+      localStorage.removeItem('monev_pin');
+      sessionStorage.removeItem('monev_unlocked');
+      location.reload();
+    }
+  }
+}
 
 /* ================================================================
    INIT
