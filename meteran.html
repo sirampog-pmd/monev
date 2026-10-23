@@ -2,15 +2,15 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR Ruler Web Pro - Pengukur Kamera HP</title>
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Ruler Web - Pengukur Ukuran Benda</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -21,11 +21,10 @@
                     colors: {
                         cyber: {
                             blue: '#00f0ff',
-                            green: '#00ff88',
                             purple: '#7000ff',
-                            dark: '#080a0f',
-                            panel: 'rgba(15, 20, 32, 0.85)',
-                            red: '#ff0055'
+                            dark: '#0a0d14',
+                            panel: 'rgba(16, 22, 36, 0.75)',
+                            accent: '#ff0055'
                         }
                     }
                 }
@@ -34,760 +33,674 @@
     </script>
 
     <style>
-        * {
-            touch-action: none; /* Disables double-tap zoom for smooth dragging */
-        }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #080a0f;
+            background-color: #0a0d14;
             color: #ffffff;
             overflow: hidden;
+            touch-action: manipulation;
         }
 
+        /* Glassmorphism effects */
         .glass-panel {
-            background: rgba(15, 20, 32, 0.82);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(0, 240, 255, 0.2);
+            background: rgba(16, 22, 36, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
         }
 
-        .glass-btn {
+        .glass-button {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.18);
-            transition: all 0.15s ease-out;
+            transition: all 0.2s ease;
         }
 
-        .glass-btn:active {
-            transform: scale(0.92);
+        .glass-button:active {
+            transform: scale(0.95);
             background: rgba(0, 240, 255, 0.25);
         }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Reticle animations */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        .reticle-pulse {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+
+        /* Hide scrollbars */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="h-screen w-screen relative select-none bg-black">
 
-    <!-- App Container -->
-    <div id="appContainer" class="relative w-full h-full overflow-hidden">
-        <!-- Hidden Video Element for Stream -->
+    <!-- Camera Feed Canvas Layer -->
+    <div class="relative w-full h-full overflow-hidden">
         <video id="webcam" class="hidden" playsinline autoplay muted></video>
+        <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full z-10 block"></canvas>
 
-        <!-- Canvas Layer for Live Camera & Interactive Lines -->
-        <canvas id="mainCanvas" class="absolute inset-0 w-full h-full z-10 block cursor-crosshair"></canvas>
-
-        <!-- Loupe / Magnifier Canvas (Top Left) -->
-        <div id="loupeContainer" class="absolute top-16 left-4 z-30 hidden pointer-events-none flex flex-col items-center">
-            <div class="w-28 h-28 rounded-full border-2 border-cyber-blue shadow-2xl overflow-hidden bg-black relative">
-                <canvas id="loupeCanvas" class="w-full h-full block"></canvas>
-                <!-- Target Reticle Overlay in Loupe -->
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <div class="w-2 h-2 rounded-full bg-cyber-red shadow-[0_0_8px_#ff0055]"></div>
-                    <div class="absolute w-full h-0.5 bg-cyber-blue/40"></div>
-                    <div class="absolute h-full w-0.5 bg-cyber-blue/40"></div>
-                </div>
+        <!-- Reticle / Crosshair Target Center -->
+        <div id="reticle" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none flex items-center justify-center">
+            <div class="w-12 h-12 rounded-full border-2 border-cyber-blue/60 reticle-pulse flex items-center justify-center relative">
+                <div class="w-2 h-2 rounded-full bg-cyber-blue shadow-[0_0_10px_#00f0ff]"></div>
+                <!-- Crosshair ticks -->
+                <div class="absolute -top-3 w-0.5 h-2 bg-cyber-blue/80"></div>
+                <div class="absolute -bottom-3 w-0.5 h-2 bg-cyber-blue/80"></div>
+                <div class="absolute -left-3 h-0.5 w-2 bg-cyber-blue/80"></div>
+                <div class="absolute -right-3 h-0.5 w-2 bg-cyber-blue/80"></div>
             </div>
-            <span class="text-[10px] font-bold text-cyber-blue bg-black/80 px-2 py-0.5 rounded-full mt-1 border border-cyber-blue/30">Presisi Piksel</span>
         </div>
 
-        <!-- Top Navigation & Controls -->
-        <div class="absolute top-3 left-3 right-3 z-30 flex items-center justify-between">
-            <!-- App Logo & Mode Selector -->
-            <div class="glass-panel px-3 py-1.5 rounded-2xl flex items-center space-x-2">
-                <i class="fa-solid fa-ruler-combined text-cyber-blue text-sm"></i>
-                <span class="font-extrabold tracking-wider text-xs bg-gradient-to-r from-cyber-blue to-purple-400 bg-clip-text text-transparent">AR RULER PRO</span>
+        <!-- Top Controls / Header -->
+        <div class="absolute top-4 left-4 right-4 z-30 flex items-center justify-between">
+            <div class="glass-panel px-4 py-2 rounded-2xl flex items-center space-x-2">
+                <i class="fa-solid fa-ruler-combined text-cyber-blue text-lg"></i>
+                <span class="font-bold tracking-wider text-sm bg-gradient-to-r from-cyber-blue to-purple-400 bg-clip-text text-transparent">AR RULER</span>
             </div>
 
-            <!-- Header Quick Actions -->
             <div class="flex items-center space-x-2">
-                <!-- Mode Toggle (Referensi vs Estimasi FOV) -->
-                <button id="btnSwitchMode" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-cyber-blue flex items-center space-x-1.5">
-                    <i class="fa-solid fa-sliders"></i>
-                    <span id="modeTextDisplay">Mode: Kartu Referensi</span>
+                <!-- Kalibrasi Button -->
+                <button id="btnOpenCalib" class="glass-button p-3 rounded-2xl flex items-center justify-center text-white hover:text-cyber-blue shadow-lg">
+                    <i class="fa-solid fa-sliders text-base"></i>
                 </button>
-                <!-- Switch Camera Rear/Front -->
-                <button id="btnToggleCam" class="glass-btn w-9 h-9 rounded-xl flex items-center justify-center text-white hover:text-cyber-blue">
-                    <i class="fa-solid fa-camera-rotate"></i>
-                </button>
-                <!-- Info / Help Button -->
-                <button id="btnOpenHelp" class="glass-btn w-9 h-9 rounded-xl flex items-center justify-center text-white hover:text-cyber-blue">
-                    <i class="fa-solid fa-circle-question"></i>
+                <!-- Info Button -->
+                <button id="btnOpenHelp" class="glass-button p-3 rounded-2xl flex items-center justify-center text-white hover:text-cyber-blue shadow-lg">
+                    <i class="fa-solid fa-circle-question text-base"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Live Measurement Value Overlay Panel -->
-        <div class="absolute top-16 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-11/12 max-w-xs pointer-events-none">
-            <div class="glass-panel px-5 py-2.5 rounded-3xl text-center w-full shadow-2xl border border-cyber-blue/40 pointer-events-auto">
-                <span id="statusLabel" class="text-[10px] text-gray-300 font-bold uppercase tracking-widest block">UKURAN BENDA SASARAN</span>
-                <div class="flex items-baseline justify-center space-x-1 my-0.5">
-                    <span id="mainValueDisplay" class="text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">0.0</span>
+        <!-- Unit Selector & Live Measurement Indicator -->
+        <div class="absolute top-20 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-11/12 max-w-xs">
+            <!-- Measurement Display -->
+            <div class="glass-panel px-6 py-3 rounded-3xl text-center w-full shadow-2xl border border-cyber-blue/30 mb-2">
+                <span class="text-xs text-gray-400 font-medium uppercase tracking-widest block mb-0.5">Jarak / Dimensi</span>
+                <div class="flex items-baseline justify-center space-x-1">
+                    <span id="currentValue" class="text-3xl font-extrabold tracking-tight text-white">0.0</span>
                     <span id="unitDisplay" class="text-cyber-blue font-bold text-sm">cm</span>
                 </div>
-                <!-- Sub status text -->
-                <div id="subStatusText" class="text-[11px] text-cyber-green font-medium">
-                    <i class="fa-solid fa-check-circle mr-1"></i>Skala terkalibrasi: 1 cm = <span id="ppmDisplay">0</span> px
-                </div>
             </div>
 
-            <!-- Unit Pills Switcher -->
-            <div class="glass-panel p-1 rounded-2xl flex space-x-1 w-full justify-around text-xs font-semibold mt-2 pointer-events-auto">
-                <button class="unit-btn flex-1 py-1 rounded-xl transition-colors bg-cyber-blue text-black font-bold" data-unit="cm">cm</button>
-                <button class="unit-btn flex-1 py-1 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="mm">mm</button>
-                <button class="unit-btn flex-1 py-1 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="m">m</button>
-                <button class="unit-btn flex-1 py-1 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="in">inch</button>
+            <!-- Unit Options Bar -->
+            <div class="glass-panel p-1 rounded-2xl flex space-x-1 w-full justify-around text-xs font-semibold">
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors bg-cyber-blue text-black font-bold" data-unit="cm">cm</button>
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="mm">mm</button>
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="m">m</button>
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="in">inch</button>
             </div>
         </div>
 
-        <!-- Reference & Distance Control Drawer (Panel Seting Kalibrasi) -->
-        <div id="calibrationBar" class="absolute top-44 left-1/2 -translate-x-1/2 z-30 w-11/12 max-w-xs glass-panel p-3 rounded-2xl text-xs space-y-2">
-            <!-- Mode A Controls: Reference Card -->
-            <div id="modeARefControls" class="space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="font-bold text-cyber-red flex items-center"><i class="fa-solid fa-credit-card mr-1.5"></i>Acuan Kalibrasi:</span>
-                    <select id="refPresetSelect" class="bg-slate-900 border border-cyber-red/50 rounded-lg px-2 py-1 text-white font-medium outline-none text-xs">
-                        <option value="8.56">Kartu KTP / ATM (8.56 cm)</option>
+        <!-- Bottom Action Controls -->
+        <div class="absolute bottom-6 left-0 right-0 z-30 flex flex-col items-center space-y-4 px-6">
+            <!-- Points Control Bar -->
+            <div class="flex items-center justify-center space-x-4 w-full max-w-sm">
+                <!-- Reset Points -->
+                <button id="btnClear" class="glass-button w-12 h-12 rounded-full flex items-center justify-center text-gray-300 hover:text-cyber-accent">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+
+                <!-- Add Point Button -->
+                <button id="btnAddPoint" class="glass-button flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyber-blue/80 to-cyber-purple/80 text-white font-bold flex items-center justify-center space-x-2 shadow-lg shadow-cyber-blue/20 active:scale-95 transition">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                    <span>TAMBAH TITIK</span>
+                </button>
+
+                <!-- Capture Screenshot -->
+                <button id="btnCapture" class="glass-button w-12 h-12 rounded-full flex items-center justify-center text-gray-300 hover:text-cyber-blue">
+                    <i class="fa-solid fa-camera"></i>
+                </button>
+            </div>
+
+            <!-- Log Drawer Toggle Button -->
+            <button id="btnToggleLog" class="glass-button px-4 py-1.5 rounded-full text-xs text-gray-300 flex items-center space-x-2">
+                <i class="fa-solid fa-list-ul"></i>
+                <span>Riwayat (<span id="logCount">0</span>)</span>
+                <i id="logIcon" class="fa-solid fa-chevron-up text-[10px]"></i>
+            </button>
+        </div>
+
+        <!-- History Log Drawer Panel -->
+        <div id="logDrawer" class="absolute bottom-0 left-0 right-0 z-40 glass-panel rounded-t-3xl p-5 transform translate-y-full transition-transform duration-300 max-h-[45vh] flex flex-col">
+            <div class="flex items-center justify-between mb-3 border-b border-gray-700/50 pb-2">
+                <h3 class="font-bold text-sm text-cyber-blue flex items-center space-x-2">
+                    <i class="fa-solid fa-history"></i>
+                    <span>Riwayat Pengukuran</span>
+                </h3>
+                <button id="btnCloseLog" class="text-gray-400 hover:text-white text-sm p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="logContainer" class="overflow-y-auto no-scrollbar space-y-2 flex-1 text-xs">
+                <div class="text-center text-gray-500 py-4 italic">Belum ada pengukuran tersimpan.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Kalibrasi -->
+    <div id="modalCalib" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative border border-cyber-blue/40 shadow-2xl">
+            <button id="btnCloseCalib" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-lg font-bold text-cyber-blue mb-1 flex items-center space-x-2">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Kalibrasi Kamera</span>
+            </h3>
+            <p class="text-xs text-gray-300 mb-4">
+                Pilih objek acuan standar dan paskan jarak antar dua titik pada objek tersebut di layar untuk akurasi tinggi.
+            </p>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1 font-medium">Pilih Acuan Objek Standard:</label>
+                    <select id="presetSelect" class="w-full bg-slate-900 border border-gray-700 rounded-xl p-2.5 text-white focus:border-cyber-blue outline-none">
+                        <option value="8.56">Kartu ATM / KTP (8.56 cm)</option>
                         <option value="21.0">Lebar Kertas A4 (21.0 cm)</option>
-                        <option value="2.7">Koin 1.000 (2.7 cm)</option>
+                        <option value="2.7">Koin Rp 1.000 (2.7 cm)</option>
                         <option value="custom">Ukuran Kustom...</option>
                     </select>
                 </div>
-                <div id="customRefGroup" class="hidden flex items-center justify-between">
-                    <span class="text-gray-300">Ukuran Asli (cm):</span>
-                    <input type="number" id="customRefInput" value="10" step="0.1" class="w-20 bg-slate-900 border border-gray-700 rounded-lg px-2 py-0.5 text-center text-white">
+
+                <div id="customValueGroup" class="hidden">
+                    <label class="block text-gray-400 mb-1 font-medium">Panjang Objek Kustom (cm):</label>
+                    <input type="number" id="customLength" value="10" step="0.1" class="w-full bg-slate-900 border border-gray-700 rounded-xl p-2.5 text-white focus:border-cyber-blue outline-none">
                 </div>
-            </div>
 
-            <!-- Mode B Controls: Camera Distance FOV -->
-            <div id="modeBFOVControls" class="hidden space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="font-bold text-purple-400"><i class="fa-solid fa-arrows-to-eye mr-1.5"></i>Jarak HP ke Benda:</span>
-                    <div class="flex items-center space-x-1">
-                        <input type="number" id="camDistanceInput" value="30" min="10" max="500" class="w-16 bg-slate-900 border border-purple-500/50 rounded-lg px-2 py-1 text-center font-bold text-white">
-                        <span class="text-gray-300">cm</span>
-                    </div>
+                <div class="bg-cyber-blue/10 p-3 rounded-xl border border-cyber-blue/20">
+                    <p class="text-[11px] text-cyber-blue">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        Cara: Ukur objek acuan tersebut menggunakan 2 titik di aplikasi, lalu tekan "Terapkan Kalibrasi".
+                    </p>
                 </div>
-                <p class="text-[10px] text-gray-400">Pegang HP tegak lurus sejajar dengan objek sasaran.</p>
-            </div>
-        </div>
 
-        <!-- Bottom Primary Actions Bar -->
-        <div class="absolute bottom-6 left-0 right-0 z-30 flex flex-col items-center space-y-3 px-6">
-            <!-- Action Buttons Grid -->
-            <div class="flex items-center justify-center space-x-3 w-full max-w-sm">
-                <!-- Reset Points Button -->
-                <button id="btnResetPoints" class="glass-btn w-12 h-12 rounded-2xl flex items-center justify-center text-gray-300 hover:text-cyber-red" title="Reset Posisi Titik">
-                    <i class="fa-solid fa-rotate-left text-lg"></i>
-                </button>
-
-                <!-- Snapshot Freeze Camera / Live -->
-                <button id="btnFreezeFrame" class="glass-btn flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-cyber-blue/80 to-purple-600/80 text-white font-bold flex items-center justify-center space-x-2 shadow-lg shadow-cyber-blue/20">
-                    <i id="freezeIcon" class="fa-solid fa-camera text-base"></i>
-                    <span id="freezeBtnText">AMBIL FOTO & UKUR</span>
-                </button>
-
-                <!-- Save to History Button -->
-                <button id="btnSaveHistory" class="glass-btn w-12 h-12 rounded-2xl flex items-center justify-center text-cyber-green hover:bg-cyber-green/20" title="Simpan Pengukuran">
-                    <i class="fa-solid fa-bookmark text-lg"></i>
-                </button>
-            </div>
-
-            <!-- History Toggle Drawer Button -->
-            <button id="btnToggleHistory" class="glass-btn px-4 py-1.5 rounded-full text-xs text-gray-300 flex items-center space-x-2">
-                <i class="fa-solid fa-list-check"></i>
-                <span>Riwayat Pengukuran (<span id="historyCount">0</span>)</span>
-                <i id="historyChevron" class="fa-solid fa-chevron-up text-[10px]"></i>
-            </button>
-        </div>
-
-        <!-- History Drawer Container -->
-        <div id="historyDrawer" class="absolute bottom-0 left-0 right-0 z-40 glass-panel rounded-t-3xl p-5 transform translate-y-full transition-transform duration-300 max-h-[50vh] flex flex-col">
-            <div class="flex items-center justify-between mb-3 border-b border-gray-700/60 pb-2">
-                <h3 class="font-bold text-sm text-cyber-blue flex items-center space-x-2">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Tersimpan</span>
-                </h3>
-                <button id="btnCloseHistory" class="text-gray-400 hover:text-white p-1">
-                    <i class="fa-solid fa-xmark text-base"></i>
-                </button>
-            </div>
-            <div id="historyListContainer" class="overflow-y-auto no-scrollbar space-y-2 flex-1 text-xs">
-                <div class="text-center text-gray-500 py-6 italic">Belum ada riwayat tersimpan.</div>
+                <div class="flex space-x-2 pt-2">
+                    <button id="btnApplyCalib" class="flex-1 bg-cyber-blue text-slate-950 font-bold py-2.5 rounded-xl hover:bg-cyber-blue/90 transition">
+                        Terapkan Kalibrasi
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Help & Guide Modal -->
-    <div id="modalHelp" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative border border-cyber-blue/40 shadow-2xl max-h-[85vh] overflow-y-auto no-scrollbar">
+    <!-- Modal Panduan / Help -->
+    <div id="modalHelp" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative border border-cyber-blue/40 shadow-2xl">
             <button id="btnCloseHelp" class="absolute top-4 right-4 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
-            <h3 class="text-lg font-extrabold text-cyber-blue mb-3 flex items-center space-x-2">
-                <i class="fa-solid fa-circle-info"></i>
-                <span>Cara Menggunakan AR Ruler</span>
+            <h3 class="text-lg font-bold text-cyber-blue mb-3 flex items-center space-x-2">
+                <i class="fa-solid fa-circle-question"></i>
+                <span>Panduan Penggunaan</span>
             </h3>
 
-            <div class="space-y-4 text-xs text-gray-200 leading-relaxed">
-                <div class="bg-cyber-blue/10 border border-cyber-blue/30 rounded-2xl p-3">
-                    <span class="font-bold text-cyber-blue block mb-1">MODE A: Kalibrasi Kartu (Sangat Akurat)</span>
-                    <ol class="list-decimal list-inside space-y-1 text-gray-300">
-                        <li>Letakkan Kartu ATM/KTP/Koin di samping benda yang diukur.</li>
-                        <li>Geser **Pin Merah (A1 & A2)** agar menutupi panjang kartu referensi.</li>
-                        <li>Geser **Pin Hijau (B1 & B2)** ke titik awal dan akhir benda sasaran.</li>
-                        <li>Hasil ukuran otomatis terhitung secara presisi!</li>
-                    </ol>
+            <div class="space-y-3 text-xs text-gray-300">
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">1</span>
+                    <p>Arahkan pembidik (crosshair) di tengah layar ke <strong>Titik A</strong> benda yang ingin diukur.</p>
                 </div>
-
-                <div class="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-3">
-                    <span class="font-bold text-purple-300 block mb-1">MODE B: Estimasi Jarak HP</span>
-                    <ol class="list-decimal list-inside space-y-1 text-gray-300">
-                        <li>Masukkan perkiraan jarak kamera ke objek (contoh: 30 cm).</li>
-                        <li>Pegang HP tegak lurus sejajar objek.</li>
-                        <li>Geser Pin Hijau menutupi benda untuk estimasi instan.</li>
-                    </ol>
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">2</span>
+                    <p>Tekan tombol <strong>"TAMBAH TITIK"</strong> untuk mengunci posisi pertama.</p>
                 </div>
-
-                <p class="text-[11px] text-gray-400 italic">
-                    <i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i>Gunakan tombol <b>"AMBIL FOTO"</b> agar gambar diam sehingga lebih mudah menggeser pin tanpa goyang.
-                </p>
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">3</span>
+                    <p>Geser HP/kamera ke <strong>Titik B</strong> ujung benda lainnya, lalu tekan tombol <strong>"TAMBAH TITIK"</strong> kembali.</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">4</span>
+                    <p>Gunakan menu <strong>Kalibrasi</strong> untuk menyelaraskan rasio piksel kamera dengan benda standar (KTP/Kertas A4) agar hasil lebih akurat.</p>
+                </div>
             </div>
 
-            <button id="btnGotIt" class="w-full mt-5 bg-gradient-to-r from-cyber-blue to-purple-600 text-slate-950 font-bold py-3 rounded-xl shadow-lg">
-                Saya Mengerti
+            <button id="btnGotIt" class="w-full mt-5 bg-gradient-to-r from-cyber-blue to-purple-600 text-white font-bold py-2.5 rounded-xl">
+                Mengerti
             </button>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2 rounded-full text-xs font-semibold text-cyber-blue border border-cyber-blue/50 shadow-2xl pointer-events-none opacity-0 transition-opacity duration-300">
-        Notifikasi
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2 rounded-full text-xs font-semibold text-cyber-blue border border-cyber-blue/40 shadow-xl pointer-events-none opacity-0 transition-opacity duration-300">
+        Pesan Notifikasi
     </div>
 
-    <!-- Application Script -->
+    <!-- Main JavaScript Logic -->
     <script>
-        // State Management
-        let appMode = 'REFERENCE'; // 'REFERENCE' or 'FOV'
+        // ================= APP STATE =================
         let currentUnit = 'cm';
-        let isFrozen = false; // Snapshot mode state
-        let activeCameraFacing = 'environment';
+        let pixelsPerCm = 37.795; // Default reference scale (approx 96 DPI / 2.54)
+        let points = []; // Array of measured screen points [{x, y}]
         let historyLogs = [];
+        let videoStream = null;
+        let lastW = window.innerWidth;
+        let lastH = window.innerHeight;
 
-        // Reference / Calibration State
-        let refRealCm = 8.56; // Default ATM card width in cm
-        let pixelsPerCm = 35.0; // Dynamic scale computed: Px / Real_Cm
-
-        // FOV Mode State
-        let camDistanceCm = 30.0; // Distance from lens to object
-        const DEFAULT_FOV_DEG = 60.0; // Typical smartphone horizontal camera FOV
-
-        // Interactive Drag Handles (Points on Canvas)
-        // Red Handles = Reference Object (Card)
-        // Green Handles = Target Object to Measure
-        let points = {
-            refA: { x: 0, y: 0, label: 'A1', color: '#ff0055' },
-            refB: { x: 0, y: 0, label: 'A2', color: '#ff0055' },
-            targetA: { x: 0, y: 0, label: 'B1', color: '#00ff88' },
-            targetB: { x: 0, y: 0, label: 'B2', color: '#00ff88' }
-        };
-
-        let draggingPoint = null;
-        let activeTouchPos = { x: 0, y: 0 };
-
-        // Elements
+        // ================= ELEMENTS =================
         const video = document.getElementById('webcam');
-        const canvas = document.getElementById('mainCanvas');
+        const canvas = document.getElementById('overlayCanvas');
         const ctx = canvas.getContext('2d');
-        const loupeCanvas = document.getElementById('loupeCanvas');
-        const loupeCtx = loupeCanvas.getContext('2d');
-        const loupeContainer = document.getElementById('loupeContainer');
+        const currentValueEl = document.getElementById('currentValue');
+        const unitDisplayEl = document.getElementById('unitDisplay');
+        const logCountEl = document.getElementById('logCount');
+        const logContainer = document.getElementById('logContainer');
 
-        const mainValueDisplay = document.getElementById('mainValueDisplay');
-        const unitDisplay = document.getElementById('unitDisplay');
-        const ppmDisplay = document.getElementById('ppmDisplay');
-        const refPresetSelect = document.getElementById('refPresetSelect');
-        const customRefGroup = document.getElementById('customRefGroup');
-        const customRefInput = document.getElementById('customRefInput');
-        const camDistanceInput = document.getElementById('camDistanceInput');
-
-        const modeARefControls = document.getElementById('modeARefControls');
-        const modeBFOVControls = document.getElementById('modeBFOVControls');
-        const modeTextDisplay = document.getElementById('modeTextDisplay');
+        // Modal Elements
+        const modalCalib = document.getElementById('modalCalib');
+        const modalHelp = document.getElementById('modalHelp');
+        const presetSelect = document.getElementById('presetSelect');
+        const customValueGroup = document.getElementById('customValueGroup');
+        const customLengthInput = document.getElementById('customLength');
         const toast = document.getElementById('toast');
 
-        // Freeze Frame Offline Image Canvas Buffer
-        let freezeFrameCanvas = document.createElement('canvas');
-        let freezeFrameCtx = freezeFrameCanvas.getContext('2d');
+        // ================= TOAST HELPER =================
+        let toastTimer = null;
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
 
-        // Initial setup on window load
-        window.addEventListener('load', () => {
-            initCamera();
-            setupInitialPoints();
-            setupEventListeners();
-            resizeCanvas();
-            requestAnimationFrame(renderLoop);
-        });
-
-        // Initialize Camera Stream
-        async function initCamera() {
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
+        // ================= CANVAS HELPERS =================
+        // Fallback roundRect untuk browser lama (Safari < 16, Firefox < 112, dll.)
+        function roundRectPath(context, x, y, w, h, r) {
+            if (typeof context.roundRect === 'function') {
+                context.beginPath();
+                context.roundRect(x, y, w, h, r);
+                return;
             }
+            // Fallback manual
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            context.beginPath();
+            context.moveTo(x + r, y);
+            context.arcTo(x + w, y, x + w, y + h, r);
+            context.arcTo(x + w, y + h, x, y + h, r);
+            context.arcTo(x, y + h, x, y, r);
+            context.arcTo(x, y, x + w, y, r);
+            context.closePath();
+        }
 
+        // ================= CAMERA INIT =================
+        async function initCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast('Browser tidak mendukung akses kamera.');
+                return;
+            }
             try {
                 const constraints = {
                     video: {
-                        facingMode: { ideal: activeCameraFacing },
+                        facingMode: { ideal: 'environment' },
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     },
                     audio: false
                 };
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-                await video.play();
-                showToast('Kamera Aktif');
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = videoStream;
+
+                try {
+                    await video.play();
+                } catch (playErr) {
+                    // Autoplay bisa ditolak di iOS, butuh interaksi user
+                    console.warn('Auto-play ditolak:', playErr);
+                    document.body.addEventListener('click', () => {
+                        video.play().catch(() => {});
+                    }, { once: true });
+                }
+
+                resizeCanvas();
+                requestAnimationFrame(renderLoop);
+                showToast('Kamera aktif. Siap mengukur!');
             } catch (err) {
-                console.error("Camera access failed: ", err);
-                showToast('Kamera tidak tersedia / Izin ditolak');
+                console.error("Gagal mengakses kamera:", err);
+                let msg = 'Akses kamera ditolak / tidak tersedia.';
+                if (err.name === 'NotAllowedError') msg = 'Izin kamera ditolak. Aktifkan di pengaturan browser.';
+                else if (err.name === 'NotFoundError') msg = 'Kamera tidak ditemukan.';
+                else if (err.name === 'NotReadableError') msg = 'Kamera sedang dipakai aplikasi lain.';
+                showToast(msg);
             }
         }
 
-        // Set Default Pin Positions in Canvas Center
-        function setupInitialPoints() {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const cx = w / 2;
-            const cy = h / 2;
-
-            // Calibration points (Red) - Horizontal line at middle-top
-            points.refA = { x: cx - 100, y: cy - 90, label: 'A1', color: '#ff0055' };
-            points.refB = { x: cx + 100, y: cy - 90, label: 'A2', color: '#ff0055' };
-
-            // Measurement target points (Green) - Horizontal line at middle-bottom
-            points.targetA = { x: cx - 120, y: cy + 60, label: 'B1', color: '#00ff88' };
-            points.targetB = { x: cx + 120, y: cy + 60, label: 'B2', color: '#00ff88' };
-        }
-
+        // ================= RESIZE HANDLING =================
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            loupeCanvas.width = 112; // 28 * 4 for crisp resolution
-            loupeCanvas.height = 112;
+            const newW = window.innerWidth;
+            const newH = window.innerHeight;
+
+            // Skala titik agar tetap proporsional terhadap perubahan ukuran layar
+            if (points.length && lastW > 0 && lastH > 0) {
+                const sx = newW / lastW;
+                const sy = newH / lastH;
+                points = points.map(p => ({ x: p.x * sx, y: p.y * sy }));
+            }
+
+            canvas.width = newW;
+            canvas.height = newH;
+            lastW = newW;
+            lastH = newH;
         }
         window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 300));
 
-        // Toast Helper
-        function showToast(msg) {
-            toast.innerText = msg;
-            toast.classList.remove('opacity-0');
-            toast.classList.add('opacity-100');
-            setTimeout(() => {
-                toast.classList.remove('opacity-100');
-                toast.classList.add('opacity-0');
-            }, 2200);
-        }
-
-        // Distance Calculation Helpers
-        function getPixelDistance(p1, p2) {
+        // ================= DISTANCE & UNIT UTILS =================
+        function calculateDistancePx(p1, p2) {
             const dx = p2.x - p1.x;
             const dy = p2.y - p1.y;
             return Math.sqrt(dx * dx + dy * dy);
         }
 
-        function convertCmToUnit(valCm, unit) {
-            switch(unit) {
-                case 'mm': return valCm * 10;
-                case 'm': return valCm / 100;
-                case 'in': return valCm / 2.54;
+        function convertFromCm(cmValue, unit) {
+            switch (unit) {
+                case 'mm': return cmValue * 10;
+                case 'm': return cmValue / 100;
+                case 'in': return cmValue / 2.54;
                 case 'cm':
-                default: return valCm;
+                default: return cmValue;
             }
         }
 
-        // Main Draw Loop
+        function formatDistance(distPx, unit) {
+            const cmValue = distPx / pixelsPerCm;
+            const converted = convertFromCm(cmValue, unit);
+            if (unit === 'm') return converted.toFixed(3);
+            if (unit === 'in') return converted.toFixed(2);
+            return converted.toFixed(1);
+        }
+
+        // ================= RENDER LOOP =================
         function renderLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 1. Render Video Feed or Frozen Screenshot Frame
-            if (isFrozen) {
-                ctx.drawImage(freezeFrameCanvas, 0, 0, canvas.width, canvas.height);
-            } else if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            // 1. Draw Camera Frame to Canvas
+            if (video.readyState >= 2) { // HAVE_CURRENT_DATA
+                try {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                } catch (e) {
+                    console.warn('drawImage gagal:', e);
+                }
             }
 
-            // 2. Perform Mathematical Scaling Calculations
-            updateCalculations();
+            const center = { x: canvas.width / 2, y: canvas.height / 2 };
 
-            // 3. Draw Lines & Handles
-            if (appMode === 'REFERENCE') {
-                // Draw Reference Line (Red)
-                drawLineWithBadge(points.refA, points.refB, `${refRealCm.toFixed(2)} cm (Acuan)`, '#ff0055', true);
-                drawHandle(points.refA);
-                drawHandle(points.refB);
-            }
+            // 2. Draw Locked Points & Lines
+            if (points.length > 0) {
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#00f0ff';
+                ctx.fillStyle = '#ff0055';
 
-            // Draw Target Measurement Line (Green)
-            const targetDistPx = getPixelDistance(points.targetA, points.targetB);
-            let targetCm = 0;
-            if (pixelsPerCm > 0) {
-                targetCm = targetDistPx / pixelsPerCm;
-            }
-            const convertedVal = convertCmToUnit(targetCm, currentUnit);
-            const valFormatted = formatValueByUnit(convertedVal, currentUnit);
+                // Draw existing lines between stored points
+                for (let i = 0; i < points.length - 1; i++) {
+                    drawLineWithLabel(points[i], points[i + 1]);
+                }
 
-            drawLineWithBadge(points.targetA, points.targetB, `${valFormatted} ${currentUnit}`, '#00ff88', false);
-            drawHandle(points.targetA);
-            drawHandle(points.targetB);
+                // Draw line from last point to current reticle target
+                const lastPoint = points[points.length - 1];
+                drawLineWithLabel(lastPoint, center, true);
 
-            // Update Header Display
-            mainValueDisplay.innerText = valFormatted;
+                // Draw Point Markers
+                points.forEach((pt, idx) => {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
 
-            // 4. Update Magnifier Loupe if Dragging
-            if (draggingPoint) {
-                updateLoupe();
+                    // Point Label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px "Plus Jakarta Sans"';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.fillText(`P${idx + 1}`, pt.x + 10, pt.y - 10);
+                });
+
+                // Update Header Live Value
+                const currentDistPx = calculateDistancePx(lastPoint, center);
+                currentValueEl.innerText = formatDistance(currentDistPx, currentUnit);
+            } else {
+                currentValueEl.innerText = '0.0';
             }
 
             requestAnimationFrame(renderLoop);
         }
 
-        // Format Numbers according to unit precision
-        function formatValueByUnit(val, unit) {
-            if (unit === 'm') return val.toFixed(3);
-            if (unit === 'in') return val.toFixed(2);
-            if (unit === 'mm') return val.toFixed(0);
-            return val.toFixed(1);
-        }
-
-        // Mathematical Core Updates
-        function updateCalculations() {
-            if (appMode === 'REFERENCE') {
-                const refDistPx = getPixelDistance(points.refA, points.refB);
-                pixelsPerCm = refDistPx / refRealCm;
-            } else {
-                // FOV Geometric Estimation Mode
-                // Frustum width at given distance: W = 2 * Distance * tan(FOV / 2)
-                const fovRad = (DEFAULT_FOV_DEG * Math.PI) / 180;
-                const visibleWidthCm = 2 * camDistanceCm * Math.tan(fovRad / 2);
-                pixelsPerCm = canvas.width / visibleWidthCm;
-            }
-
-            ppmDisplay.innerText = pixelsPerCm.toFixed(1);
-        }
-
-        // Draw Measurement Line with Futuristic Badge Label
-        function drawLineWithBadge(p1, p2, labelText, color, isDashed) {
-            // Line
+        // ================= DRAW LINE WITH LABEL =================
+        function drawLineWithLabel(p1, p2, isDynamic = false) {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = color;
-            if (isDashed) ctx.setLineDash([8, 6]);
+            ctx.lineWidth = isDynamic ? 2 : 3;
+            ctx.strokeStyle = isDynamic ? 'rgba(0, 240, 255, 0.7)' : '#00f0ff';
+            if (isDynamic) ctx.setLineDash([6, 6]);
             ctx.stroke();
-            ctx.setLineDash([]); // reset
+            ctx.setLineDash([]); // Reset line dash
 
-            // Midpoint
-            const mx = (p1.x + p2.x) / 2;
-            const my = (p1.y + p2.y) / 2;
+            // Calculate distance & midpoint
+            const distPx = calculateDistancePx(p1, p2);
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
 
-            // Label Box
+            const textVal = formatDistance(distPx, currentUnit) + ' ' + currentUnit;
+
+            // Text Bubble Background
             ctx.font = 'bold 13px "Plus Jakarta Sans"';
-            const textWidth = ctx.measureText(labelText).width;
-            const padX = 12;
-            const padY = 6;
+            const textWidth = ctx.measureText(textVal).width;
+            const boxW = textWidth + 16;
+            const boxH = 26;
 
-            ctx.fillStyle = 'rgba(8, 10, 15, 0.9)';
-            ctx.beginPath();
-            ctx.roundRect(mx - textWidth / 2 - padX, my - 13 - padY, textWidth + (padX * 2), 26, 8);
+            // Clamp label agar tidak keluar canvas
+            let bx = midX - boxW / 2;
+            let by = midY - boxH / 2;
+            bx = Math.max(4, Math.min(bx, canvas.width - boxW - 4));
+            by = Math.max(4, Math.min(by, canvas.height - boxH - 4));
+
+            ctx.fillStyle = 'rgba(10, 13, 20, 0.85)';
+            roundRectPath(ctx, bx, by, boxW, boxH, 8);
             ctx.fill();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 1;
             ctx.stroke();
 
-            // Label Text
+            // Text Label
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(labelText, mx, my - 1);
+            ctx.fillText(textVal, bx + boxW / 2, by + boxH / 2);
         }
 
-        // Draw Interactive Drag Handle Pin
-        function drawHandle(pt) {
-            // Outer Glow Ring
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 18, 0, Math.PI * 2);
-            ctx.fillStyle = pt.color === '#ff0055' ? 'rgba(255, 0, 85, 0.2)' : 'rgba(0, 255, 136, 0.2)';
-            ctx.fill();
+        // ================= ADD POINT =================
+        document.getElementById('btnAddPoint').addEventListener('click', () => {
+            const center = { x: canvas.width / 2, y: canvas.height / 2 };
+            points.push(center);
 
-            // Outer Circle Stroke
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = pt.color;
-            ctx.fillStyle = '#080a0f';
-            ctx.fill();
-            ctx.stroke();
+            if (points.length > 1) {
+                const p1 = points[points.length - 2];
+                const p2 = points[points.length - 1];
+                const distPx = calculateDistancePx(p1, p2);
+                const formatted = formatDistance(distPx, currentUnit) + ' ' + currentUnit;
 
-            // Inner Core Point
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
+                addHistoryLog(`P${points.length - 1} ke P${points.length}`, formatted);
+                showToast(`Titik ${points.length} ditambahkan (${formatted})`);
+            } else {
+                showToast('Titik 1 terkunci. Geser ke Titik 2.');
+            }
+        });
 
-            // Handle Label (e.g., A1, B1)
-            ctx.font = 'bold 10px "Plus Jakarta Sans"';
-            ctx.fillStyle = pt.color;
-            ctx.fillText(pt.label, pt.x, pt.y - 22);
+        // ================= CLEAR POINTS =================
+        document.getElementById('btnClear').addEventListener('click', () => {
+            points = [];
+            currentValueEl.innerText = '0.0';
+            showToast('Titik pengukuran dibersihkan.');
+        });
+
+        // ================= HISTORY LOG =================
+        function addHistoryLog(label, val) {
+            historyLogs.push({
+                label,
+                val,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            logCountEl.innerText = historyLogs.length;
+            renderLogs();
         }
 
-        // Loupe Magnifier Update
-        function updateLoupe() {
-            if (!draggingPoint) return;
-
-            const zoom = 2.5;
-            const size = loupeCanvas.width;
-            const sourceSize = size / zoom;
-
-            loupeCtx.clearRect(0, 0, size, size);
-
-            // Draw magnified canvas snippet around active point
-            loupeCtx.drawImage(
-                canvas,
-                draggingPoint.x - sourceSize / 2,
-                draggingPoint.y - sourceSize / 2,
-                sourceSize,
-                sourceSize,
-                0,
-                0,
-                size,
-                size
-            );
-        }
-
-        // Touch & Mouse Event Handlers for Dragging Handles
-        function setupEventListeners() {
-            // Touch/Mouse Down: Find nearest handle
-            function handleStart(e) {
-                const pos = getEventPos(e);
-                const threshold = 35; // Touch target radius
-
-                let nearest = null;
-                let minDist = Infinity;
-
-                const activePoints = appMode === 'REFERENCE' 
-                    ? [points.refA, points.refB, points.targetA, points.targetB]
-                    : [points.targetA, points.targetB];
-
-                activePoints.forEach(pt => {
-                    const d = getPixelDistance(pos, pt);
-                    if (d < threshold && d < minDist) {
-                        minDist = d;
-                        nearest = pt;
-                    }
-                });
-
-                if (nearest) {
-                    draggingPoint = nearest;
-                    activeTouchPos = pos;
-                    loupeContainer.classList.remove('hidden');
-                }
-            }
-
-            // Touch/Mouse Move: Update handle position
-            function handleMove(e) {
-                if (!draggingPoint) return;
-                e.preventDefault(); // Prevent page scrolling while dragging
-                const pos = getEventPos(e);
-
-                // Clamp within canvas boundary
-                draggingPoint.x = Math.max(10, Math.min(canvas.width - 10, pos.x));
-                draggingPoint.y = Math.max(10, Math.min(canvas.height - 10, pos.y));
-            }
-
-            // Touch/Mouse Up: Release drag
-            function handleEnd() {
-                draggingPoint = null;
-                loupeContainer.classList.add('hidden');
-            }
-
-            canvas.addEventListener('mousedown', handleStart);
-            canvas.addEventListener('mousemove', handleMove);
-            window.addEventListener('mouseup', handleEnd);
-
-            canvas.addEventListener('touchstart', handleStart, { passive: false });
-            canvas.addEventListener('touchmove', handleMove, { passive: false });
-            window.addEventListener('touchend', handleEnd);
-
-            // Helper to normalize Mouse/Touch Coordinates
-            function getEventPos(e) {
-                const rect = canvas.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                return {
-                    x: clientX - rect.left,
-                    y: clientY - rect.top
-                };
-            }
-
-            // Switch Mode (Mode A: Reference Card vs Mode B: FOV)
-            document.getElementById('btnSwitchMode').addEventListener('click', () => {
-                if (appMode === 'REFERENCE') {
-                    appMode = 'FOV';
-                    modeTextDisplay.innerText = 'Mode: Estimasi Jarak';
-                    modeARefControls.classList.add('hidden');
-                    modeBFOVControls.classList.remove('hidden');
-                    showToast('Beralih ke Mode Estimasi Jarak Kamera');
-                } else {
-                    appMode = 'REFERENCE';
-                    modeTextDisplay.innerText = 'Mode: Kartu Referensi';
-                    modeARefControls.classList.remove('hidden');
-                    modeBFOVControls.classList.add('hidden');
-                    showToast('Beralih ke Mode Kalibrasi Kartu');
-                }
-            });
-
-            // Preset Selection Handler
-            refPresetSelect.addEventListener('change', (e) => {
-                if (e.target.value === 'custom') {
-                    customRefGroup.classList.remove('hidden');
-                    refRealCm = parseFloat(customRefInput.value) || 10;
-                } else {
-                    customRefGroup.classList.add('hidden');
-                    refRealCm = parseFloat(e.target.value);
-                }
-            });
-
-            customRefInput.addEventListener('input', (e) => {
-                refRealCm = parseFloat(e.target.value) || 1;
-            });
-
-            camDistanceInput.addEventListener('input', (e) => {
-                camDistanceCm = parseFloat(e.target.value) || 30;
-            });
-
-            // Unit Switcher Pills
-            document.querySelectorAll('.unit-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('.unit-btn').forEach(b => {
-                        b.classList.remove('bg-cyber-blue', 'text-black', 'font-bold');
-                        b.classList.add('text-gray-300');
-                    });
-                    e.target.classList.add('bg-cyber-blue', 'text-black', 'font-bold');
-                    e.target.classList.remove('text-gray-300');
-
-                    currentUnit = e.target.getAttribute('data-unit');
-                    unitDisplay.innerText = currentUnit;
-                });
-            });
-
-            // Freeze Frame / Snapshot Toggle
-            const btnFreezeFrame = document.getElementById('btnFreezeFrame');
-            const freezeIcon = document.getElementById('freezeIcon');
-            const freezeBtnText = document.getElementById('freezeBtnText');
-
-            btnFreezeFrame.addEventListener('click', () => {
-                if (!isFrozen) {
-                    // Capture current video frame into offline canvas
-                    freezeFrameCanvas.width = canvas.width;
-                    freezeFrameCanvas.height = canvas.height;
-                    freezeFrameCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    isFrozen = true;
-                    freezeIcon.classList.replace('fa-camera', 'fa-play');
-                    freezeBtnText.innerText = 'LANIUTKAN KAMERA LIVE';
-                    showToast('Foto dibekukan. Anda bisa menggeser titik dengan tenang.');
-                } else {
-                    isFrozen = false;
-                    freezeIcon.classList.replace('fa-play', 'fa-camera');
-                    freezeBtnText.innerText = 'AMBIL FOTO & UKUR';
-                    showToast('Kamera Live Aktif kembali.');
-                }
-            });
-
-            // Toggle Front/Rear Camera
-            document.getElementById('btnToggleCam').addEventListener('click', () => {
-                activeCameraFacing = activeCameraFacing === 'environment' ? 'user' : 'environment';
-                initCamera();
-            });
-
-            // Reset Pin Positions
-            document.getElementById('btnResetPoints').addEventListener('click', () => {
-                setupInitialPoints();
-                showToast('Posisi titik dikembalikan ke tengah.');
-            });
-
-            // History Log Actions
-            document.getElementById('btnSaveHistory').addEventListener('click', () => {
-                const targetDistPx = getPixelDistance(points.targetA, points.targetB);
-                const targetCm = targetDistPx / pixelsPerCm;
-                const converted = convertCmToUnit(targetCm, currentUnit);
-                const formatted = formatValueByUnit(converted, currentUnit) + ' ' + currentUnit;
-
-                historyLogs.push({
-                    id: Date.now(),
-                    value: formatted,
-                    mode: appMode === 'REFERENCE' ? 'Kartu Referensi' : 'Estimasi FOV',
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                });
-
-                document.getElementById('historyCount').innerText = historyLogs.length;
-                renderHistoryList();
-                showToast(`Pengukuran ${formatted} disimpan!`);
-            });
-
-            // History Drawer Toggles
-            const historyDrawer = document.getElementById('historyDrawer');
-            const historyChevron = document.getElementById('historyChevron');
-
-            function toggleHistoryDrawer() {
-                const isClosed = historyDrawer.classList.contains('translate-y-full');
-                if (isClosed) {
-                    historyDrawer.classList.remove('translate-y-full');
-                    historyChevron.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                } else {
-                    historyDrawer.classList.add('translate-y-full');
-                    historyChevron.classList.replace('fa-chevron-down', 'fa-chevron-up');
-                }
-            }
-
-            document.getElementById('btnToggleHistory').addEventListener('click', toggleHistoryDrawer);
-            document.getElementById('btnCloseHistory').addEventListener('click', toggleHistoryDrawer);
-
-            // Help Modal
-            document.getElementById('btnOpenHelp').addEventListener('click', () => modalHelp.classList.remove('hidden'));
-            document.getElementById('btnCloseHelp').addEventListener('click', () => modalHelp.classList.add('hidden'));
-            document.getElementById('btnGotIt').addEventListener('click', () => modalHelp.classList.add('hidden'));
-        }
-
-        // Render Saved History List
-        function renderHistoryList() {
-            const container = document.getElementById('historyListContainer');
+        function renderLogs() {
             if (historyLogs.length === 0) {
-                container.innerHTML = '<div class="text-center text-gray-500 py-6 italic">Belum ada riwayat tersimpan.</div>';
+                logContainer.innerHTML = '<div class="text-center text-gray-500 py-4 italic">Belum ada pengukuran tersimpan.</div>';
                 return;
             }
-
-            container.innerHTML = historyLogs.map(item => `
-                <div class="glass-panel p-3 rounded-2xl flex items-center justify-between border border-gray-800">
+            logContainer.innerHTML = historyLogs.map((item) => `
+                <div class="glass-panel p-3 rounded-xl flex justify-between items-center border border-gray-800">
                     <div>
-                        <div class="font-extrabold text-sm text-cyber-blue">${item.value}</div>
-                        <div class="text-[10px] text-gray-400">${item.mode} • ${item.time}</div>
+                        <span class="font-bold text-cyber-blue block">${item.label}</span>
+                        <span class="text-[10px] text-gray-400">${item.time}</span>
                     </div>
-                    <button onclick="deleteHistory(${item.id})" class="text-gray-500 hover:text-cyber-red p-2">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
+                    <span class="font-extrabold text-sm text-white">${item.val}</span>
                 </div>
             `).join('');
         }
 
-        function deleteHistory(id) {
-            historyLogs = historyLogs.filter(item => item.id !== id);
-            document.getElementById('historyCount').innerText = historyLogs.length;
-            renderHistoryList();
-            showToast('Item riwayat dihapus.');
+        // ================= UNIT SWITCHER =================
+        document.querySelectorAll('.unit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget; // Gunakan currentTarget agar selalu tombol
+                document.querySelectorAll('.unit-btn').forEach(b => {
+                    b.classList.remove('bg-cyber-blue', 'text-black', 'font-bold');
+                    b.classList.add('text-gray-300', 'hover:text-white');
+                });
+                target.classList.add('bg-cyber-blue', 'text-black', 'font-bold');
+                target.classList.remove('text-gray-300', 'hover:text-white');
+
+                const newUnit = target.getAttribute('data-unit');
+                if (newUnit) {
+                    currentUnit = newUnit;
+                    unitDisplayEl.innerText = currentUnit;
+                }
+            });
+        });
+
+        // ================= CALIBRATION MODAL =================
+        presetSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                customValueGroup.classList.remove('hidden');
+            } else {
+                customValueGroup.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('btnOpenCalib').addEventListener('click', () => modalCalib.classList.remove('hidden'));
+        document.getElementById('btnCloseCalib').addEventListener('click', () => modalCalib.classList.add('hidden'));
+
+        document.getElementById('btnApplyCalib').addEventListener('click', () => {
+            if (points.length < 2) {
+                showToast('Atur minimal 2 titik terlebih dahulu untuk mengkalibrasi!');
+                modalCalib.classList.add('hidden');
+                return;
+            }
+
+            let realCm;
+            if (presetSelect.value === 'custom') {
+                realCm = parseFloat(customLengthInput.value);
+            } else {
+                realCm = parseFloat(presetSelect.value);
+            }
+
+            if (!isFinite(realCm) || realCm <= 0) {
+                showToast('Nilai kalibrasi tidak valid!');
+                return;
+            }
+
+            // Hitung jarak piksel antara 2 titik pertama
+            const distPx = calculateDistancePx(points[0], points[1]);
+            if (distPx < 10) {
+                showToast('Jarak antar titik terlalu kecil. Ulangi pengukuran acuan.');
+                return;
+            }
+
+            pixelsPerCm = distPx / realCm;
+
+            // Simpan kalibrasi ke localStorage
+            try {
+                localStorage.setItem('ar_ruler_ppcm', String(pixelsPerCm));
+            } catch (_) {}
+
+            showToast(`Kalibrasi Berhasil! (1 cm = ${pixelsPerCm.toFixed(1)} px)`);
+            modalCalib.classList.add('hidden');
+        });
+
+        // ================= LOG DRAWER TOGGLE =================
+        const logDrawer = document.getElementById('logDrawer');
+        const logIcon = document.getElementById('logIcon');
+
+        function toggleLogDrawer() {
+            const isClosed = logDrawer.classList.contains('translate-y-full');
+            if (isClosed) {
+                logDrawer.classList.remove('translate-y-full');
+                logIcon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            } else {
+                logDrawer.classList.add('translate-y-full');
+                logIcon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            }
         }
+
+        document.getElementById('btnToggleLog').addEventListener('click', toggleLogDrawer);
+        document.getElementById('btnCloseLog').addEventListener('click', toggleLogDrawer);
+
+        // ================= HELP MODAL =================
+        document.getElementById('btnOpenHelp').addEventListener('click', () => modalHelp.classList.remove('hidden'));
+        document.getElementById('btnCloseHelp').addEventListener('click', () => modalHelp.classList.add('hidden'));
+        document.getElementById('btnGotIt').addEventListener('click', () => modalHelp.classList.add('hidden'));
+
+        // ================= CAPTURE / SNAPSHOT =================
+        document.getElementById('btnCapture').addEventListener('click', () => {
+            if (video.readyState < 2) {
+                showToast('Kamera belum siap. Tunggu sebentar...');
+                return;
+            }
+            const link = document.createElement('a');
+            link.download = `AR_Ruler_Measurement_${Date.now()}.png`;
+            try {
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('Foto hasil pengukuran disimpan!');
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal menyimpan screenshot.');
+            }
+        });
+
+        // ================= CLEANUP STREAM =================
+        window.addEventListener('beforeunload', () => {
+            if (videoStream) {
+                videoStream.getTracks().forEach(t => t.stop());
+            }
+        });
+
+        // ================= ON LOAD =================
+        window.onload = () => {
+            // Muat kalibrasi tersimpan jika ada
+            try {
+                const saved = localStorage.getItem('ar_ruler_ppcm');
+                const parsed = parseFloat(saved);
+                if (isFinite(parsed) && parsed > 0) pixelsPerCm = parsed;
+            } catch (_) {}
+
+            initCamera();
+        };
     </script>
 </body>
 </html>
