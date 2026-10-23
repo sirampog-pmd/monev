@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>AR Ruler — Pengukur Benda</title>
+<title>AR Ruler — Pengukur Benda (Multi-Segmen)</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -23,7 +23,7 @@
     overflow: hidden;
   }
 
-  /* ===== Layar Pemilihan Mode ===== */
+  /* ===== Home ===== */
   #home {
     position: fixed; inset: 0; z-index: 100;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -46,7 +46,6 @@
   .mode-card small { color: var(--muted); font-size: 13px; line-height: 1.45; display: block; }
   .mode-card.disabled { opacity: .5; cursor: not-allowed; border-color: var(--line); }
 
-  /* ===== Tombol Umum ===== */
   button {
     font-family: inherit; font-size: 14px; font-weight: 600;
     border: none; border-radius: 10px; padding: 12px 16px;
@@ -87,11 +86,17 @@
   #photoToolbar .row button { flex: 1; min-width: 0; padding: 11px 10px; font-size: 13px; }
   #readout {
     background: #0b0f14; border: 1px solid var(--line); border-radius: 10px;
-    padding: 10px 14px; display: flex; justify-content: space-between;
-    align-items: center; font-size: 15px;
+    padding: 10px 14px; display: flex; flex-direction: column; gap: 4px;
   }
+  #readout .line { display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
+  #readout .line.small { font-size: 12px; color: var(--muted); }
   #readout .val { font-weight: 700; color: var(--accent2); font-variant-numeric: tabular-nums; }
+  #readout .val.blue { color: var(--accent); }
   #readout .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  #segmentsList {
+    font-size: 12px; color: var(--muted); max-height: 70px; overflow-y: auto;
+    font-variant-numeric: tabular-nums; line-height: 1.5;
+  }
 
   /* Overlay AR */
   #arOverlay {
@@ -113,11 +118,15 @@
   #arReadout {
     background: rgba(13,17,23,.85); backdrop-filter: blur(8px);
     border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 16px; text-align: center; font-size: 15px;
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;
   }
-  #arReadout .val { font-weight: 700; color: var(--accent2); font-size: 22px; font-variant-numeric: tabular-nums; }
-  #arButtons { display: flex; gap: 8px; }
-  #arButtons button { flex: 1; pointer-events: auto; }
+  #arReadout .line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  #arReadout .val { font-weight: 700; color: var(--accent2); font-variant-numeric: tabular-nums; }
+  #arReadout .val.blue { color: var(--accent); }
+  #arReadout .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  #arSegments { font-size: 12px; color: var(--muted); max-height: 60px; overflow-y: auto; }
+  #arButtons { display: flex; gap: 8px; flex-wrap: wrap; }
+  #arButtons button { flex: 1; min-width: 0; pointer-events: auto; }
   #reticle {
     position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
     margin: -13px 0 0 -13px; border: 2px solid #fff; border-radius: 50%;
@@ -151,13 +160,13 @@
 <!-- ================= HOME ================= -->
 <div id="home">
   <h1>📐 AR Ruler</h1>
-  <p class="sub">Ukur lebar & tinggi benda dengan kamera HP. Pilih mode di bawah.</p>
+  <p class="sub">Ukur lebar, tinggi, atau keliling benda dengan kamera HP — mendukung <b>multi-segmen</b> (rantai titik).</p>
 
   <div class="mode-card" id="btnAR">
     <div class="icon">🕶️</div>
     <div>
       <h3>Mode AR (WebXR)</h3>
-      <small>Untuk Android Chrome yang mendukung ARCore. Ukur langsung di dunia nyata dengan pelacakan bidang.</small>
+      <small>Untuk Android Chrome yang mendukung ARCore. Tandai banyak titik di dunia nyata, dapatkan total panjang.</small>
     </div>
   </div>
 
@@ -165,7 +174,7 @@
     <div class="icon">📷</div>
     <div>
       <h3>Mode Foto Referensi</h3>
-      <small>Untuk semua perangkat (termasuk iPhone). Kalibrasi dengan benda yang ukurannya diketahui, lalu ukur di foto.</small>
+      <small>Untuk semua perangkat. Kalibrasi dengan benda yang ukurannya diketahui, lalu ukur banyak segmen di foto.</small>
     </div>
   </div>
 
@@ -185,25 +194,29 @@
 
   <div id="photoToolbar">
     <div id="readout">
-      <span class="lbl" id="readoutLbl">Hasil</span>
-      <span class="val" id="readoutVal">—</span>
+      <div class="line">
+        <span class="lbl" id="readoutLbl">Hasil</span>
+        <span class="val" id="readoutVal">—</span>
+      </div>
+      <div class="line small" id="segmentsList"></div>
     </div>
     <div class="row">
       <button id="btnPickPhoto">📷 Ambil / Pilih Foto</button>
       <button id="btnHelpPhoto" class="ghost" style="flex:0 0 auto;">❓</button>
     </div>
     <div class="row">
-      <button id="btnCalibrate" class="green">1️⃣ Kalibrasi Referensi</button>
-      <button id="btnMeasure" disabled>2️⃣ Ukur Benda</button>
+      <button id="btnCalibrate" class="green">1️⃣ Kalibrasi</button>
+      <button id="btnMeasure" disabled>2️⃣ Ukur</button>
+      <button id="btnUndo" class="ghost" disabled>↶ Hapus Terakhir</button>
       <button id="btnReset" class="red">↺ Reset</button>
     </div>
   </div>
 </div>
 
-<!-- ================= MODE AR (OVERLAY) ================= -->
+<!-- ================= MODE AR ================= -->
 <div id="arOverlay">
   <div id="reticle"></div>
-  <div id="hint">Arahkan ke permukaan, lalu ketuk "Tandai Titik A"</div>
+  <div id="hint">Ketuk untuk menandai titik. Ketuk berulang untuk multi-segmen.</div>
 
   <div id="arTopbar">
     <button class="ghost" id="btnExitAR">✕ Keluar</button>
@@ -211,11 +224,19 @@
 
   <div id="arBottom">
     <div id="arReadout">
-      <div class="val" id="arVal">—</div>
-      <div style="color:var(--muted);font-size:12px;margin-top:2px;">jarak antar titik</div>
+      <div class="line">
+        <span class="lbl">Total Panjang</span>
+        <span class="val" id="arVal">—</span>
+      </div>
+      <div class="line">
+        <span class="lbl">Segmen Terakhir</span>
+        <span class="val blue" id="arLast">—</span>
+      </div>
+      <div id="arSegments"></div>
     </div>
     <div id="arButtons">
-      <button id="btnPointA" class="green">Tandai Titik A</button>
+      <button id="btnPointA" class="green">＋ Tandai Titik</button>
+      <button id="btnUndoAR" class="ghost">↶ Hapus Terakhir</button>
       <button id="btnResetAR" class="red">↺ Reset</button>
     </div>
   </div>
@@ -228,40 +249,41 @@
     <p><b>Mode AR (Android Chrome):</b></p>
     <ul>
       <li>Ketuk <b>Mode AR</b>, izinkan akses kamera.</li>
-      <li>Arahkan HP ke permukaan datar (meja/lantai) sampai muncul penanda.</li>
-      <li>Ketuk <b>Tandai Titik A</b> di posisi awal, lalu <b>Tandai Titik B</b> di posisi akhir. Hasil jarak muncul otomatis.</li>
-      <li>Akurasi ±1–3 cm, tergantung tekstur permukaan & pencahayaan.</li>
+      <li>Arahkan HP ke permukaan datar sampai muncul penanda (ring biru).</li>
+      <li>Ketuk <b>Tandai Titik</b> untuk menambahkan titik. Lakukan berulang untuk rantai multi-segmen.</li>
+      <li>Total panjang = jumlah semua segmen berurutan. Segmen terakhir ditampilkan terpisah.</li>
+      <li><b>Hapus Terakhir</b> untuk membatalkan satu titik; <b>Reset</b> untuk memulai ulang.</li>
     </ul>
     <p><b>Mode Foto Referensi (semua HP):</b></p>
     <ul>
-      <li>Ambil foto dengan benda referensi yang ukurannya diketahui (mis. kartu nama = 85,6 mm, koin Rp500 = 27 mm, kertas A4 = 210×297 mm) di samping benda yang diukur.</li>
-      <li>Ketuk <b>Kalibrasi Referensi</b>, lalu ketuk dua ujung benda referensi di foto. Masukkan panjang aslinya (mm).</li>
-      <li>Ketuk <b>Ukur Benda</b>, lalu ketuk dua titik pada benda yang ingin diukur. Hasil muncul di panel bawah.</li>
-      <li>Untuk akurasi terbaik: kamera tegak lurus ke permukaan, benda referensi sejajar & sebidang dengan benda yang diukur.</li>
+      <li>Ambil foto dengan benda referensi (mis. kartu nama = 85,6 mm) di samping benda yang diukur.</li>
+      <li>Ketuk <b>Kalibrasi</b>, ketuk dua ujung benda referensi, masukkan panjang aslinya (mm).</li>
+      <li>Ketuk <b>Ukur</b>, lalu ketuk banyak titik pada benda. Total & tiap segmen ditampilkan.</li>
+      <li>Ingin hapus satu titik? Ketuk tepat di atas titik lama (dalam radius kecil).</li>
+      <li><b>Hapus Terakhir</b> untuk membatalkan titik terakhir.</li>
+      <li>Untuk akurasi terbaik: kamera tegak lurus ke permukaan, referensi sebidang dengan objek.</li>
     </ul>
     <button id="btnCloseHelp" style="width:100%;margin-top:8px;">Tutup</button>
   </div>
 </div>
 
-<!-- ============ Script Three.js untuk Mode AR (dimuat dinamis) ============ -->
 <script>
 /* ============================================================
-   BAGIAN 1 — LAYAR HOME & DETEKSI DUKUNGAN
+   BAGIAN 1 — HOME & DETEKSI DUKUNGAN
    ============================================================ */
-const home        = document.getElementById('home');
-const photoMode   = document.getElementById('photoMode');
-const arOverlay   = document.getElementById('arOverlay');
-const btnAR       = document.getElementById('btnAR');
-const btnPhoto    = document.getElementById('btnPhoto');
-const btnHelp     = document.getElementById('btnHelp');
-const helpModal   = document.getElementById('helpModal');
+const home      = document.getElementById('home');
+const photoMode = document.getElementById('photoMode');
+const arOverlay = document.getElementById('arOverlay');
+const btnAR     = document.getElementById('btnAR');
+const btnPhoto  = document.getElementById('btnPhoto');
+const btnHelp   = document.getElementById('btnHelp');
+const helpModal = document.getElementById('helpModal');
 
 let xrSupported = false;
 (async () => {
   if (navigator.xr && navigator.xr.isSessionSupported) {
-    try {
-      xrSupported = await navigator.xr.isSessionSupported('immersive-ar');
-    } catch (_) { xrSupported = false; }
+    try { xrSupported = await navigator.xr.isSessionSupported('immersive-ar'); }
+    catch (_) { xrSupported = false; }
   }
   if (!xrSupported) {
     btnAR.classList.add('disabled');
@@ -274,26 +296,27 @@ btnHelp.onclick = () => helpModal.classList.add('active');
 document.getElementById('btnCloseHelp').onclick = () => helpModal.classList.remove('active');
 
 /* ============================================================
-   BAGIAN 2 — MODE FOTO REFERENSI
+   BAGIAN 2 — MODE FOTO (MULTI-SEGMEN)
    ============================================================ */
-const photoCanvas   = document.getElementById('photoCanvas');
-const ctx           = photoCanvas.getContext('2d');
-const cameraHint    = document.getElementById('cameraHint');
-const btnPickPhoto  = document.getElementById('btnPickPhoto');
-const btnCalibrate  = document.getElementById('btnCalibrate');
-const btnMeasure    = document.getElementById('btnMeasure');
-const btnReset      = document.getElementById('btnReset');
-const readoutVal    = document.getElementById('readoutVal');
-const readoutLbl    = document.getElementById('readoutLbl');
+const photoCanvas  = document.getElementById('photoCanvas');
+const ctx          = photoCanvas.getContext('2d');
+const cameraHint   = document.getElementById('cameraHint');
+const btnPickPhoto = document.getElementById('btnPickPhoto');
+const btnCalibrate = document.getElementById('btnCalibrate');
+const btnMeasure   = document.getElementById('btnMeasure');
+const btnUndo      = document.getElementById('btnUndo');
+const btnReset     = document.getElementById('btnReset');
+const readoutLbl   = document.getElementById('readoutLbl');
+const readoutVal   = document.getElementById('readoutVal');
+const segmentsList = document.getElementById('segmentsList');
 
 const photoState = {
-  img: null,            // HTMLImageElement
-  points: [],           // titik yang diklik {x,y} dalam koordinat piksel asli gambar
-  mode: null,           // 'calibrate' | 'measure'
-  mmPerPx: null,        // rasio kalibrasi
-  refPx: null,          // panjang referensi dalam piksel
-  refMm: null,          // panjang referensi dalam mm
-  measuring: false,
+  img: null,
+  points: [],           // titik dalam piksel ASLI gambar
+  mode: null,           // 'calibrate' | 'measure' | null
+  mmPerPx: null,
+  refPx: null,
+  refMm: null,
 };
 
 btnPhoto.onclick = () => {
@@ -302,7 +325,7 @@ btnPhoto.onclick = () => {
 };
 document.getElementById('btnHelpPhoto').onclick = () => helpModal.classList.add('active');
 
-// --- pilih / ambil foto ---
+/* --- pilih / ambil foto --- */
 btnPickPhoto.onclick = () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -321,44 +344,37 @@ btnPickPhoto.onclick = () => {
 function loadImage(src) {
   const img = new Image();
   img.onload = () => {
-    photoState.img = img;
-    photoState.points = [];
-    photoState.mmPerPx = null;
-    photoState.refPx = null;
-    photoState.refMm = null;
-    photoState.mode = null;
-    photoState.measuring = false;
+    Object.assign(photoState, {
+      img, points: [], mmPerPx: null, refPx: null, refMm: null, mode: null,
+    });
     cameraHint.style.display = 'none';
     photoCanvas.classList.remove('hidden');
 
-    // Skala kanvas agar muat di layar (resolusi tampilan saja;
-    // koordinat tetap dihitung dalam piksel ASLI gambar)
     const stage = document.getElementById('photoStage');
-    const maxW = stage.clientWidth;
-    const maxH = stage.clientHeight;
-    const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+    const scale = Math.min(stage.clientWidth / img.width, stage.clientHeight / img.height, 1);
     photoCanvas.width  = Math.round(img.width  * scale);
     photoCanvas.height = Math.round(img.height * scale);
     photoCanvas.dataset.scale = scale;
-    photoCanvas.dataset.origW = img.width;
-    photoCanvas.dataset.origH = img.height;
 
-    photoState.mode = null;
     btnMeasure.disabled = true;
+    btnUndo.disabled = true;
     readoutLbl.textContent = 'Hasil';
     readoutVal.textContent = '—';
+    segmentsList.textContent = '';
     drawPhoto();
   };
   img.src = src;
 }
 
-// --- tombol kalibrasi & ukur ---
+/* --- tombol mode --- */
 btnCalibrate.onclick = () => {
   if (!photoState.img) return alert('Ambil foto dulu.');
   photoState.mode = 'calibrate';
   photoState.points = [];
+  btnUndo.disabled = false;
   readoutLbl.textContent = 'Kalibrasi';
-  readoutVal.textContent = 'Klik 2 ujung benda referensi';
+  readoutVal.textContent = 'Klik 2 ujung referensi';
+  segmentsList.textContent = '';
   drawPhoto();
 };
 
@@ -367,8 +383,22 @@ btnMeasure.onclick = () => {
   if (!photoState.mmPerPx) return alert('Lakukan kalibrasi dulu.');
   photoState.mode = 'measure';
   photoState.points = [];
-  readoutLbl.textContent = 'Pengukuran';
-  readoutVal.textContent = 'Klik 2 titik pada benda';
+  btnUndo.disabled = false;
+  updateMeasureReadout();
+  drawPhoto();
+};
+
+btnUndo.onclick = () => {
+  if (photoState.points.length === 0) return;
+  photoState.points.pop();
+  if (photoState.mode === 'calibrate') {
+    readoutLbl.textContent = 'Kalibrasi';
+    readoutVal.textContent = photoState.points.length === 0
+      ? 'Klik 2 ujung referensi' : 'Klik ujung kedua';
+  } else if (photoState.mode === 'measure') {
+    updateMeasureReadout();
+  }
+  btnUndo.disabled = photoState.points.length === 0;
   drawPhoto();
 };
 
@@ -378,35 +408,60 @@ btnReset.onclick = () => {
   photoState.refPx = null;
   photoState.refMm = null;
   photoState.mode = null;
-  photoState.measuring = false;
   btnMeasure.disabled = true;
+  btnUndo.disabled = true;
   readoutLbl.textContent = 'Hasil';
   readoutVal.textContent = '—';
+  segmentsList.textContent = '';
   drawPhoto();
 };
 
-// --- klik pada kanvas ---
+/* --- klik kanvas --- */
 photoCanvas.addEventListener('pointerdown', (e) => {
   if (!photoState.img || !photoState.mode) return;
   const rect = photoCanvas.getBoundingClientRect();
-  // koordinat klik dalam piksel tampilan kanvas
   const dispX = (e.clientX - rect.left) * (photoCanvas.width / rect.width);
   const dispY = (e.clientY - rect.top)  * (photoCanvas.height / rect.height);
-  // konversi ke piksel ASLI gambar
   const scale = parseFloat(photoCanvas.dataset.scale) || 1;
   const origX = dispX / scale;
   const origY = dispY / scale;
 
-  if (photoState.points.length < 2) {
-    photoState.points.push({ x: origX, y: origY });
-  } else {
-    photoState.points = [{ x: origX, y: origY }];
+  // mode ukur: jika klik dekat titik lama → hapus titik itu
+  if (photoState.mode === 'measure') {
+    const hitRadiusDisp = 14;
+    for (let i = 0; i < photoState.points.length; i++) {
+      const p = photoState.points[i];
+      const dx = (p.x * scale) - dispX;
+      const dy = (p.y * scale) - dispY;
+      if (Math.hypot(dx, dy) <= hitRadiusDisp) {
+        photoState.points.splice(i, 1);
+        updateMeasureReadout();
+        btnUndo.disabled = photoState.points.length === 0;
+        drawPhoto();
+        return;
+      }
+    }
   }
-  drawPhoto();
 
-  if (photoState.points.length === 2) {
-    if (photoState.mode === 'calibrate') handleCalibrationDone();
-    else if (photoState.mode === 'measure') handleMeasurementDone();
+  // kalibrasi: maks 2 titik, reset jika sudah 2
+  if (photoState.mode === 'calibrate') {
+    if (photoState.points.length >= 2) photoState.points = [];
+    photoState.points.push({ x: origX, y: origY });
+    btnUndo.disabled = false;
+    readoutLbl.textContent = 'Kalibrasi';
+    readoutVal.textContent = photoState.points.length === 1
+      ? 'Klik ujung kedua' : 'Klik 2 ujung referensi';
+    drawPhoto();
+    if (photoState.points.length === 2) handleCalibrationDone();
+    return;
+  }
+
+  // ukur: tambahkan titik baru (multi-segmen)
+  if (photoState.mode === 'measure') {
+    photoState.points.push({ x: origX, y: origY });
+    btnUndo.disabled = false;
+    updateMeasureReadout();
+    drawPhoto();
   }
 });
 
@@ -418,7 +473,7 @@ function handleCalibrationDone() {
   const [a, b] = photoState.points;
   photoState.refPx = distPx(a, b);
   const input = prompt(
-    'Masukkan panjang benda referensi dalam milimeter (mm).\nContoh: kartu nama = 85.6, koin Rp500 = 27, kertas A4 lebar = 210',
+    'Panjang benda referensi dalam milimeter (mm).\nContoh: kartu nama = 85.6, koin Rp500 = 27, kertas A4 lebar = 210',
     '85.6'
   );
   const mm = parseFloat(input);
@@ -426,29 +481,45 @@ function handleCalibrationDone() {
     alert('Nilai tidak valid. Kalibrasi dibatalkan.');
     photoState.points = [];
     drawPhoto();
+    btnUndo.disabled = true;
     return;
   }
   photoState.refMm = mm;
   photoState.mmPerPx = mm / photoState.refPx;
   btnMeasure.disabled = false;
-  readoutLbl.textContent = 'Kalibrasi OK';
-  readoutVal.textContent = `1 px = ${photoState.mmPerPx.toFixed(4)} mm`;
+  btnUndo.disabled = true;
   photoState.mode = null;
+  readoutLbl.textContent = 'Kalibrasi OK';
+  readoutVal.textContent = `${photoState.mmPerPx.toFixed(4)} mm/px`;
+  segmentsList.textContent = `Referensi: ${mm} mm = ${photoState.refPx.toFixed(0)} px`;
+  drawPhoto();
 }
 
-function handleMeasurementDone() {
-  const [a, b] = photoState.points;
-  const px = distPx(a, b);
-  const mm = px * photoState.mmPerPx;
-  const cm = mm / 10;
-  readoutLbl.textContent = 'Hasil';
-  readoutVal.textContent = mm < 100
-    ? `${mm.toFixed(1)} mm`
-    : `${cm.toFixed(2)} cm`;
-  photoState.measuring = false;
+function updateMeasureReadout() {
+  const pts = photoState.points;
+  if (pts.length < 2) {
+    readoutLbl.textContent = 'Pengukuran';
+    readoutVal.textContent = pts.length === 0 ? 'Klik titik pertama' : 'Klik titik berikutnya';
+    segmentsList.textContent = '';
+    return;
+  }
+  let totalPx = 0;
+  const parts = [];
+  for (let i = 1; i < pts.length; i++) {
+    const d = distPx(pts[i - 1], pts[i]);
+    totalPx += d;
+    const mm = d * photoState.mmPerPx;
+    parts.push(`S${i}: ${mm < 100 ? mm.toFixed(1) + ' mm' : (mm/10).toFixed(2) + ' cm'}`);
+  }
+  const totalMm = totalPx * photoState.mmPerPx;
+  readoutLbl.textContent = `Total (${pts.length - 1} segmen)`;
+  readoutVal.textContent = totalMm < 100
+    ? `${totalMm.toFixed(1)} mm`
+    : `${(totalMm/10).toFixed(2)} cm`;
+  segmentsList.innerHTML = parts.join(' &nbsp;·&nbsp; ');
 }
 
-// --- gambar ulang kanvas ---
+/* --- gambar ulang --- */
 function drawPhoto() {
   const scale = parseFloat(photoCanvas.dataset.scale) || 1;
   ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
@@ -456,14 +527,50 @@ function drawPhoto() {
     ctx.drawImage(photoState.img, 0, 0, photoCanvas.width, photoCanvas.height);
   }
 
-  // gambar titik & garis
   const pts = photoState.points.map(p => ({ x: p.x * scale, y: p.y * scale }));
+
+  // garis segmen
+  if (pts.length >= 2) {
+    ctx.save();
+    ctx.strokeStyle = '#f85149';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // label per segmen (hanya di mode ukur & sudah terkalibrasi)
+    if (photoState.mode === 'measure' && photoState.mmPerPx) {
+      ctx.save();
+      ctx.font = 'bold 13px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 1; i < pts.length; i++) {
+        const a = photoState.points[i - 1], b = photoState.points[i];
+        const d = distPx(a, b);
+        const mm = d * photoState.mmPerPx;
+        const label = mm < 100 ? `${mm.toFixed(1)} mm` : `${(mm/10).toFixed(2)} cm`;
+        const mx = (pts[i - 1].x + pts[i].x) / 2;
+        const my = (pts[i - 1].y + pts[i].y) / 2;
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(0,0,0,.72)';
+        ctx.fillRect(mx - tw/2 - 6, my - 11, tw + 12, 22);
+        ctx.fillStyle = '#3fb950';
+        ctx.fillText(label, mx, my);
+      }
+      ctx.restore();
+    } else if (photoState.mode === 'calibrate' && photoState.refMm) {
+      // label referensi (setelah input sebelumnya tidak relevan, hanya placeholder)
+    }
+  }
+
+  // titik
   if (pts.length >= 1) {
     ctx.save();
-    ctx.fillStyle = '#3fb950';
-    ctx.strokeStyle = '#3fb950';
-    ctx.lineWidth = 3;
-    pts.forEach(p => {
+    pts.forEach((p, i) => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
       ctx.fillStyle = '#3fb950';
@@ -471,53 +578,27 @@ function drawPhoto() {
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.stroke();
-    });
-    if (pts.length === 2) {
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      ctx.lineTo(pts[1].x, pts[1].y);
-      ctx.strokeStyle = '#f85149';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([8, 6]);
-      ctx.stroke();
-      ctx.setLineDash([]);
 
-      // label
-      const dpx = distPx(photoState.points[0], photoState.points[1]);
-      let label = '';
-      if (photoState.mode === 'calibrate') {
-        label = `${photoState.refMm ?? '?'} mm`;
-      } else if (photoState.mmPerPx) {
-        const mm = dpx * photoState.mmPerPx;
-        label = mm < 100 ? `${mm.toFixed(1)} mm` : `${(mm/10).toFixed(2)} cm`;
-      }
-      if (label) {
-        const mx = (pts[0].x + pts[1].x) / 2;
-        const my = (pts[0].y + pts[1].y) / 2;
-        ctx.font = 'bold 18px -apple-system, sans-serif';
-        const tw = ctx.measureText(label).width;
-        ctx.fillStyle = 'rgba(0,0,0,.7)';
-        ctx.fillRect(mx - tw/2 - 8, my - 26, tw + 16, 26);
-        ctx.fillStyle = '#3fb950';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, mx, my - 13);
-      }
-    }
+      // nomor titik
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(i + 1), p.x, p.y + 0.5);
+    });
     ctx.restore();
   }
 }
 
 /* ============================================================
-   BAGIAN 3 — MODE AR (WebXR + Three.js)
+   BAGIAN 3 — MODE AR (MULTI-SEGMEN)
    ============================================================ */
 let THREE = null;
 let arRenderer = null, arScene = null, arCamera = null;
-let arSession = null, arHitTestSource = null, arLocalSpace = null, arViewerSpace = null;
-let arRefSpace = null;
-let arPoints = [];       // {mesh, pos: THREE.Vector3}
+let arSession = null, arHitTestSource = null, arViewerSpace = null, arRefSpace = null;
+let arPoints = [];
 let arMarkersGroup = null;
-let arLine = null;
+let arLinesGroup = null;
 let arReticleMesh = null;
 let arActive = false;
 
@@ -539,12 +620,8 @@ btnAR.onclick = async () => {
     alert('Mode AR tidak didukung di browser ini. Gunakan Mode Foto.');
     return;
   }
-  try {
-    await startAR();
-  } catch (e) {
-    console.error(e);
-    alert('Gagal memulai AR: ' + e.message);
-  }
+  try { await startAR(); }
+  catch (e) { console.error(e); alert('Gagal memulai AR: ' + e.message); }
 };
 
 async function startAR() {
@@ -552,30 +629,27 @@ async function startAR() {
   home.style.display = 'none';
   arOverlay.classList.add('active');
 
-  // renderer dengan kanvas khusus, dipasang ke body
   arRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   arRenderer.setPixelRatio(window.devicePixelRatio);
   arRenderer.setSize(window.innerWidth, window.innerHeight);
   arRenderer.xr.enabled = true;
-  arRenderer.domElement.style.position = 'fixed';
-  arRenderer.domElement.style.inset = '0';
-  arRenderer.domElement.style.zIndex = '200';
-  arRenderer.domElement.style.touchAction = 'none';
+  Object.assign(arRenderer.domElement.style, {
+    position: 'fixed', inset: '0', zIndex: '200', touchAction: 'none',
+  });
   document.body.appendChild(arRenderer.domElement);
 
   arScene = new THREE.Scene();
   arCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-  // pencahayaan sederhana
   arScene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.0));
   const dir = new THREE.DirectionalLight(0xffffff, 1.2);
   dir.position.set(1, 3, 2);
   arScene.add(dir);
 
   arMarkersGroup = new THREE.Group();
-  arScene.add(arMarkersGroup);
+  arLinesGroup   = new THREE.Group();
+  arScene.add(arMarkersGroup, arLinesGroup);
 
-  // reticle (penanda tengah layar)
+  // reticle
   const ringGeo = new THREE.RingGeometry(0.06, 0.075, 32).rotateX(-Math.PI / 2);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x2f81f7, transparent: true, opacity: .9 });
   arReticleMesh = new THREE.Mesh(ringGeo, ringMat);
@@ -583,23 +657,18 @@ async function startAR() {
   arReticleMesh.visible = false;
   arScene.add(arReticleMesh);
 
-  // mulai sesi AR
-  const sessionInit = {
+  arSession = await navigator.xr.requestSession('immersive-ar', {
     requiredFeatures: ['hit-test'],
     optionalFeatures: ['dom-overlay'],
     domOverlay: { root: arOverlay },
-  };
-  arSession = await navigator.xr.requestSession('immersive-ar', sessionInit);
+  });
 
   arRenderer.xr.setReferenceSpaceType('local');
   await arRenderer.xr.setSession(arSession);
 
   arViewerSpace = await arSession.requestReferenceSpace('viewer');
-  arLocalSpace  = await arSession.requestReferenceSpace('local');
-  arRefSpace    = arLocalSpace;
-
-  const hitSourceInit = { space: arViewerSpace };
-  arHitTestSource = await arSession.requestHitTestSource(hitSourceInit);
+  arRefSpace    = await arSession.requestReferenceSpace('local');
+  arHitTestSource = await arSession.requestHitTestSource({ space: arViewerSpace });
 
   arSession.addEventListener('select', onARSelect);
   arSession.addEventListener('end', onAREnd);
@@ -613,15 +682,12 @@ function onARFrame(timestamp, frame) {
 
   const hitResults = frame.getHitTestResults(arHitTestSource);
   if (hitResults.length > 0) {
-    const hit = hitResults[0];
-    const pose = hit.getPose(arRefSpace);
+    const pose = hitResults[0].getPose(arRefSpace);
     if (pose) {
       arReticleMesh.visible = true;
       arReticleMesh.matrix.fromArray(pose.transform.matrix);
       arReticleMesh.matrix.decompose(
-        arReticleMesh.position,
-        arReticleMesh.quaternion,
-        arReticleMesh.scale
+        arReticleMesh.position, arReticleMesh.quaternion, arReticleMesh.scale
       );
       arReticleMesh.updateMatrixWorld(true);
     }
@@ -632,18 +698,11 @@ function onARFrame(timestamp, frame) {
   arRenderer.render(arScene, arCamera);
 }
 
-// klik di layar AR = tandai titik di posisi reticle
 function onARSelect() {
   if (!arReticleMesh.visible) return;
-
-  // hanya izinkan maksimal 2 titik; reset otomatis jika sudah 2
-  if (arPoints.length >= 2) {
-    clearARPoints();
-  }
-
   const pos = arReticleMesh.position.clone();
 
-  // penanda sphere
+  // sphere penanda
   const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(0.012, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0x3fb950 })
@@ -653,43 +712,85 @@ function onARSelect() {
 
   arPoints.push({ mesh: sphere, pos });
 
-  // garis jika sudah 2 titik
-  if (arPoints.length === 2) {
-    const a = arPoints[0].pos;
-    const b = arPoints[1].pos;
+  // jika >= 2 titik, gambar segmen terbaru
+  if (arPoints.length >= 2) {
+    const a = arPoints[arPoints.length - 2].pos;
+    const b = arPoints[arPoints.length - 1].pos;
     const geom = new THREE.BufferGeometry().setFromPoints([a, b]);
-    const mat = new THREE.LineBasicMaterial({ color: 0xf85149 });
-    arLine = new THREE.Line(geom, mat);
-    arMarkersGroup.add(arLine);
-
-    // hitung jarak
-    const distM = a.distanceTo(b);
-    const mm = distM * 1000;
-    const cm = mm / 10;
-    document.getElementById('arVal').textContent =
-      mm < 100 ? `${mm.toFixed(1)} mm` : `${cm.toFixed(2)} cm`;
-  } else {
-    document.getElementById('arVal').textContent = '— (titik A ditandai)';
+    const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ color: 0xf85149 }));
+    line.userData.segmentIndex = arPoints.length - 1;
+    arLinesGroup.add(line);
   }
+
+  updateARReadout();
+}
+
+function updateARReadout() {
+  const arVal    = document.getElementById('arVal');
+  const arLast   = document.getElementById('arLast');
+  const arSegsEl = document.getElementById('arSegments');
+
+  if (arPoints.length < 2) {
+    arVal.textContent  = '—';
+    arLast.textContent = arPoints.length === 1 ? 'titik A ditandai' : '—';
+    arSegsEl.textContent = '';
+    return;
+  }
+
+  let total = 0;
+  const parts = [];
+  for (let i = 1; i < arPoints.length; i++) {
+    const d = arPoints[i - 1].pos.distanceTo(arPoints[i].pos);
+    total += d;
+    parts.push(`S${i}: ${d < 0.1 ? (d*1000).toFixed(1) + ' mm' : d.toFixed(3) + ' m'}`);
+  }
+  const last = arPoints[arPoints.length - 1].pos
+    .distanceTo(arPoints[arPoints.length - 2].pos);
+
+  arVal.textContent = total < 0.1
+    ? `${(total*1000).toFixed(1)} mm`
+    : total < 1
+      ? `${(total*100).toFixed(2)} cm`
+      : `${total.toFixed(3)} m`;
+
+  arLast.textContent = last < 0.1
+    ? `${(last*1000).toFixed(1)} mm`
+    : last < 1
+      ? `${(last*100).toFixed(2)} cm`
+      : `${last.toFixed(3)} m`;
+
+  arSegsEl.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+}
+
+function undoARPoint() {
+  if (arPoints.length === 0) return;
+  const last = arPoints.pop();
+  arMarkersGroup.remove(last.mesh);
+  // hapus garis terakhir (yang segmenIndex == arPoints.length)
+  for (let i = arLinesGroup.children.length - 1; i >= 0; i--) {
+    const line = arLinesGroup.children[i];
+    if (line.userData.segmentIndex === arPoints.length) {
+      arLinesGroup.remove(line);
+      break;
+    }
+  }
+  updateARReadout();
 }
 
 function clearARPoints() {
   arPoints.forEach(p => arMarkersGroup.remove(p.mesh));
   arPoints = [];
-  if (arLine) { arMarkersGroup.remove(arLine); arLine = null; }
-  document.getElementById('arVal').textContent = '—';
+  while (arLinesGroup.children.length) arLinesGroup.remove(arLinesGroup.children[0]);
+  updateARReadout();
 }
 
-// tombol-tombol overlay
 document.getElementById('btnPointA').onclick = () => {
-  // simulasi klik di tengah reticle
   if (arReticleMesh && arReticleMesh.visible) onARSelect();
   else alert('Arahkan kamera ke permukaan hingga muncul penanda.');
 };
+document.getElementById('btnUndoAR').onclick = undoARPoint;
 document.getElementById('btnResetAR').onclick = clearARPoints;
-document.getElementById('btnExitAR').onclick = () => {
-  if (arSession) arSession.end();
-};
+document.getElementById('btnExitAR').onclick  = () => { if (arSession) arSession.end(); };
 
 function onAREnd() {
   arActive = false;
@@ -703,15 +804,12 @@ function onAREnd() {
   arSession = null;
   arScene = null;
   arPoints = [];
-  arLine = null;
-  // kembali ke home
+  arMarkersGroup = null;
+  arLinesGroup = null;
   home.style.display = 'flex';
-  document.getElementById('arVal').textContent = '—';
+  updateARReadout();
 }
 
-/* ============================================================
-   BAGIAN 4 — RESIZE
-   ============================================================ */
 window.addEventListener('resize', () => {
   if (arRenderer && arCamera) {
     arCamera.aspect = window.innerWidth / window.innerHeight;
@@ -719,9 +817,6 @@ window.addEventListener('resize', () => {
     arRenderer.setSize(window.innerWidth, window.innerHeight);
   }
 });
-
-/* tombol "Kembali" di mode foto (via tombol back browser tidak bisa dicegat,
-   jadi sediakan gesture: klik judul "Reset" dua kali? — cukup tombol Reset) */
 </script>
 </body>
 </html>
