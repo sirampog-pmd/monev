@@ -718,7 +718,7 @@ async function eksekusiCetakRuas() {
     const infoLines = [
       `Desa: ${firstPt.desa || '-'}  |  Tahun: ${firstPt.tahun || '-'}`,
       `Sumber Dana: ${firstPt.sumberDana || '-'}`,
-      `Kategori: ${firstPt.kategori || '-'}`,
+      `Lokasi: ${firstPt.kategori || '-'}`,
       `Kondisi Ruas: ${ruasInfo.kondisi.toUpperCase()}  |  Tanggal Monev: ${firstPt.tanggalMonev ? new Date(firstPt.tanggalMonev).toLocaleDateString('id-ID') : '-'}`
     ];
     infoLines.forEach(line => {
