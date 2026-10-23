@@ -1,706 +1,727 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Ruler Web - Pengukur Ukuran Benda</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                    },
-                    colors: {
-                        cyber: {
-                            blue: '#00f0ff',
-                            purple: '#7000ff',
-                            dark: '#0a0d14',
-                            panel: 'rgba(16, 22, 36, 0.75)',
-                            accent: '#ff0055'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>AR Ruler — Pengukur Benda</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --line: #30363d;
+    --accent: #2f81f7;
+    --accent2: #3fb950;
+    --danger: #f85149;
+    --text: #e6edf3;
+    --muted: #8b949e;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
 
-    <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #0a0d14;
-            color: #ffffff;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
+  /* ===== Layar Pemilihan Mode ===== */
+  #home {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; gap: 18px;
+    background: radial-gradient(circle at 50% 30%, #1b2330 0%, #0d1117 70%);
+  }
+  #home h1 { font-size: 26px; margin: 0 0 4px; }
+  #home p.sub { color: var(--muted); margin: 0 0 20px; text-align: center; max-width: 420px; line-height: 1.5; }
+  .mode-card {
+    width: 100%; max-width: 420px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; padding: 18px 20px; cursor: pointer;
+    transition: border-color .15s, transform .1s;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .mode-card:active { transform: scale(.985); }
+  .mode-card:hover { border-color: var(--accent); }
+  .mode-card .icon { font-size: 28px; line-height: 1; }
+  .mode-card h3 { margin: 0 0 4px; font-size: 16px; }
+  .mode-card small { color: var(--muted); font-size: 13px; line-height: 1.45; display: block; }
+  .mode-card.disabled { opacity: .5; cursor: not-allowed; border-color: var(--line); }
 
-        /* Glassmorphism effects */
-        .glass-panel {
-            background: rgba(16, 22, 36, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 240, 255, 0.15);
-        }
+  /* ===== Tombol Umum ===== */
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    border: none; border-radius: 10px; padding: 12px 16px;
+    cursor: pointer; color: #fff; background: var(--accent);
+    transition: filter .15s;
+  }
+  button:active { filter: brightness(.85); }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+  button.green { background: var(--accent2); }
+  button.red { background: var(--danger); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
 
-        .glass-button {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            transition: all 0.2s ease;
-        }
+  /* ===== Mode Foto ===== */
+  #photoMode {
+    position: fixed; inset: 0; display: none; flex-direction: column;
+    background: #000; z-index: 200;
+  }
+  #photoMode.active { display: flex; }
+  #photoStage {
+    flex: 1; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #photoCanvas {
+    max-width: 100%; max-height: 100%; touch-action: none;
+    display: block;
+  }
+  #photoCanvas.hidden { display: none; }
+  #cameraHint {
+    color: var(--muted); text-align: center; padding: 24px;
+    line-height: 1.6; font-size: 14px;
+  }
+  #photoToolbar {
+    background: var(--panel); border-top: 1px solid var(--line);
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  #photoToolbar .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  #photoToolbar .row button { flex: 1; min-width: 0; padding: 11px 10px; font-size: 13px; }
+  #readout {
+    background: #0b0f14; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; display: flex; justify-content: space-between;
+    align-items: center; font-size: 15px;
+  }
+  #readout .val { font-weight: 700; color: var(--accent2); font-variant-numeric: tabular-nums; }
+  #readout .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
 
-        .glass-button:active {
-            transform: scale(0.95);
-            background: rgba(0, 240, 255, 0.25);
-        }
+  /* Overlay AR */
+  #arOverlay {
+    position: fixed; inset: 0; z-index: 210; display: none;
+    pointer-events: none;
+  }
+  #arOverlay.active { display: block; }
+  #arTopbar {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
+    display: flex; gap: 8px; pointer-events: none;
+  }
+  #arTopbar button { pointer-events: auto; }
+  #arBottom {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 10px; align-items: stretch;
+  }
+  #arReadout {
+    background: rgba(13,17,23,.85); backdrop-filter: blur(8px);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 16px; text-align: center; font-size: 15px;
+  }
+  #arReadout .val { font-weight: 700; color: var(--accent2); font-size: 22px; font-variant-numeric: tabular-nums; }
+  #arButtons { display: flex; gap: 8px; }
+  #arButtons button { flex: 1; pointer-events: auto; }
+  #reticle {
+    position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
+    margin: -13px 0 0 -13px; border: 2px solid #fff; border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(0,0,0,.4); opacity: .9;
+  }
+  #hint {
+    position: absolute; left: 50%; top: calc(50% + 46px); transform: translateX(-50%);
+    background: rgba(0,0,0,.55); color: #fff; padding: 6px 14px; border-radius: 20px;
+    font-size: 13px; white-space: nowrap;
+  }
 
-        /* Reticle animations */
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-
-        .reticle-pulse {
-            animation: pulse-ring 2s infinite ease-in-out;
-        }
-
-        /* Hide scrollbars */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-    </style>
+  /* Modal bantuan */
+  #helpModal {
+    position: fixed; inset: 0; z-index: 300; display: none;
+    background: rgba(0,0,0,.75); padding: 24px;
+    align-items: center; justify-content: center;
+  }
+  #helpModal.active { display: flex; }
+  #helpModal .box {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px; max-width: 440px; width: 100%; max-height: 80vh; overflow-y: auto;
+    line-height: 1.6; font-size: 14px;
+  }
+  #helpModal h3 { margin-top: 0; }
+  #helpModal ul { padding-left: 20px; color: var(--muted); }
+  #helpModal li { margin-bottom: 8px; }
+</style>
 </head>
-<body class="h-screen w-screen relative select-none bg-black">
+<body>
 
-    <!-- Camera Feed Canvas Layer -->
-    <div class="relative w-full h-full overflow-hidden">
-        <video id="webcam" class="hidden" playsinline autoplay muted></video>
-        <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full z-10 block"></canvas>
+<!-- ================= HOME ================= -->
+<div id="home">
+  <h1>📐 AR Ruler</h1>
+  <p class="sub">Ukur lebar & tinggi benda dengan kamera HP. Pilih mode di bawah.</p>
 
-        <!-- Reticle / Crosshair Target Center -->
-        <div id="reticle" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none flex items-center justify-center">
-            <div class="w-12 h-12 rounded-full border-2 border-cyber-blue/60 reticle-pulse flex items-center justify-center relative">
-                <div class="w-2 h-2 rounded-full bg-cyber-blue shadow-[0_0_10px_#00f0ff]"></div>
-                <!-- Crosshair ticks -->
-                <div class="absolute -top-3 w-0.5 h-2 bg-cyber-blue/80"></div>
-                <div class="absolute -bottom-3 w-0.5 h-2 bg-cyber-blue/80"></div>
-                <div class="absolute -left-3 h-0.5 w-2 bg-cyber-blue/80"></div>
-                <div class="absolute -right-3 h-0.5 w-2 bg-cyber-blue/80"></div>
-            </div>
-        </div>
-
-        <!-- Top Controls / Header -->
-        <div class="absolute top-4 left-4 right-4 z-30 flex items-center justify-between">
-            <div class="glass-panel px-4 py-2 rounded-2xl flex items-center space-x-2">
-                <i class="fa-solid fa-ruler-combined text-cyber-blue text-lg"></i>
-                <span class="font-bold tracking-wider text-sm bg-gradient-to-r from-cyber-blue to-purple-400 bg-clip-text text-transparent">AR RULER</span>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                <!-- Kalibrasi Button -->
-                <button id="btnOpenCalib" class="glass-button p-3 rounded-2xl flex items-center justify-center text-white hover:text-cyber-blue shadow-lg">
-                    <i class="fa-solid fa-sliders text-base"></i>
-                </button>
-                <!-- Info Button -->
-                <button id="btnOpenHelp" class="glass-button p-3 rounded-2xl flex items-center justify-center text-white hover:text-cyber-blue shadow-lg">
-                    <i class="fa-solid fa-circle-question text-base"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Unit Selector & Live Measurement Indicator -->
-        <div class="absolute top-20 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-11/12 max-w-xs">
-            <!-- Measurement Display -->
-            <div class="glass-panel px-6 py-3 rounded-3xl text-center w-full shadow-2xl border border-cyber-blue/30 mb-2">
-                <span class="text-xs text-gray-400 font-medium uppercase tracking-widest block mb-0.5">Jarak / Dimensi</span>
-                <div class="flex items-baseline justify-center space-x-1">
-                    <span id="currentValue" class="text-3xl font-extrabold tracking-tight text-white">0.0</span>
-                    <span id="unitDisplay" class="text-cyber-blue font-bold text-sm">cm</span>
-                </div>
-            </div>
-
-            <!-- Unit Options Bar -->
-            <div class="glass-panel p-1 rounded-2xl flex space-x-1 w-full justify-around text-xs font-semibold">
-                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors bg-cyber-blue text-black font-bold" data-unit="cm">cm</button>
-                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="mm">mm</button>
-                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="m">m</button>
-                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="in">inch</button>
-            </div>
-        </div>
-
-        <!-- Bottom Action Controls -->
-        <div class="absolute bottom-6 left-0 right-0 z-30 flex flex-col items-center space-y-4 px-6">
-            <!-- Points Control Bar -->
-            <div class="flex items-center justify-center space-x-4 w-full max-w-sm">
-                <!-- Reset Points -->
-                <button id="btnClear" class="glass-button w-12 h-12 rounded-full flex items-center justify-center text-gray-300 hover:text-cyber-accent">
-                    <i class="fa-solid fa-rotate-left"></i>
-                </button>
-
-                <!-- Add Point Button -->
-                <button id="btnAddPoint" class="glass-button flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyber-blue/80 to-cyber-purple/80 text-white font-bold flex items-center justify-center space-x-2 shadow-lg shadow-cyber-blue/20 active:scale-95 transition">
-                    <i class="fa-solid fa-plus text-sm"></i>
-                    <span>TAMBAH TITIK</span>
-                </button>
-
-                <!-- Capture Screenshot -->
-                <button id="btnCapture" class="glass-button w-12 h-12 rounded-full flex items-center justify-center text-gray-300 hover:text-cyber-blue">
-                    <i class="fa-solid fa-camera"></i>
-                </button>
-            </div>
-
-            <!-- Log Drawer Toggle Button -->
-            <button id="btnToggleLog" class="glass-button px-4 py-1.5 rounded-full text-xs text-gray-300 flex items-center space-x-2">
-                <i class="fa-solid fa-list-ul"></i>
-                <span>Riwayat (<span id="logCount">0</span>)</span>
-                <i id="logIcon" class="fa-solid fa-chevron-up text-[10px]"></i>
-            </button>
-        </div>
-
-        <!-- History Log Drawer Panel -->
-        <div id="logDrawer" class="absolute bottom-0 left-0 right-0 z-40 glass-panel rounded-t-3xl p-5 transform translate-y-full transition-transform duration-300 max-h-[45vh] flex flex-col">
-            <div class="flex items-center justify-between mb-3 border-b border-gray-700/50 pb-2">
-                <h3 class="font-bold text-sm text-cyber-blue flex items-center space-x-2">
-                    <i class="fa-solid fa-history"></i>
-                    <span>Riwayat Pengukuran</span>
-                </h3>
-                <button id="btnCloseLog" class="text-gray-400 hover:text-white text-sm p-1">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div id="logContainer" class="overflow-y-auto no-scrollbar space-y-2 flex-1 text-xs">
-                <div class="text-center text-gray-500 py-4 italic">Belum ada pengukuran tersimpan.</div>
-            </div>
-        </div>
+  <div class="mode-card" id="btnAR">
+    <div class="icon">🕶️</div>
+    <div>
+      <h3>Mode AR (WebXR)</h3>
+      <small>Untuk Android Chrome yang mendukung ARCore. Ukur langsung di dunia nyata dengan pelacakan bidang.</small>
     </div>
+  </div>
 
-    <!-- Modal Kalibrasi -->
-    <div id="modalCalib" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative border border-cyber-blue/40 shadow-2xl">
-            <button id="btnCloseCalib" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <h3 class="text-lg font-bold text-cyber-blue mb-1 flex items-center space-x-2">
-                <i class="fa-solid fa-sliders"></i>
-                <span>Kalibrasi Kamera</span>
-            </h3>
-            <p class="text-xs text-gray-300 mb-4">
-                Pilih objek acuan standar dan paskan jarak antar dua titik pada objek tersebut di layar untuk akurasi tinggi.
-            </p>
-
-            <div class="space-y-4 text-xs">
-                <div>
-                    <label class="block text-gray-400 mb-1 font-medium">Pilih Acuan Objek Standard:</label>
-                    <select id="presetSelect" class="w-full bg-slate-900 border border-gray-700 rounded-xl p-2.5 text-white focus:border-cyber-blue outline-none">
-                        <option value="8.56">Kartu ATM / KTP (8.56 cm)</option>
-                        <option value="21.0">Lebar Kertas A4 (21.0 cm)</option>
-                        <option value="2.7">Koin Rp 1.000 (2.7 cm)</option>
-                        <option value="custom">Ukuran Kustom...</option>
-                    </select>
-                </div>
-
-                <div id="customValueGroup" class="hidden">
-                    <label class="block text-gray-400 mb-1 font-medium">Panjang Objek Kustom (cm):</label>
-                    <input type="number" id="customLength" value="10" step="0.1" class="w-full bg-slate-900 border border-gray-700 rounded-xl p-2.5 text-white focus:border-cyber-blue outline-none">
-                </div>
-
-                <div class="bg-cyber-blue/10 p-3 rounded-xl border border-cyber-blue/20">
-                    <p class="text-[11px] text-cyber-blue">
-                        <i class="fa-solid fa-circle-info mr-1"></i>
-                        Cara: Ukur objek acuan tersebut menggunakan 2 titik di aplikasi, lalu tekan "Terapkan Kalibrasi".
-                    </p>
-                </div>
-
-                <div class="flex space-x-2 pt-2">
-                    <button id="btnApplyCalib" class="flex-1 bg-cyber-blue text-slate-950 font-bold py-2.5 rounded-xl hover:bg-cyber-blue/90 transition">
-                        Terapkan Kalibrasi
-                    </button>
-                </div>
-            </div>
-        </div>
+  <div class="mode-card" id="btnPhoto">
+    <div class="icon">📷</div>
+    <div>
+      <h3>Mode Foto Referensi</h3>
+      <small>Untuk semua perangkat (termasuk iPhone). Kalibrasi dengan benda yang ukurannya diketahui, lalu ukur di foto.</small>
     </div>
+  </div>
 
-    <!-- Modal Panduan / Help -->
-    <div id="modalHelp" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative border border-cyber-blue/40 shadow-2xl">
-            <button id="btnCloseHelp" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            <h3 class="text-lg font-bold text-cyber-blue mb-3 flex items-center space-x-2">
-                <i class="fa-solid fa-circle-question"></i>
-                <span>Panduan Penggunaan</span>
-            </h3>
+  <button class="ghost" id="btnHelp" style="max-width:420px;width:100%;">❓ Cara Pakai</button>
+</div>
 
-            <div class="space-y-3 text-xs text-gray-300">
-                <div class="flex items-start space-x-3">
-                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">1</span>
-                    <p>Arahkan pembidik (crosshair) di tengah layar ke <strong>Titik A</strong> benda yang ingin diukur.</p>
-                </div>
-                <div class="flex items-start space-x-3">
-                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">2</span>
-                    <p>Tekan tombol <strong>"TAMBAH TITIK"</strong> untuk mengunci posisi pertama.</p>
-                </div>
-                <div class="flex items-start space-x-3">
-                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">3</span>
-                    <p>Geser HP/kamera ke <strong>Titik B</strong> ujung benda lainnya, lalu tekan tombol <strong>"TAMBAH TITIK"</strong> kembali.</p>
-                </div>
-                <div class="flex items-start space-x-3">
-                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">4</span>
-                    <p>Gunakan menu <strong>Kalibrasi</strong> untuk menyelaraskan rasio piksel kamera dengan benda standar (KTP/Kertas A4) agar hasil lebih akurat.</p>
-                </div>
-            </div>
-
-            <button id="btnGotIt" class="w-full mt-5 bg-gradient-to-r from-cyber-blue to-purple-600 text-white font-bold py-2.5 rounded-xl">
-                Mengerti
-            </button>
-        </div>
+<!-- ================= MODE FOTO ================= -->
+<div id="photoMode">
+  <div id="photoStage">
+    <canvas id="photoCanvas" class="hidden"></canvas>
+    <div id="cameraHint">
+      Ketuk tombol <b>Ambil / Pilih Foto</b> di bawah.<br />
+      Pastikan benda referensi (mis. kartu nama / koin)<br />
+      berada di bidang yang sama dengan benda yang diukur.
     </div>
+  </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2 rounded-full text-xs font-semibold text-cyber-blue border border-cyber-blue/40 shadow-xl pointer-events-none opacity-0 transition-opacity duration-300">
-        Pesan Notifikasi
+  <div id="photoToolbar">
+    <div id="readout">
+      <span class="lbl" id="readoutLbl">Hasil</span>
+      <span class="val" id="readoutVal">—</span>
     </div>
+    <div class="row">
+      <button id="btnPickPhoto">📷 Ambil / Pilih Foto</button>
+      <button id="btnHelpPhoto" class="ghost" style="flex:0 0 auto;">❓</button>
+    </div>
+    <div class="row">
+      <button id="btnCalibrate" class="green">1️⃣ Kalibrasi Referensi</button>
+      <button id="btnMeasure" disabled>2️⃣ Ukur Benda</button>
+      <button id="btnReset" class="red">↺ Reset</button>
+    </div>
+  </div>
+</div>
 
-    <!-- Main JavaScript Logic -->
-    <script>
-        // ================= APP STATE =================
-        let currentUnit = 'cm';
-        let pixelsPerCm = 37.795; // Default reference scale (approx 96 DPI / 2.54)
-        let points = []; // Array of measured screen points [{x, y}]
-        let historyLogs = [];
-        let videoStream = null;
-        let lastW = window.innerWidth;
-        let lastH = window.innerHeight;
+<!-- ================= MODE AR (OVERLAY) ================= -->
+<div id="arOverlay">
+  <div id="reticle"></div>
+  <div id="hint">Arahkan ke permukaan, lalu ketuk "Tandai Titik A"</div>
 
-        // ================= ELEMENTS =================
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('overlayCanvas');
-        const ctx = canvas.getContext('2d');
-        const currentValueEl = document.getElementById('currentValue');
-        const unitDisplayEl = document.getElementById('unitDisplay');
-        const logCountEl = document.getElementById('logCount');
-        const logContainer = document.getElementById('logContainer');
+  <div id="arTopbar">
+    <button class="ghost" id="btnExitAR">✕ Keluar</button>
+  </div>
 
-        // Modal Elements
-        const modalCalib = document.getElementById('modalCalib');
-        const modalHelp = document.getElementById('modalHelp');
-        const presetSelect = document.getElementById('presetSelect');
-        const customValueGroup = document.getElementById('customValueGroup');
-        const customLengthInput = document.getElementById('customLength');
-        const toast = document.getElementById('toast');
+  <div id="arBottom">
+    <div id="arReadout">
+      <div class="val" id="arVal">—</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:2px;">jarak antar titik</div>
+    </div>
+    <div id="arButtons">
+      <button id="btnPointA" class="green">Tandai Titik A</button>
+      <button id="btnResetAR" class="red">↺ Reset</button>
+    </div>
+  </div>
+</div>
 
-        // ================= TOAST HELPER =================
-        let toastTimer = null;
-        function showToast(msg) {
-            toast.innerText = msg;
-            toast.classList.remove('opacity-0');
-            toast.classList.add('opacity-100');
-            if (toastTimer) clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => {
-                toast.classList.remove('opacity-100');
-                toast.classList.add('opacity-0');
-            }, 2500);
-        }
+<!-- ================= MODAL BANTUAN ================= -->
+<div id="helpModal">
+  <div class="box">
+    <h3>Cara Pakai</h3>
+    <p><b>Mode AR (Android Chrome):</b></p>
+    <ul>
+      <li>Ketuk <b>Mode AR</b>, izinkan akses kamera.</li>
+      <li>Arahkan HP ke permukaan datar (meja/lantai) sampai muncul penanda.</li>
+      <li>Ketuk <b>Tandai Titik A</b> di posisi awal, lalu <b>Tandai Titik B</b> di posisi akhir. Hasil jarak muncul otomatis.</li>
+      <li>Akurasi ±1–3 cm, tergantung tekstur permukaan & pencahayaan.</li>
+    </ul>
+    <p><b>Mode Foto Referensi (semua HP):</b></p>
+    <ul>
+      <li>Ambil foto dengan benda referensi yang ukurannya diketahui (mis. kartu nama = 85,6 mm, koin Rp500 = 27 mm, kertas A4 = 210×297 mm) di samping benda yang diukur.</li>
+      <li>Ketuk <b>Kalibrasi Referensi</b>, lalu ketuk dua ujung benda referensi di foto. Masukkan panjang aslinya (mm).</li>
+      <li>Ketuk <b>Ukur Benda</b>, lalu ketuk dua titik pada benda yang ingin diukur. Hasil muncul di panel bawah.</li>
+      <li>Untuk akurasi terbaik: kamera tegak lurus ke permukaan, benda referensi sejajar & sebidang dengan benda yang diukur.</li>
+    </ul>
+    <button id="btnCloseHelp" style="width:100%;margin-top:8px;">Tutup</button>
+  </div>
+</div>
 
-        // ================= CANVAS HELPERS =================
-        // Fallback roundRect untuk browser lama (Safari < 16, Firefox < 112, dll.)
-        function roundRectPath(context, x, y, w, h, r) {
-            if (typeof context.roundRect === 'function') {
-                context.beginPath();
-                context.roundRect(x, y, w, h, r);
-                return;
-            }
-            // Fallback manual
-            if (w < 2 * r) r = w / 2;
-            if (h < 2 * r) r = h / 2;
-            context.beginPath();
-            context.moveTo(x + r, y);
-            context.arcTo(x + w, y, x + w, y + h, r);
-            context.arcTo(x + w, y + h, x, y + h, r);
-            context.arcTo(x, y + h, x, y, r);
-            context.arcTo(x, y, x + w, y, r);
-            context.closePath();
-        }
+<!-- ============ Script Three.js untuk Mode AR (dimuat dinamis) ============ -->
+<script>
+/* ============================================================
+   BAGIAN 1 — LAYAR HOME & DETEKSI DUKUNGAN
+   ============================================================ */
+const home        = document.getElementById('home');
+const photoMode   = document.getElementById('photoMode');
+const arOverlay   = document.getElementById('arOverlay');
+const btnAR       = document.getElementById('btnAR');
+const btnPhoto    = document.getElementById('btnPhoto');
+const btnHelp     = document.getElementById('btnHelp');
+const helpModal   = document.getElementById('helpModal');
 
-        // ================= CAMERA INIT =================
-        async function initCamera() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                showToast('Browser tidak mendukung akses kamera.');
-                return;
-            }
-            try {
-                const constraints = {
-                    video: {
-                        facingMode: { ideal: 'environment' },
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: false
-                };
-                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = videoStream;
+let xrSupported = false;
+(async () => {
+  if (navigator.xr && navigator.xr.isSessionSupported) {
+    try {
+      xrSupported = await navigator.xr.isSessionSupported('immersive-ar');
+    } catch (_) { xrSupported = false; }
+  }
+  if (!xrSupported) {
+    btnAR.classList.add('disabled');
+    btnAR.querySelector('small').textContent =
+      'Tidak tersedia di perangkat/browser ini (butuh Chrome Android + ARCore). Gunakan Mode Foto.';
+  }
+})();
 
-                try {
-                    await video.play();
-                } catch (playErr) {
-                    // Autoplay bisa ditolak di iOS, butuh interaksi user
-                    console.warn('Auto-play ditolak:', playErr);
-                    document.body.addEventListener('click', () => {
-                        video.play().catch(() => {});
-                    }, { once: true });
-                }
+btnHelp.onclick = () => helpModal.classList.add('active');
+document.getElementById('btnCloseHelp').onclick = () => helpModal.classList.remove('active');
 
-                resizeCanvas();
-                requestAnimationFrame(renderLoop);
-                showToast('Kamera aktif. Siap mengukur!');
-            } catch (err) {
-                console.error("Gagal mengakses kamera:", err);
-                let msg = 'Akses kamera ditolak / tidak tersedia.';
-                if (err.name === 'NotAllowedError') msg = 'Izin kamera ditolak. Aktifkan di pengaturan browser.';
-                else if (err.name === 'NotFoundError') msg = 'Kamera tidak ditemukan.';
-                else if (err.name === 'NotReadableError') msg = 'Kamera sedang dipakai aplikasi lain.';
-                showToast(msg);
-            }
-        }
+/* ============================================================
+   BAGIAN 2 — MODE FOTO REFERENSI
+   ============================================================ */
+const photoCanvas   = document.getElementById('photoCanvas');
+const ctx           = photoCanvas.getContext('2d');
+const cameraHint    = document.getElementById('cameraHint');
+const btnPickPhoto  = document.getElementById('btnPickPhoto');
+const btnCalibrate  = document.getElementById('btnCalibrate');
+const btnMeasure    = document.getElementById('btnMeasure');
+const btnReset      = document.getElementById('btnReset');
+const readoutVal    = document.getElementById('readoutVal');
+const readoutLbl    = document.getElementById('readoutLbl');
 
-        // ================= RESIZE HANDLING =================
-        function resizeCanvas() {
-            const newW = window.innerWidth;
-            const newH = window.innerHeight;
+const photoState = {
+  img: null,            // HTMLImageElement
+  points: [],           // titik yang diklik {x,y} dalam koordinat piksel asli gambar
+  mode: null,           // 'calibrate' | 'measure'
+  mmPerPx: null,        // rasio kalibrasi
+  refPx: null,          // panjang referensi dalam piksel
+  refMm: null,          // panjang referensi dalam mm
+  measuring: false,
+};
 
-            // Skala titik agar tetap proporsional terhadap perubahan ukuran layar
-            if (points.length && lastW > 0 && lastH > 0) {
-                const sx = newW / lastW;
-                const sy = newH / lastH;
-                points = points.map(p => ({ x: p.x * sx, y: p.y * sy }));
-            }
+btnPhoto.onclick = () => {
+  home.style.display = 'none';
+  photoMode.classList.add('active');
+};
+document.getElementById('btnHelpPhoto').onclick = () => helpModal.classList.add('active');
 
-            canvas.width = newW;
-            canvas.height = newH;
-            lastW = newW;
-            lastH = newH;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 300));
+// --- pilih / ambil foto ---
+btnPickPhoto.onclick = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.setAttribute('capture', 'environment');
+  input.onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => loadImage(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+  input.click();
+};
 
-        // ================= DISTANCE & UNIT UTILS =================
-        function calculateDistancePx(p1, p2) {
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
+function loadImage(src) {
+  const img = new Image();
+  img.onload = () => {
+    photoState.img = img;
+    photoState.points = [];
+    photoState.mmPerPx = null;
+    photoState.refPx = null;
+    photoState.refMm = null;
+    photoState.mode = null;
+    photoState.measuring = false;
+    cameraHint.style.display = 'none';
+    photoCanvas.classList.remove('hidden');
 
-        function convertFromCm(cmValue, unit) {
-            switch (unit) {
-                case 'mm': return cmValue * 10;
-                case 'm': return cmValue / 100;
-                case 'in': return cmValue / 2.54;
-                case 'cm':
-                default: return cmValue;
-            }
-        }
+    // Skala kanvas agar muat di layar (resolusi tampilan saja;
+    // koordinat tetap dihitung dalam piksel ASLI gambar)
+    const stage = document.getElementById('photoStage');
+    const maxW = stage.clientWidth;
+    const maxH = stage.clientHeight;
+    const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+    photoCanvas.width  = Math.round(img.width  * scale);
+    photoCanvas.height = Math.round(img.height * scale);
+    photoCanvas.dataset.scale = scale;
+    photoCanvas.dataset.origW = img.width;
+    photoCanvas.dataset.origH = img.height;
 
-        function formatDistance(distPx, unit) {
-            const cmValue = distPx / pixelsPerCm;
-            const converted = convertFromCm(cmValue, unit);
-            if (unit === 'm') return converted.toFixed(3);
-            if (unit === 'in') return converted.toFixed(2);
-            return converted.toFixed(1);
-        }
+    photoState.mode = null;
+    btnMeasure.disabled = true;
+    readoutLbl.textContent = 'Hasil';
+    readoutVal.textContent = '—';
+    drawPhoto();
+  };
+  img.src = src;
+}
 
-        // ================= RENDER LOOP =================
-        function renderLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+// --- tombol kalibrasi & ukur ---
+btnCalibrate.onclick = () => {
+  if (!photoState.img) return alert('Ambil foto dulu.');
+  photoState.mode = 'calibrate';
+  photoState.points = [];
+  readoutLbl.textContent = 'Kalibrasi';
+  readoutVal.textContent = 'Klik 2 ujung benda referensi';
+  drawPhoto();
+};
 
-            // 1. Draw Camera Frame to Canvas
-            if (video.readyState >= 2) { // HAVE_CURRENT_DATA
-                try {
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                } catch (e) {
-                    console.warn('drawImage gagal:', e);
-                }
-            }
+btnMeasure.onclick = () => {
+  if (!photoState.img) return alert('Ambil foto dulu.');
+  if (!photoState.mmPerPx) return alert('Lakukan kalibrasi dulu.');
+  photoState.mode = 'measure';
+  photoState.points = [];
+  readoutLbl.textContent = 'Pengukuran';
+  readoutVal.textContent = 'Klik 2 titik pada benda';
+  drawPhoto();
+};
 
-            const center = { x: canvas.width / 2, y: canvas.height / 2 };
+btnReset.onclick = () => {
+  photoState.points = [];
+  photoState.mmPerPx = null;
+  photoState.refPx = null;
+  photoState.refMm = null;
+  photoState.mode = null;
+  photoState.measuring = false;
+  btnMeasure.disabled = true;
+  readoutLbl.textContent = 'Hasil';
+  readoutVal.textContent = '—';
+  drawPhoto();
+};
 
-            // 2. Draw Locked Points & Lines
-            if (points.length > 0) {
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = '#00f0ff';
-                ctx.fillStyle = '#ff0055';
+// --- klik pada kanvas ---
+photoCanvas.addEventListener('pointerdown', (e) => {
+  if (!photoState.img || !photoState.mode) return;
+  const rect = photoCanvas.getBoundingClientRect();
+  // koordinat klik dalam piksel tampilan kanvas
+  const dispX = (e.clientX - rect.left) * (photoCanvas.width / rect.width);
+  const dispY = (e.clientY - rect.top)  * (photoCanvas.height / rect.height);
+  // konversi ke piksel ASLI gambar
+  const scale = parseFloat(photoCanvas.dataset.scale) || 1;
+  const origX = dispX / scale;
+  const origY = dispY / scale;
 
-                // Draw existing lines between stored points
-                for (let i = 0; i < points.length - 1; i++) {
-                    drawLineWithLabel(points[i], points[i + 1]);
-                }
+  if (photoState.points.length < 2) {
+    photoState.points.push({ x: origX, y: origY });
+  } else {
+    photoState.points = [{ x: origX, y: origY }];
+  }
+  drawPhoto();
 
-                // Draw line from last point to current reticle target
-                const lastPoint = points[points.length - 1];
-                drawLineWithLabel(lastPoint, center, true);
+  if (photoState.points.length === 2) {
+    if (photoState.mode === 'calibrate') handleCalibrationDone();
+    else if (photoState.mode === 'measure') handleMeasurementDone();
+  }
+});
 
-                // Draw Point Markers
-                points.forEach((pt, idx) => {
-                    ctx.beginPath();
-                    ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
-                    ctx.fillStyle = '#00f0ff';
-                    ctx.fill();
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.stroke();
+function distPx(p1, p2) {
+  return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+}
 
-                    // Point Label
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = 'bold 12px "Plus Jakarta Sans"';
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'alphabetic';
-                    ctx.fillText(`P${idx + 1}`, pt.x + 10, pt.y - 10);
-                });
+function handleCalibrationDone() {
+  const [a, b] = photoState.points;
+  photoState.refPx = distPx(a, b);
+  const input = prompt(
+    'Masukkan panjang benda referensi dalam milimeter (mm).\nContoh: kartu nama = 85.6, koin Rp500 = 27, kertas A4 lebar = 210',
+    '85.6'
+  );
+  const mm = parseFloat(input);
+  if (!isFinite(mm) || mm <= 0) {
+    alert('Nilai tidak valid. Kalibrasi dibatalkan.');
+    photoState.points = [];
+    drawPhoto();
+    return;
+  }
+  photoState.refMm = mm;
+  photoState.mmPerPx = mm / photoState.refPx;
+  btnMeasure.disabled = false;
+  readoutLbl.textContent = 'Kalibrasi OK';
+  readoutVal.textContent = `1 px = ${photoState.mmPerPx.toFixed(4)} mm`;
+  photoState.mode = null;
+}
 
-                // Update Header Live Value
-                const currentDistPx = calculateDistancePx(lastPoint, center);
-                currentValueEl.innerText = formatDistance(currentDistPx, currentUnit);
-            } else {
-                currentValueEl.innerText = '0.0';
-            }
+function handleMeasurementDone() {
+  const [a, b] = photoState.points;
+  const px = distPx(a, b);
+  const mm = px * photoState.mmPerPx;
+  const cm = mm / 10;
+  readoutLbl.textContent = 'Hasil';
+  readoutVal.textContent = mm < 100
+    ? `${mm.toFixed(1)} mm`
+    : `${cm.toFixed(2)} cm`;
+  photoState.measuring = false;
+}
 
-            requestAnimationFrame(renderLoop);
-        }
+// --- gambar ulang kanvas ---
+function drawPhoto() {
+  const scale = parseFloat(photoCanvas.dataset.scale) || 1;
+  ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+  if (photoState.img) {
+    ctx.drawImage(photoState.img, 0, 0, photoCanvas.width, photoCanvas.height);
+  }
 
-        // ================= DRAW LINE WITH LABEL =================
-        function drawLineWithLabel(p1, p2, isDynamic = false) {
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.lineWidth = isDynamic ? 2 : 3;
-            ctx.strokeStyle = isDynamic ? 'rgba(0, 240, 255, 0.7)' : '#00f0ff';
-            if (isDynamic) ctx.setLineDash([6, 6]);
-            ctx.stroke();
-            ctx.setLineDash([]); // Reset line dash
+  // gambar titik & garis
+  const pts = photoState.points.map(p => ({ x: p.x * scale, y: p.y * scale }));
+  if (pts.length >= 1) {
+    ctx.save();
+    ctx.fillStyle = '#3fb950';
+    ctx.strokeStyle = '#3fb950';
+    ctx.lineWidth = 3;
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#3fb950';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+    if (pts.length === 2) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.strokeStyle = '#f85149';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-            // Calculate distance & midpoint
-            const distPx = calculateDistancePx(p1, p2);
-            const midX = (p1.x + p2.x) / 2;
-            const midY = (p1.y + p2.y) / 2;
+      // label
+      const dpx = distPx(photoState.points[0], photoState.points[1]);
+      let label = '';
+      if (photoState.mode === 'calibrate') {
+        label = `${photoState.refMm ?? '?'} mm`;
+      } else if (photoState.mmPerPx) {
+        const mm = dpx * photoState.mmPerPx;
+        label = mm < 100 ? `${mm.toFixed(1)} mm` : `${(mm/10).toFixed(2)} cm`;
+      }
+      if (label) {
+        const mx = (pts[0].x + pts[1].x) / 2;
+        const my = (pts[0].y + pts[1].y) / 2;
+        ctx.font = 'bold 18px -apple-system, sans-serif';
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(0,0,0,.7)';
+        ctx.fillRect(mx - tw/2 - 8, my - 26, tw + 16, 26);
+        ctx.fillStyle = '#3fb950';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, mx, my - 13);
+      }
+    }
+    ctx.restore();
+  }
+}
 
-            const textVal = formatDistance(distPx, currentUnit) + ' ' + currentUnit;
+/* ============================================================
+   BAGIAN 3 — MODE AR (WebXR + Three.js)
+   ============================================================ */
+let THREE = null;
+let arRenderer = null, arScene = null, arCamera = null;
+let arSession = null, arHitTestSource = null, arLocalSpace = null, arViewerSpace = null;
+let arRefSpace = null;
+let arPoints = [];       // {mesh, pos: THREE.Vector3}
+let arMarkersGroup = null;
+let arLine = null;
+let arReticleMesh = null;
+let arActive = false;
 
-            // Text Bubble Background
-            ctx.font = 'bold 13px "Plus Jakarta Sans"';
-            const textWidth = ctx.measureText(textVal).width;
-            const boxW = textWidth + 16;
-            const boxH = 26;
+async function loadThree() {
+  if (THREE) return THREE;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  THREE = window.THREE;
+  return THREE;
+}
 
-            // Clamp label agar tidak keluar canvas
-            let bx = midX - boxW / 2;
-            let by = midY - boxH / 2;
-            bx = Math.max(4, Math.min(bx, canvas.width - boxW - 4));
-            by = Math.max(4, Math.min(by, canvas.height - boxH - 4));
+btnAR.onclick = async () => {
+  if (!xrSupported) {
+    alert('Mode AR tidak didukung di browser ini. Gunakan Mode Foto.');
+    return;
+  }
+  try {
+    await startAR();
+  } catch (e) {
+    console.error(e);
+    alert('Gagal memulai AR: ' + e.message);
+  }
+};
 
-            ctx.fillStyle = 'rgba(10, 13, 20, 0.85)';
-            roundRectPath(ctx, bx, by, boxW, boxH, 8);
-            ctx.fill();
-            ctx.strokeStyle = '#00f0ff';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+async function startAR() {
+  await loadThree();
+  home.style.display = 'none';
+  arOverlay.classList.add('active');
 
-            // Text Label
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(textVal, bx + boxW / 2, by + boxH / 2);
-        }
+  // renderer dengan kanvas khusus, dipasang ke body
+  arRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  arRenderer.setPixelRatio(window.devicePixelRatio);
+  arRenderer.setSize(window.innerWidth, window.innerHeight);
+  arRenderer.xr.enabled = true;
+  arRenderer.domElement.style.position = 'fixed';
+  arRenderer.domElement.style.inset = '0';
+  arRenderer.domElement.style.zIndex = '200';
+  arRenderer.domElement.style.touchAction = 'none';
+  document.body.appendChild(arRenderer.domElement);
 
-        // ================= ADD POINT =================
-        document.getElementById('btnAddPoint').addEventListener('click', () => {
-            const center = { x: canvas.width / 2, y: canvas.height / 2 };
-            points.push(center);
+  arScene = new THREE.Scene();
+  arCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
-            if (points.length > 1) {
-                const p1 = points[points.length - 2];
-                const p2 = points[points.length - 1];
-                const distPx = calculateDistancePx(p1, p2);
-                const formatted = formatDistance(distPx, currentUnit) + ' ' + currentUnit;
+  // pencahayaan sederhana
+  arScene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.0));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+  dir.position.set(1, 3, 2);
+  arScene.add(dir);
 
-                addHistoryLog(`P${points.length - 1} ke P${points.length}`, formatted);
-                showToast(`Titik ${points.length} ditambahkan (${formatted})`);
-            } else {
-                showToast('Titik 1 terkunci. Geser ke Titik 2.');
-            }
-        });
+  arMarkersGroup = new THREE.Group();
+  arScene.add(arMarkersGroup);
 
-        // ================= CLEAR POINTS =================
-        document.getElementById('btnClear').addEventListener('click', () => {
-            points = [];
-            currentValueEl.innerText = '0.0';
-            showToast('Titik pengukuran dibersihkan.');
-        });
+  // reticle (penanda tengah layar)
+  const ringGeo = new THREE.RingGeometry(0.06, 0.075, 32).rotateX(-Math.PI / 2);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x2f81f7, transparent: true, opacity: .9 });
+  arReticleMesh = new THREE.Mesh(ringGeo, ringMat);
+  arReticleMesh.matrixAutoUpdate = false;
+  arReticleMesh.visible = false;
+  arScene.add(arReticleMesh);
 
-        // ================= HISTORY LOG =================
-        function addHistoryLog(label, val) {
-            historyLogs.push({
-                label,
-                val,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-            logCountEl.innerText = historyLogs.length;
-            renderLogs();
-        }
+  // mulai sesi AR
+  const sessionInit = {
+    requiredFeatures: ['hit-test'],
+    optionalFeatures: ['dom-overlay'],
+    domOverlay: { root: arOverlay },
+  };
+  arSession = await navigator.xr.requestSession('immersive-ar', sessionInit);
 
-        function renderLogs() {
-            if (historyLogs.length === 0) {
-                logContainer.innerHTML = '<div class="text-center text-gray-500 py-4 italic">Belum ada pengukuran tersimpan.</div>';
-                return;
-            }
-            logContainer.innerHTML = historyLogs.map((item) => `
-                <div class="glass-panel p-3 rounded-xl flex justify-between items-center border border-gray-800">
-                    <div>
-                        <span class="font-bold text-cyber-blue block">${item.label}</span>
-                        <span class="text-[10px] text-gray-400">${item.time}</span>
-                    </div>
-                    <span class="font-extrabold text-sm text-white">${item.val}</span>
-                </div>
-            `).join('');
-        }
+  arRenderer.xr.setReferenceSpaceType('local');
+  await arRenderer.xr.setSession(arSession);
 
-        // ================= UNIT SWITCHER =================
-        document.querySelectorAll('.unit-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const target = e.currentTarget; // Gunakan currentTarget agar selalu tombol
-                document.querySelectorAll('.unit-btn').forEach(b => {
-                    b.classList.remove('bg-cyber-blue', 'text-black', 'font-bold');
-                    b.classList.add('text-gray-300', 'hover:text-white');
-                });
-                target.classList.add('bg-cyber-blue', 'text-black', 'font-bold');
-                target.classList.remove('text-gray-300', 'hover:text-white');
+  arViewerSpace = await arSession.requestReferenceSpace('viewer');
+  arLocalSpace  = await arSession.requestReferenceSpace('local');
+  arRefSpace    = arLocalSpace;
 
-                const newUnit = target.getAttribute('data-unit');
-                if (newUnit) {
-                    currentUnit = newUnit;
-                    unitDisplayEl.innerText = currentUnit;
-                }
-            });
-        });
+  const hitSourceInit = { space: arViewerSpace };
+  arHitTestSource = await arSession.requestHitTestSource(hitSourceInit);
 
-        // ================= CALIBRATION MODAL =================
-        presetSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'custom') {
-                customValueGroup.classList.remove('hidden');
-            } else {
-                customValueGroup.classList.add('hidden');
-            }
-        });
+  arSession.addEventListener('select', onARSelect);
+  arSession.addEventListener('end', onAREnd);
 
-        document.getElementById('btnOpenCalib').addEventListener('click', () => modalCalib.classList.remove('hidden'));
-        document.getElementById('btnCloseCalib').addEventListener('click', () => modalCalib.classList.add('hidden'));
+  arActive = true;
+  arRenderer.setAnimationLoop(onARFrame);
+}
 
-        document.getElementById('btnApplyCalib').addEventListener('click', () => {
-            if (points.length < 2) {
-                showToast('Atur minimal 2 titik terlebih dahulu untuk mengkalibrasi!');
-                modalCalib.classList.add('hidden');
-                return;
-            }
+function onARFrame(timestamp, frame) {
+  if (!frame || !arActive) return;
 
-            let realCm;
-            if (presetSelect.value === 'custom') {
-                realCm = parseFloat(customLengthInput.value);
-            } else {
-                realCm = parseFloat(presetSelect.value);
-            }
+  const hitResults = frame.getHitTestResults(arHitTestSource);
+  if (hitResults.length > 0) {
+    const hit = hitResults[0];
+    const pose = hit.getPose(arRefSpace);
+    if (pose) {
+      arReticleMesh.visible = true;
+      arReticleMesh.matrix.fromArray(pose.transform.matrix);
+      arReticleMesh.matrix.decompose(
+        arReticleMesh.position,
+        arReticleMesh.quaternion,
+        arReticleMesh.scale
+      );
+      arReticleMesh.updateMatrixWorld(true);
+    }
+  } else {
+    arReticleMesh.visible = false;
+  }
 
-            if (!isFinite(realCm) || realCm <= 0) {
-                showToast('Nilai kalibrasi tidak valid!');
-                return;
-            }
+  arRenderer.render(arScene, arCamera);
+}
 
-            // Hitung jarak piksel antara 2 titik pertama
-            const distPx = calculateDistancePx(points[0], points[1]);
-            if (distPx < 10) {
-                showToast('Jarak antar titik terlalu kecil. Ulangi pengukuran acuan.');
-                return;
-            }
+// klik di layar AR = tandai titik di posisi reticle
+function onARSelect() {
+  if (!arReticleMesh.visible) return;
 
-            pixelsPerCm = distPx / realCm;
+  // hanya izinkan maksimal 2 titik; reset otomatis jika sudah 2
+  if (arPoints.length >= 2) {
+    clearARPoints();
+  }
 
-            // Simpan kalibrasi ke localStorage
-            try {
-                localStorage.setItem('ar_ruler_ppcm', String(pixelsPerCm));
-            } catch (_) {}
+  const pos = arReticleMesh.position.clone();
 
-            showToast(`Kalibrasi Berhasil! (1 cm = ${pixelsPerCm.toFixed(1)} px)`);
-            modalCalib.classList.add('hidden');
-        });
+  // penanda sphere
+  const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.012, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0x3fb950 })
+  );
+  sphere.position.copy(pos);
+  arMarkersGroup.add(sphere);
 
-        // ================= LOG DRAWER TOGGLE =================
-        const logDrawer = document.getElementById('logDrawer');
-        const logIcon = document.getElementById('logIcon');
+  arPoints.push({ mesh: sphere, pos });
 
-        function toggleLogDrawer() {
-            const isClosed = logDrawer.classList.contains('translate-y-full');
-            if (isClosed) {
-                logDrawer.classList.remove('translate-y-full');
-                logIcon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-            } else {
-                logDrawer.classList.add('translate-y-full');
-                logIcon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-            }
-        }
+  // garis jika sudah 2 titik
+  if (arPoints.length === 2) {
+    const a = arPoints[0].pos;
+    const b = arPoints[1].pos;
+    const geom = new THREE.BufferGeometry().setFromPoints([a, b]);
+    const mat = new THREE.LineBasicMaterial({ color: 0xf85149 });
+    arLine = new THREE.Line(geom, mat);
+    arMarkersGroup.add(arLine);
 
-        document.getElementById('btnToggleLog').addEventListener('click', toggleLogDrawer);
-        document.getElementById('btnCloseLog').addEventListener('click', toggleLogDrawer);
+    // hitung jarak
+    const distM = a.distanceTo(b);
+    const mm = distM * 1000;
+    const cm = mm / 10;
+    document.getElementById('arVal').textContent =
+      mm < 100 ? `${mm.toFixed(1)} mm` : `${cm.toFixed(2)} cm`;
+  } else {
+    document.getElementById('arVal').textContent = '— (titik A ditandai)';
+  }
+}
 
-        // ================= HELP MODAL =================
-        document.getElementById('btnOpenHelp').addEventListener('click', () => modalHelp.classList.remove('hidden'));
-        document.getElementById('btnCloseHelp').addEventListener('click', () => modalHelp.classList.add('hidden'));
-        document.getElementById('btnGotIt').addEventListener('click', () => modalHelp.classList.add('hidden'));
+function clearARPoints() {
+  arPoints.forEach(p => arMarkersGroup.remove(p.mesh));
+  arPoints = [];
+  if (arLine) { arMarkersGroup.remove(arLine); arLine = null; }
+  document.getElementById('arVal').textContent = '—';
+}
 
-        // ================= CAPTURE / SNAPSHOT =================
-        document.getElementById('btnCapture').addEventListener('click', () => {
-            if (video.readyState < 2) {
-                showToast('Kamera belum siap. Tunggu sebentar...');
-                return;
-            }
-            const link = document.createElement('a');
-            link.download = `AR_Ruler_Measurement_${Date.now()}.png`;
-            try {
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                showToast('Foto hasil pengukuran disimpan!');
-            } catch (err) {
-                console.error(err);
-                showToast('Gagal menyimpan screenshot.');
-            }
-        });
+// tombol-tombol overlay
+document.getElementById('btnPointA').onclick = () => {
+  // simulasi klik di tengah reticle
+  if (arReticleMesh && arReticleMesh.visible) onARSelect();
+  else alert('Arahkan kamera ke permukaan hingga muncul penanda.');
+};
+document.getElementById('btnResetAR').onclick = clearARPoints;
+document.getElementById('btnExitAR').onclick = () => {
+  if (arSession) arSession.end();
+};
 
-        // ================= CLEANUP STREAM =================
-        window.addEventListener('beforeunload', () => {
-            if (videoStream) {
-                videoStream.getTracks().forEach(t => t.stop());
-            }
-        });
+function onAREnd() {
+  arActive = false;
+  arOverlay.classList.remove('active');
+  if (arRenderer) {
+    arRenderer.setAnimationLoop(null);
+    arRenderer.domElement.remove();
+    arRenderer = null;
+  }
+  if (arHitTestSource) { try { arHitTestSource.cancel(); } catch(_){} arHitTestSource = null; }
+  arSession = null;
+  arScene = null;
+  arPoints = [];
+  arLine = null;
+  // kembali ke home
+  home.style.display = 'flex';
+  document.getElementById('arVal').textContent = '—';
+}
 
-        // ================= ON LOAD =================
-        window.onload = () => {
-            // Muat kalibrasi tersimpan jika ada
-            try {
-                const saved = localStorage.getItem('ar_ruler_ppcm');
-                const parsed = parseFloat(saved);
-                if (isFinite(parsed) && parsed > 0) pixelsPerCm = parsed;
-            } catch (_) {}
+/* ============================================================
+   BAGIAN 4 — RESIZE
+   ============================================================ */
+window.addEventListener('resize', () => {
+  if (arRenderer && arCamera) {
+    arCamera.aspect = window.innerWidth / window.innerHeight;
+    arCamera.updateProjectionMatrix();
+    arRenderer.setSize(window.innerWidth, window.innerHeight);
+  }
+});
 
-            initCamera();
-        };
-    </script>
+/* tombol "Kembali" di mode foto (via tombol back browser tidak bisa dicegat,
+   jadi sediakan gesture: klik judul "Reset" dua kali? — cukup tombol Reset) */
+</script>
 </body>
 </html>
