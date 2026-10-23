@@ -808,139 +808,139 @@ async function eksekusiCetakRuas() {
     y += 35;
 
     // ================= PETA OSM DINAMIS (AUTO-ZOOM) =================
-    if (y > pageH - 100) { doc.addPage(); y = margin; }
-    loadingToast.textContent = '⏳ Mengunduh gambar peta jalan...';
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(14, 165, 233);
-    doc.text('PETA LOKASI KEGIATAN', margin, y);
-    y += 5;
+// ================= PETA OSM DINAMIS (AUTO-ZOOM & PRESISI) =================
+  if (y > pageH - 100) { doc.addPage(); y = margin; }
+  loadingToast.textContent = '⏳ Mengunduh gambar peta jalan...';
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(14, 165, 233);
+  doc.text('PETA LOKASI KEGIATAN', margin, y);
+  y += 5;
 
-    try {
-      // 1. Siapkan Canvas
-      const canvas = document.createElement('canvas');
-      canvas.width = 800;
-      canvas.height = 400;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+  try {
+    // 1. Siapkan Canvas (Rasio 800x400 sesuai rasio peta di PDF)
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Cari batas wilayah (Bounding Box) semua titik
-      const lats = pts.map(p => p.lat);
-      const lons = pts.map(p => p.lon);
-      const minLat = Math.min(...lats);
-      const maxLat = Math.max(...lats);
-      const minLon = Math.min(...lons);
-      const maxLon = Math.max(...lons);
-      
-      const centerLat = (minLat + maxLat) / 2;
-      const centerLon = (minLon + maxLon) / 2;
+    // 2. Cari batas wilayah (Bounding Box) & Pusat Titik
+    const lats = pts.map(p => p.lat);
+    const lons = pts.map(p => p.lon);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+    
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLon = (minLon + maxLon) / 2;
 
-      // 3. Hitung Zoom otomatis berdasarkan jarak antar titik
-      const latDiff = maxLat - minLat;
-      const lonDiff = maxLon - minLon;
-      let zoom = 14;
-      if (latDiff > 0.05 || lonDiff > 0.05) zoom = 11;
-      else if (latDiff > 0.02 || lonDiff > 0.02) zoom = 12;
-      else if (latDiff > 0.01 || lonDiff > 0.01) zoom = 13;
-      else if (latDiff === 0 && lonDiff === 0) zoom = 16; // Jika titiknya persis sama
+    // 3. Hitung Zoom otomatis berdasarkan bentangan koordinat
+    const latDiff = maxLat - minLat;
+    const lonDiff = maxLon - minLon;
+    let zoom = 17; 
+    if (latDiff > 0.05 || lonDiff > 0.05) zoom = 14; 
+    else if (latDiff > 0.02 || lonDiff > 0.02) zoom = 15; // Sebelumnya 13
+    else if (latDiff > 0.01 || lonDiff > 0.01) zoom = 16; // Sebelumnya 14
+    else if (latDiff === 0 && lonDiff === 0) zoom = 19; // Sebelumnya 17
 
-      // Rumus konversi koordinat ke pixel (Slippy Map)
-      const lat2y = (lat) => Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
-      const lon2x = (lon) => Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
+    // Fungsi Proyeksi Web Mercator Standar (Global Pixel)
+    const getGlobalPixel = (lat, lon, z) => {
+      const scale = 256 * Math.pow(2, z);
+      const x = (lon + 180) / 360 * scale;
+      const rad = (lat * Math.PI) / 180;
+      const y = (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * scale;
+      return { x, y };
+    };
 
-      const centerX = lon2x(centerLon);
-      const centerY = lat2y(centerLat);
+    // Tentukan titik pusat global canvas
+    const centerGlobal = getGlobalPixel(centerLat, centerLon, zoom);
+    const topLeftX = centerGlobal.x - (canvas.width / 2);
+    const topLeftY = centerGlobal.y - (canvas.height / 2);
 
-      // 4. Muat Tile OpenStreetMap (Ambil area 3x3 di sekitar tengah)
-      const tiles = [];
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          const tx = centerX + dx;
-          const ty = centerY + dy;
-          const url = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
-          
-          tiles.push(new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = "Anonymous";
-            img.onload = () => {
-              // Gambar tile ke canvas
-              const px = (dx + 1) * 256;
-              const py = (dy + 1) * 256;
-              ctx.drawImage(img, px, py, 256, 256);
-              resolve();
-            };
-            img.onerror = () => resolve();
-            img.src = url;
-          }));
-        }
+    // 4. Muat Tile OpenStreetMap secara dinamis yang mencakup ukuran canvas 800x400
+    const minTileX = Math.floor(topLeftX / 256);
+    const maxTileX = Math.floor((topLeftX + canvas.width) / 256);
+    const minTileY = Math.floor(topLeftY / 256);
+    const maxTileY = Math.floor((topLeftY + canvas.height) / 256);
+
+    const tiles = [];
+    for (let tx = minTileX; tx <= maxTileX; tx++) {
+      for (let ty = minTileY; ty <= maxTileY; ty++) {
+        const url = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+        
+        tiles.push(new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.onload = () => {
+            const px = (tx * 256) - topLeftX;
+            const py = (ty * 256) - topLeftY;
+            ctx.drawImage(img, px, py, 256, 256);
+            resolve();
+          };
+          img.onerror = () => resolve();
+          img.src = url;
+        }));
       }
-
-      await Promise.all(tiles);
-
-      // 5. Gambar Garis Rute & Marker
-      // Hitung skala piksel per derajat (untuk menaruh titik di canvas)
-      const pxPerLon = 256 * Math.pow(2, zoom) / 360;
-      const pxPerLat = 256 * Math.pow(2, zoom) / (2 * Math.PI);
-
-      const toCanvasXY = (lat, lon) => {
-        // Selisih koordinat dengan titik tengah peta
-        const dxLon = lon - centerLon;
-        const dyLat = lat - centerLat;
-        
-        // Konversi ke pixel offset dari tengah canvas
-        const x = (canvas.width / 2) + (dxLon * pxPerLon);
-        const y = (canvas.height / 2) - (dyLat * pxPerLat);
-        return [x, y];
-      };
-
-      // Gambar Garis
-      ctx.strokeStyle = '#0ea5e9';
-      ctx.lineWidth = 5;
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      pts.forEach((p, i) => {
-        const [x, yPos] = toCanvasXY(p.lat, p.lon);
-        if (i === 0) ctx.moveTo(x, yPos);
-        else ctx.lineTo(x, yPos);
-      });
-      ctx.stroke();
-
-      // Gambar Titik
-      pts.forEach((p, i) => {
-        const [x, yPos] = toCanvasXY(p.lat, p.lon);
-        ctx.beginPath();
-        ctx.arc(x, yPos, 8, 0, Math.PI * 2);
-        
-        if (i === 0) ctx.fillStyle = '#10b981'; // Hijau (Awal)
-        else if (i === pts.length - 1) ctx.fillStyle = '#ef4444'; // Merah (Akhir)
-        else ctx.fillStyle = '#f59e0b'; // Kuning (Tengah)
-        
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      });
-
-      // 6. Masukkan ke PDF
-      const mapImgData = canvas.toDataURL('image/jpeg', 0.9);
-      const mapW = pageW - margin * 2;
-      const mapH = mapW * 0.5;
-      
-      // Beri bingkai hitam tipis agar rapi
-      doc.setDrawColor(200, 200, 200);
-      doc.rect(margin, y, mapW, mapH);
-      
-      doc.addImage(mapImgData, 'JPEG', margin, y, mapW, mapH);
-      y += mapH + 8;
-
-    } catch (e) {
-      console.warn('Peta gagal dimuat:', e);
-      doc.setDrawColor(200); doc.rect(margin, y, pageW - margin * 2, 40);
-      doc.setFontSize(8); doc.setTextColor(150);
-      doc.text('Peta tidak dapat dimuat.', margin + 10, y + 20);
-      y += 48;
     }
+
+    await Promise.all(tiles);
+
+    // 5. Fungsi Konversi Koordinat Real (Lat/Lon) ke Posisi Canvas yang Presisi
+    const toCanvasXY = (lat, lon) => {
+      const globalPos = getGlobalPixel(lat, lon, zoom);
+      const x = globalPos.x - topLeftX;
+      const yPos = globalPos.y - topLeftY;
+      return [x, yPos];
+    };
+
+    // Gambar Garis Rute
+    ctx.strokeStyle = '#0ea5e9';
+    ctx.lineWidth = 5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const [x, yPos] = toCanvasXY(p.lat, p.lon);
+      if (i === 0) ctx.moveTo(x, yPos);
+      else ctx.lineTo(x, yPos);
+    });
+    ctx.stroke();
+
+    // Gambar Titik Marker
+    pts.forEach((p, i) => {
+      const [x, yPos] = toCanvasXY(p.lat, p.lon);
+      ctx.beginPath();
+      ctx.arc(x, yPos, 8, 0, Math.PI * 2);
+      
+      if (i === 0) ctx.fillStyle = '#10b981'; // Hijau (Awal)
+      else if (i === pts.length - 1) ctx.fillStyle = '#ef4444'; // Merah (Akhir)
+      else ctx.fillStyle = '#f59e0b'; // Kuning (Tengah)
+      
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    });
+
+    // 6. Masukkan ke PDF
+    const mapImgData = canvas.toDataURL('image/jpeg', 0.9);
+    const mapW = pageW - margin * 2;
+    const mapH = mapW * 0.5; // Sesuaikan dengan rasio canvas 2:1
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin, y, mapW, mapH);
+    doc.addImage(mapImgData, 'JPEG', margin, y, mapW, mapH);
+    y += mapH + 8;
+
+  } catch (e) {
+    console.warn('Peta gagal dimuat:', e);
+    doc.setDrawColor(200); doc.rect(margin, y, pageW - margin * 2, 40);
+    doc.setFontSize(8); doc.setTextColor(150);
+    doc.text('Peta tidak dapat dimuat.', margin + 10, y + 20);
+    y += 48;
+  }
 
     // ================= TABEL TITIK =================
     if (y > pageH - 60) { doc.addPage(); y = margin; }
