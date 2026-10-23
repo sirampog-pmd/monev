@@ -7,6 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -181,6 +183,54 @@
     border-color: #6366f1;
     color: #4f46e5;
   }
+  
+    /* ============ MAP STYLES ============ */
+  .map-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .map-card h3 {
+    font-size: 0.95em;
+    margin-bottom: 14px;
+    color: #0f172a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #dashboardMap {
+    height: 350px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    z-index: 1;
+  }
+
+  /* Animasi Marker Berpendar */
+  @keyframes pulse-ring {
+    0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1.2); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+  @keyframes pulse-ring-warning {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+  @keyframes pulse-ring-success {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+  .marker-pulse-red, .marker-pulse-yellow, .marker-pulse-green {
+    border-radius: 50%; border: 3px solid #fff;
+  }
+  .marker-pulse-red { background-color: #ef4444; animation: pulse-ring 2s infinite; }
+  .marker-pulse-yellow { background-color: #f59e0b; animation: pulse-ring-warning 2s infinite; }
+  .marker-pulse-green { background-color: #10b981; animation: pulse-ring-success 2s infinite; }
+  
 </style>
 </head>
 <body>
@@ -304,7 +354,7 @@ function renderDashboard(data) {
   const totalTitik = data.totalTitik;
   const totalPanjang = data.totalPanjang;
   const totalFoto = data.petugas.reduce((s, p) => s + (p.foto || 0), 0);
-
+  
   const statsHtml = `
     <div class="stats-grid">
       <div class="stat-card">
@@ -340,6 +390,13 @@ function renderDashboard(data) {
         <h3>🚦 Sebaran Kondisi Jalan (per Ruas)</h3>
         <div class="chart-wrap"><canvas id="chartKondisi"></canvas></div>
       </div>
+    </div>
+  `;
+  
+  const mapHtml = `
+    <div class="map-card">
+      <h3>🗺️ Peta Sebaran Proyek</h3>
+      <div id="dashboardMap"></div>
     </div>
   `;
 
@@ -408,9 +465,10 @@ function renderDashboard(data) {
       </table>
     </div>
   `;
-
-  content.innerHTML = statsHtml + chartsHtml + petugasTable + ruasTable;
+  
+  content.innerHTML = mapHtml + statsHtml + chartsHtml + petugasTable + ruasTable;  
   renderCharts(data);
+  renderPetaDashboard(data);
 }
 
 function renderCharts(data) {
@@ -531,7 +589,7 @@ async function generatePdfDashboard() {
       doc.text(`Total Ruas: ${ruasCount}`, margin + 90, y);
       y += 6;
       doc.text(`Total Titik: ${totalTitik}`, margin, y);
-      doc.text(`Total Panjang: ${(totalPanjang/1000).toFixed(2)} km`, margin + 90, y);
+      doc.text(`Total Panjang: ${(totalPanjang).toFixed(2)} m`, margin + 90, y);
       y += 12;
     }
 
@@ -690,8 +748,7 @@ async function eksekusiCetakRuas() {
     const pageW = 210, pageH = 297, margin = 15;
     let y = margin;
 
-    // --- TYPO DIPERBAIKI: INFRASTRUKTUR ---
-        // ================= HEADER =================
+    // ================= HEADER =================
     doc.setFillColor(14, 165, 233);
     doc.rect(0, 0, pageW, 28, 'F');
     doc.setTextColor(255, 255, 255);
@@ -706,11 +763,11 @@ async function eksekusiCetakRuas() {
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-	const splitTitle = doc.splitTextToSize(ruasInfo.nama, pageW - (margin * 2));
+    
+    const splitTitle = doc.splitTextToSize(ruasInfo.nama, pageW - (margin * 2));
     doc.text(splitTitle, margin, y);
     y += (splitTitle.length * 6) + 2;
 
-    // Ambil data anggaran dari titik pertama ruas ini
     const firstPt = pts[0] || {};
     
     doc.setFontSize(9);
@@ -745,11 +802,147 @@ async function eksekusiCetakRuas() {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(9);
-    doc.text(`Total Panjang Terukur: ${(ruasInfo.panjang / 1000).toFixed(3)} km`, margin + 4, y + 14);
+    doc.text(`Total Panjang Terukur: ${(ruasInfo.panjang ).toFixed(2)} m`, margin + 4, y + 14);
     doc.text(`Jumlah Titik: ${pts.length}`, margin + 4, y + 20);
     doc.text(`Jumlah Foto: ${fotoCount}`, margin + 4, y + 26);
     y += 35;
 
+    // ================= PETA OSM DINAMIS (AUTO-ZOOM) =================
+    if (y > pageH - 100) { doc.addPage(); y = margin; }
+    loadingToast.textContent = '⏳ Mengunduh gambar peta jalan...';
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text('PETA LOKASI KEGIATAN', margin, y);
+    y += 5;
+
+    try {
+      // 1. Siapkan Canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = 800;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Cari batas wilayah (Bounding Box) semua titik
+      const lats = pts.map(p => p.lat);
+      const lons = pts.map(p => p.lon);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLon = Math.min(...lons);
+      const maxLon = Math.max(...lons);
+      
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLon = (minLon + maxLon) / 2;
+
+      // 3. Hitung Zoom otomatis berdasarkan jarak antar titik
+      const latDiff = maxLat - minLat;
+      const lonDiff = maxLon - minLon;
+      let zoom = 14;
+      if (latDiff > 0.05 || lonDiff > 0.05) zoom = 11;
+      else if (latDiff > 0.02 || lonDiff > 0.02) zoom = 12;
+      else if (latDiff > 0.01 || lonDiff > 0.01) zoom = 13;
+      else if (latDiff === 0 && lonDiff === 0) zoom = 16; // Jika titiknya persis sama
+
+      // Rumus konversi koordinat ke pixel (Slippy Map)
+      const lat2y = (lat) => Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+      const lon2x = (lon) => Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
+
+      const centerX = lon2x(centerLon);
+      const centerY = lat2y(centerLat);
+
+      // 4. Muat Tile OpenStreetMap (Ambil area 3x3 di sekitar tengah)
+      const tiles = [];
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const tx = centerX + dx;
+          const ty = centerY + dy;
+          const url = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+          
+          tiles.push(new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+              // Gambar tile ke canvas
+              const px = (dx + 1) * 256;
+              const py = (dy + 1) * 256;
+              ctx.drawImage(img, px, py, 256, 256);
+              resolve();
+            };
+            img.onerror = () => resolve();
+            img.src = url;
+          }));
+        }
+      }
+
+      await Promise.all(tiles);
+
+      // 5. Gambar Garis Rute & Marker
+      // Hitung skala piksel per derajat (untuk menaruh titik di canvas)
+      const pxPerLon = 256 * Math.pow(2, zoom) / 360;
+      const pxPerLat = 256 * Math.pow(2, zoom) / (2 * Math.PI);
+
+      const toCanvasXY = (lat, lon) => {
+        // Selisih koordinat dengan titik tengah peta
+        const dxLon = lon - centerLon;
+        const dyLat = lat - centerLat;
+        
+        // Konversi ke pixel offset dari tengah canvas
+        const x = (canvas.width / 2) + (dxLon * pxPerLon);
+        const y = (canvas.height / 2) - (dyLat * pxPerLat);
+        return [x, y];
+      };
+
+      // Gambar Garis
+      ctx.strokeStyle = '#0ea5e9';
+      ctx.lineWidth = 5;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      pts.forEach((p, i) => {
+        const [x, yPos] = toCanvasXY(p.lat, p.lon);
+        if (i === 0) ctx.moveTo(x, yPos);
+        else ctx.lineTo(x, yPos);
+      });
+      ctx.stroke();
+
+      // Gambar Titik
+      pts.forEach((p, i) => {
+        const [x, yPos] = toCanvasXY(p.lat, p.lon);
+        ctx.beginPath();
+        ctx.arc(x, yPos, 8, 0, Math.PI * 2);
+        
+        if (i === 0) ctx.fillStyle = '#10b981'; // Hijau (Awal)
+        else if (i === pts.length - 1) ctx.fillStyle = '#ef4444'; // Merah (Akhir)
+        else ctx.fillStyle = '#f59e0b'; // Kuning (Tengah)
+        
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      });
+
+      // 6. Masukkan ke PDF
+      const mapImgData = canvas.toDataURL('image/jpeg', 0.9);
+      const mapW = pageW - margin * 2;
+      const mapH = mapW * 0.5;
+      
+      // Beri bingkai hitam tipis agar rapi
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(margin, y, mapW, mapH);
+      
+      doc.addImage(mapImgData, 'JPEG', margin, y, mapW, mapH);
+      y += mapH + 8;
+
+    } catch (e) {
+      console.warn('Peta gagal dimuat:', e);
+      doc.setDrawColor(200); doc.rect(margin, y, pageW - margin * 2, 40);
+      doc.setFontSize(8); doc.setTextColor(150);
+      doc.text('Peta tidak dapat dimuat.', margin + 10, y + 20);
+      y += 48;
+    }
+
+    // ================= TABEL TITIK =================
     if (y > pageH - 60) { doc.addPage(); y = margin; }
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
@@ -786,6 +979,7 @@ async function eksekusiCetakRuas() {
     });
     y = doc.lastAutoTable.finalY + 8;
 
+    // ================= FOTO DOKUMENTASI =================
     const photoPoints = pts.filter(p => p.fotoUrl);
     if (photoPoints.length > 0) {
       doc.addPage();
@@ -808,7 +1002,6 @@ async function eksekusiCetakRuas() {
           const match = p.fotoUrl.match(/[-\w]{25,}/);
           if (match) {
             const fileId = match[0];
-            // ⬇️ PENGGUNAAN PROXY WESERV UNTUK BYPASS CORS GOOGLE DRIVE ⬇️
             const proxyUrl = `https://images.weserv.nl/?url=drive.google.com/thumbnail?id=${fileId}%26sz=w1000`;
             
             imgData = await new Promise((resolve, reject) => {
@@ -864,6 +1057,7 @@ async function eksekusiCetakRuas() {
       if (col > 0) y += imgH + 22;
     }
 
+    // ================= TTD =================
     if (y > pageH - 60) { doc.addPage(); y = margin; }
     else y = Math.max(y + 10, pageH - 60);
 
@@ -899,6 +1093,77 @@ async function eksekusiCetakRuas() {
   }
 }
 
+let dashMap = null;
+let dashMarkersLayer = null;
+
+function renderPetaDashboard(data) {
+  if (!data.rawPoints || data.rawPoints.length === 0) return;
+
+  // Kelompokkan titik berdasarkan nama kegiatan (ruas)
+  const grouped = {};
+  data.rawPoints.forEach(p => {
+    if (!grouped[p.ruas]) {
+      grouped[p.ruas] = {
+        nama: p.ruas,
+        desa: p.desa || '-',
+        tahun: p.tahun || '-',
+        progress: Number(p.progress) || 0,
+        anggaran: Number(p.anggaran) || 0,
+        lat: p.lat,
+        lon: p.lon
+      };
+    }
+  });
+
+  const locations = Object.values(grouped).filter(loc => loc.lat && loc.lon);
+
+  // Inisialisasi Peta (jika belum ada)
+  if (!dashMap) {
+    dashMap = L.map('dashboardMap').setView([-7.2041, 109.0624], 13);
+    // Gunakan OpenStreetMap standar (terang)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(dashMap);
+    dashMarkersLayer = L.layerGroup().addTo(dashMap);
+  } else {
+    // Jika peta sudah ada, hapus marker lama & reset view
+    dashMarkersLayer.clearLayers();
+    dashMap.invalidateSize(); 
+  }
+
+  // Tambahkan Marker
+  locations.forEach(item => {
+    let pulseClass = 'marker-pulse-red';
+    if (item.progress >= 100) pulseClass = 'marker-pulse-green';
+    else if (item.progress > 0) pulseClass = 'marker-pulse-yellow';
+
+    const customIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div class="${pulseClass}" style="width: 20px; height: 20px;"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+
+    const marker = L.marker([item.lat, item.lon], { icon: customIcon }).addTo(dashMarkersLayer);
+    
+    const popupContent = `
+      <div style="font-family:'Segoe UI',sans-serif;min-width:200px;">
+        <h4 style="margin:0 0 4px;font-size:0.95em;">${item.nama}</h4>
+        <p style="margin:0 0 8px;font-size:0.8em;color:#64748b;">📍 ${item.desa} (${item.tahun})</p>
+        <div style="font-size:0.8em;margin-bottom:4px;"><strong>Progress:</strong> ${item.progress}%</div>
+        <div style="font-size:0.8em;"><strong>Anggaran:</strong> Rp ${item.anggaran.toLocaleString('id-ID')}</div>
+      </div>
+    `;
+    marker.bindPopup(popupContent);
+  });
+
+  // Sesuaikan zoom agar semua marker terlihat
+  if (locations.length > 0) {
+    const bounds = L.latLngBounds(locations.map(l => [l.lat, l.lon]));
+    dashMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+  }
+}
+
 function escapeHtml(s) {
   if (!s) return '';
   return String(s).replace(/[&<>"']/g, c => ({
@@ -914,5 +1179,4 @@ loadDashboard();
 
 </script>
 </body>
-	
 </html>
