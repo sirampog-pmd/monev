@@ -1,775 +1,598 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AR Ruler Pro - Ukur dengan AI & Snap</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-
-  #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-
-  #overlay {
-    position: fixed; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; z-index: 20;
-    background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
-    color: #fff; padding: 24px; text-align: center; transition: opacity 0.4s;
-    overflow-y: auto;
-  }
-  #overlay.hidden { opacity: 0; pointer-events: none; }
-  #overlay h1 {
-    font-size: 28px; margin-bottom: 8px;
-    background: linear-gradient(90deg, #00d4ff, #7b2ff7);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  #overlay p { font-size: 14px; color: #aaa; max-width: 340px; line-height: 1.6; margin-bottom: 20px; }
-  #overlay .warn { font-size: 12px; color: #ff9d00; margin-top: 16px; max-width: 340px; }
-
-  #startBtn {
-    pointer-events: auto; cursor: pointer;
-    padding: 16px 48px; font-size: 16px; font-weight: 600;
-    border: none; border-radius: 50px; color: #fff;
-    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
-    box-shadow: 0 8px 24px rgba(0,212,255,0.4);
-    transition: transform 0.2s;
-  }
-  #startBtn:active { transform: scale(0.95); }
-  #startBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  #reticle {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: 20px; height: 20px; z-index: 11; display: none;
-    border: 2px solid rgba(255,255,255,0.8); border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0,212,255,0.8);
-    transition: border-color 0.3s, box-shadow 0.3s;
-  }
-  #reticle::after {
-    content: ''; position: absolute; top: 50%; left: 50%;
-    width: 4px; height: 4px; background: #00d4ff; border-radius: 50%;
-    transform: translate(-50%,-50%); transition: background 0.3s;
-  }
-  #reticle.active { border-color: #ffd400; box-shadow: 0 0 12px rgba(255,212,0,0.9); }
-  #reticle.active::after { background: #ffd400; }
-
-  #info {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.65); backdrop-filter: blur(10px);
-    color: #fff; padding: 10px 20px; border-radius: 30px;
-    font-size: 13px; z-index: 12; display: none; max-width: 90vw;
-    border: 1px solid rgba(0,212,255,0.3); text-align: center; line-height: 1.5;
-  }
-  #info b { color: #00d4ff; font-size: 16px; }
-
-  #liveInfo {
-    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-    background: rgba(255,212,0,0.15); backdrop-filter: blur(10px);
-    color: #ffd400; padding: 8px 18px; border-radius: 30px;
-    font-size: 13px; z-index: 12; display: none; white-space: nowrap;
-    border: 1px solid rgba(255,212,0,0.5); font-weight: 600;
-  }
-  #liveInfo b { color: #fff; font-size: 16px; }
-
-  #controls {
-    position: fixed; bottom: 20px; left: 0; right: 0;
-    display: none; justify-content: center; gap: 10px;
-    z-index: 12; pointer-events: none; flex-wrap: wrap; padding: 0 12px;
-  }
-  #controls button {
-    pointer-events: auto; cursor: pointer;
-    padding: 12px 18px; font-size: 13px; font-weight: 600;
-    border: none; border-radius: 50px; color: #fff;
-    background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.25); transition: all 0.2s;
-  }
-  #controls button:active { background: rgba(255,255,255,0.3); }
-  #controls button.on {
-    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
-    border-color: transparent;
-    box-shadow: 0 0 16px rgba(0,212,255,0.6);
-  }
-
-  #status {
-    position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%);
-    color: rgba(255,255,255,0.75); font-size: 12px; z-index: 12;
-    display: none; text-align: center; padding: 0 20px; max-width: 90vw;
-    background: rgba(0,0,0,0.4); padding: 6px 14px; border-radius: 20px;
-  }
-
-  #toast {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.9);
-    background: rgba(0,0,0,0.85); color: #fff; padding: 14px 24px;
-    border-radius: 12px; font-size: 14px; z-index: 30; opacity: 0;
-    transition: all 0.3s; pointer-events: none; text-align: center; max-width: 280px;
-  }
-  #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-
-  /* AI Detection Overlay - canvas 2D di atas video */
-  #detCanvas {
-    position: fixed; inset: 0; width: 100%; height: 100%;
-    z-index: 9; pointer-events: none; display: none;
-  }
-
-  #aiLoading {
-    position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%);
-    background: rgba(123,47,247,0.9); color: #fff; padding: 8px 18px;
-    border-radius: 30px; font-size: 12px; z-index: 12; display: none;
-    font-weight: 600;
-  }
- #reticle, #info, #liveInfo, #status {
-  pointer-events: none;
-}
-</style>
-</head>
-<body>
-
-<div id="overlay">
-  <h1>📏 AR Ruler Pro</h1>
-  <p>Ukur lebar & tinggi benda dengan AR. Dilengkapi <b>Snap Lurus</b> anti-goyang dan <b>AI Bounding Box</b> untuk deteksi benda otomatis.</p>
-  <button id="startBtn">Mulai AR</button>
-  <div class="warn">⚠️ Butuh Chrome Android + ARCore. Mode AI butuh unduh model ~5MB sekali saja.</div>
-</div>
-
-<canvas id="detCanvas"></canvas>
-<div id="reticle"></div>
-<div id="info"></div>
-<div id="liveInfo"></div>
-<div id="status"></div>
-<div id="aiLoading">🧠 Memuat model AI...</div>
-
-<div id="controls">
-  <button id="snapBtn">📏 Snap Lurus</button>
-  <button id="aiBtn">🧠 AI Deteksi</button>
-  <button id="undoBtn">↶ Undo</button>
-  <button id="resetBtn">🗑 Reset</button>
-</div>
-
-<div id="toast"></div>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "@tensorflow/tfjs": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js",
-    "@tensorflow-models/coco-ssd": "https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"
-  }
-}
-</script>
-
-<script type="module">
-import * as THREE from 'three';
-
-// ============================================================
-// DOM
-// ============================================================
-const overlay     = document.getElementById('overlay');
-const startBtn    = document.getElementById('startBtn');
-const reticleEl   = document.getElementById('reticle');
-const infoEl      = document.getElementById('info');
-const liveInfoEl  = document.getElementById('liveInfo');
-const statusEl    = document.getElementById('status');
-const controlsEl  = document.getElementById('controls');
-const toastEl     = document.getElementById('toast');
-const detCanvas   = document.getElementById('detCanvas');
-const aiLoadingEl = document.getElementById('aiLoading');
-const snapBtn     = document.getElementById('snapBtn');
-const aiBtn       = document.getElementById('aiBtn');
-
-function toast(msg, ms = 2200) {
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  clearTimeout(toastEl._t);
-  toastEl._t = setTimeout(() => toastEl.classList.remove('show'), ms);
-}
-
-// ============================================================
-// State
-// ============================================================
-let renderer, scene, camera;
-let hitTestSource = null, hitTestSourceRequested = false;
-let referenceSpace = null, viewerSpace = null;
-let sessionRef = null;
-
-let reticle;
-let placedPoints = [], lineMeshes = [], labels = [];
-let lastHitPose = null;
-let currentHitPos = new THREE.Vector3();
-let hasCurrentHit = false;
-
-let previewLine = null, previewLabel = null;
-
-// Fitur tambahan
-let snapEnabled = false;      // Snap ke sumbu horizontal/vertikal
-let aiEnabled = false;        // Mode AI bounding box
-let cocoModel = null;
-let aiDetecting = false;
-let lastDetections = [];
-let videoEl = null;           // Video stream dari kamera (kita ambil dari getUserMedia terpisah)
-
-// Bounding box helper (garis tepi kubus 3D)
-let bboxHelpers = [];
-
-// ============================================================
-// WebXR Support & Start
-// ============================================================
-startBtn.addEventListener('click', async () => {
-  if (!navigator.xr) { toast('WebXR tidak didukung. Gunakan Chrome Android.'); return; }
-  const ok = await navigator.xr.isSessionSupported('immersive-ar');
-  if (!ok) { toast('AR tidak didukung di perangkat ini.'); return; }
-  startBtn.disabled = true;
-  startBtn.textContent = 'Memuat...';
-  await initAR();
-});
-
-// ============================================================
-// Init
-// ============================================================
-async function initAR() {
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  document.body.appendChild(renderer.domElement);
-
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.5));
-
-  // Reticle
-  const ringGeo = new THREE.RingGeometry(0.06, 0.08, 32).rotateX(-Math.PI / 2);
-  reticle = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x00d4ff }));
-  reticle.matrixAutoUpdate = false;
-  reticle.visible = false;
-  scene.add(reticle);
-
-  try {
-    const session = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay', 'local-floor'],
-      domOverlay: { root: document.getElementById('ui') || document.body }
-    });
-    sessionRef = session;
-
-    await renderer.xr.setSession(session);
-    session.addEventListener('end', onSessionEnd);
-
-    referenceSpace = await session.requestReferenceSpace('local');
-    viewerSpace    = await session.requestReferenceSpace('viewer');
-    hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
-
-    renderer.setAnimationLoop(render);
-
-    overlay.classList.add('hidden');
-    reticleEl.style.display = 'block';
-    controlsEl.style.display = 'flex';
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Arahkan crosshair ke permukaan lalu ketuk.';
-
-    renderer.domElement.addEventListener('pointerdown', onTap);
-
-    // Ambil video stream untuk AI (dari kamera belakang)
-    await startCameraForAI();
-
-  } catch (err) {
-    console.error(err);
-    toast('Gagal memulai AR: ' + err.message);
-    startBtn.disabled = false;
-    startBtn.textContent = 'Mulai AR';
-  }
-}
-
-// ============================================================
-// Video stream untuk AI (dari kamera HP langsung)
-// ============================================================
-async function startCameraForAI() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
-      audio: false
-    });
-    videoEl = document.createElement('video');
-    videoEl.srcObject = stream;
-    videoEl.autoplay = true;
-    videoEl.muted = true;
-    videoEl.playsInline = true;
-    await videoEl.play();
-    console.log('✅ Video stream AI siap');
-  } catch (e) {
-    console.warn('Tidak bisa akses kamera terpisah untuk AI:', e);
-    videoEl = null;
-  }
-}
-
-// ============================================================
-// Render loop
-// ============================================================
-function render(timestamp, frame) {
-  if (frame) {
-    if (hitTestSource) {
-      const results = frame.getHitTestResults(hitTestSource);
-      if (results.length > 0) {
-        const pose = results[0].getPose(referenceSpace);
-        if (pose) {
-          lastHitPose = pose;
-          reticle.visible = true;
-          reticle.matrix.fromArray(pose.transform.matrix);
-          currentHitPos.setFromMatrixPosition(reticle.matrix);
-          hasCurrentHit = true;
-          updatePreviewLine();
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Ruler Web - Pengukur Ukuran Benda</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        cyber: {
+                            blue: '#00f0ff',
+                            purple: '#7000ff',
+                            dark: '#0a0d14',
+                            panel: 'rgba(16, 22, 36, 0.75)',
+                            accent: '#ff0055'
+                        }
+                    }
+                }
+            }
         }
-      } else {
-        reticle.visible = false;
-        lastHitPose = null;
-        hasCurrentHit = false;
-      }
-    }
+    </script>
 
-    // Render deteksi AI ke canvas 2D overlay
-    if (aiEnabled && lastDetections.length > 0) {
-      drawDetections();
-    }
-  }
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0a0d14;
+            color: #ffffff;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
 
-  labels.forEach(l => l.quaternion.copy(camera.quaternion));
-  if (previewLabel) previewLabel.quaternion.copy(camera.quaternion);
-  bboxHelpers.forEach(h => h.quaternion.copy(camera.quaternion));
+        /* Glassmorphism effects */
+        .glass-panel {
+            background: rgba(16, 22, 36, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+        }
 
-  renderer.render(scene, camera);
-}
+        .glass-button {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.2s ease;
+        }
 
-// ============================================================
-// SNAP LOGIC
-// ============================================================
-// Diberikan posisi lastPoint dan target, luruskan target agar hanya
-// berubah di sumbu dominan (X/Z untuk horizontal, Y untuk vertikal).
-function applySnap(fromPos, toPos) {
-  if (!snapEnabled) return toPos.clone();
+        .glass-button:active {
+            transform: scale(0.95);
+            background: rgba(0, 240, 255, 0.25);
+        }
 
-  const dx = toPos.x - fromPos.x;
-  const dy = toPos.y - fromPos.y;
-  const dz = toPos.z - fromPos.z;
-  const ax = Math.abs(dx), ay = Math.abs(dy), az = Math.abs(dz);
-  const max = Math.max(ax, ay, az);
+        /* Reticle animations */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
 
-  // Kalau sumbu Y dominan → snap vertikal (X & Z = fromPos)
-  if (ay === max && ay > Math.max(ax, az) * 0.7) {
-    return new THREE.Vector3(fromPos.x, toPos.y, fromPos.z);
-  }
-  // Kalau X dominan → snap horizontal pada X
-  if (ax === max && ax > Math.max(ay, az) * 0.7) {
-    return new THREE.Vector3(toPos.x, fromPos.y, fromPos.z);
-  }
-  // Kalau Z dominan → snap horizontal pada Z
-  if (az === max && az > Math.max(ax, ay) * 0.7) {
-    return new THREE.Vector3(fromPos.x, fromPos.y, toPos.z);
-  }
-  // Kalau ambigu (diagonal), biarkan
-  return toPos.clone();
-}
+        .reticle-pulse {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
 
-// ============================================================
-// Preview Line
-// ============================================================
-function updatePreviewLine() {
-  if (placedPoints.length === 0 || !hasCurrentHit) { removePreview(); return; }
+        /* Hide scrollbars */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen relative select-none bg-black">
 
-  const lastPoint = placedPoints[placedPoints.length - 1].position;
-  const target = applySnap(lastPoint, currentHitPos);
-  const dist = lastPoint.distanceTo(target);
-  if (dist < 0.005) { removePreview(); return; }
+    <!-- Camera Feed Canvas Layer -->
+    <div class="relative w-full h-full overflow-hidden">
+        <video id="webcam" class="hidden" playsinline autoplay muted></video>
+        <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full z-10 block"></canvas>
 
-  if (!previewLine) {
-    const geom = new THREE.BufferGeometry().setFromPoints([lastPoint.clone(), target.clone()]);
-    const mat = new THREE.LineDashedMaterial({
-      color: snapEnabled ? 0x00ff88 : 0xffd400,
-      dashSize: 0.015, gapSize: 0.01,
-      depthTest: false, transparent: true, opacity: 0.95
-    });
-    previewLine = new THREE.Line(geom, mat);
-    previewLine.computeLineDistances();
-    previewLine.renderOrder = 999;
-    scene.add(previewLine);
-  } else {
-    previewLine.geometry.setFromPoints([lastPoint.clone(), target.clone()]);
-    previewLine.computeLineDistances();
-    previewLine.material.color.set(snapEnabled ? 0x00ff88 : 0xffd400);
-  }
+        <!-- Reticle / Crosshair Target Center -->
+        <div id="reticle" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none flex items-center justify-center">
+            <div class="w-12 h-12 rounded-full border-2 border-cyber-blue/60 reticle-pulse flex items-center justify-center relative">
+                <div class="w-2 h-2 rounded-full bg-cyber-blue shadow-[0_0_10px_#00f0ff]"></div>
+                <!-- Crosshair ticks -->
+                <div class="absolute -top-3 w-0.5 h-2 bg-cyber-blue/80"></div>
+                <div class="absolute -bottom-3 w-0.5 h-2 bg-cyber-blue/80"></div>
+                <div class="absolute -left-3 h-0.5 w-2 bg-cyber-blue/80"></div>
+                <div class="absolute -right-3 h-0.5 w-2 bg-cyber-blue/80"></div>
+            </div>
+        </div>
 
-  if (!previewLabel) {
-    previewLabel = makeLabelSprite('0 cm', 0.055, '#ffd400', '#ffd400');
-    previewLabel.renderOrder = 1000;
-    scene.add(previewLabel);
-  }
-  updateLabelSprite(previewLabel, formatDistance(dist), snapEnabled ? '#00ff88' : '#ffd400', snapEnabled ? '#00ff88' : '#ffd400');
+        <!-- Top Controls / Header -->
+        <div class="absolute top-4 left-4 right-4 z-30 flex items-center justify-between">
+            <div class="glass-panel px-4 py-2 rounded-2xl flex items-center space-x-2">
+                <i class="fa-solid fa-ruler-combined text-cyber-blue text-lg"></i>
+                <span class="font-bold tracking-wider text-sm bg-gradient-to-r from-cyber-blue to-purple-400 bg-clip-text text-transparent">AR RULER</span>
+            </div>
 
-  const mid = new THREE.Vector3().addVectors(lastPoint, target).multiplyScalar(0.5);
-  mid.y += 0.025;
-  previewLabel.position.copy(mid);
+            <div class="flex items-center space-x-2">
+                <!-- Kalibrasi Button -->
+                <button id="btnOpenCalib" class="glass-button p-3 rounded-2xl flex items-center justify-center text-white hover:text-cyber-blue shadow-lg">
+                    <i class="fa-solid fa-sliders text-base"></i>
+                </button>
+                <!-- Info Button -->
+                <button id="btnOpenHelp" class="glass-button p-3 rounded-2xl flex items-center justify-center text-white hover:text-cyber-blue shadow-lg">
+                    <i class="fa-solid fa-circle-question text-base"></i>
+                </button>
+            </div>
+        </div>
 
-  // Live info
-  const axis = getAxisLabel(lastPoint, target, snapEnabled);
-  liveInfoEl.style.display = 'block';
-  liveInfoEl.innerHTML = `📐 Live: <b>${formatDistance(dist)}</b> &nbsp;(${axis})${snapEnabled ? ' 🔒' : ''}`;
-  reticleEl.classList.add('active');
-}
+        <!-- Unit Selector & Live Measurement Indicator -->
+        <div class="absolute top-20 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center w-11/12 max-w-xs">
+            <!-- Measurement Display -->
+            <div class="glass-panel px-6 py-3 rounded-3xl text-center w-full shadow-2xl border border-cyber-blue/30 mb-2">
+                <span class="text-xs text-gray-400 font-medium uppercase tracking-widest block mb-0.5">Jarak / Dimensi</span>
+                <div class="flex items-baseline justify-center space-x-1">
+                    <span id="currentValue" class="text-3xl font-extrabold tracking-tight text-white">0.0</span>
+                    <span id="unitDisplay" class="text-cyber-blue font-bold text-sm">cm</span>
+                </div>
+            </div>
 
-function removePreview() {
-  if (previewLine) {
-    scene.remove(previewLine);
-    previewLine.geometry.dispose();
-    previewLine.material.dispose();
-    previewLine = null;
-  }
-  if (previewLabel) {
-    scene.remove(previewLabel);
-    if (previewLabel.material.map) previewLabel.material.map.dispose();
-    previewLabel.material.dispose();
-    previewLabel = null;
-  }
-  liveInfoEl.style.display = 'none';
-  reticleEl.classList.remove('active');
-}
+            <!-- Unit Options Bar -->
+            <div class="glass-panel p-1 rounded-2xl flex space-x-1 w-full justify-around text-xs font-semibold">
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors bg-cyber-blue text-black font-bold" data-unit="cm">cm</button>
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="mm">mm</button>
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="m">m</button>
+                <button class="unit-btn flex-1 py-1.5 rounded-xl transition-colors text-gray-300 hover:text-white" data-unit="in">inch</button>
+            </div>
+        </div>
 
-function getAxisLabel(from, to, snapped) {
-  const dx = Math.abs(to.x - from.x);
-  const dy = Math.abs(to.y - from.y);
-  const dz = Math.abs(to.z - from.z);
-  const max = Math.max(dx, dy, dz);
-  if (max < 1e-6) return '—';
-  if (dy === max && dy > Math.max(dx, dz) * 0.7) return '↕ Vertikal';
-  if ((dx === max || dz === max) && dy < max * 0.5) return '↔ Horizontal';
-  return '↗ Diagonal';
-}
+        <!-- Bottom Action Controls -->
+        <div class="absolute bottom-6 left-0 right-0 z-30 flex flex-col items-center space-y-4 px-6">
+            <!-- Points Control Bar -->
+            <div class="flex items-center justify-center space-x-4 w-full max-w-sm">
+                <!-- Reset Points -->
+                <button id="btnClear" class="glass-button w-12 h-12 rounded-full flex items-center justify-center text-gray-300 hover:text-cyber-accent">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
 
-// ============================================================
-// Tap to place
-// ============================================================
-function onTap() {
-  if (!lastHitPose) {
-    toast('Belum ada permukaan terdeteksi. Arahkan kamera ke lantai/meja.');
-    return;
-  }
-  const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+                <!-- Add Point Button -->
+                <button id="btnAddPoint" class="glass-button flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyber-blue/80 to-cyber-purple/80 text-white font-bold flex items-center justify-center space-x-2 shadow-lg shadow-cyber-blue/20 active:scale-95 transition">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                    <span>TAMBAH TITIK</span>
+                </button>
 
-  // Kalau ada titik sebelumnya DAN snap aktif → snap titik baru
-  if (placedPoints.length > 0 && snapEnabled) {
-    const last = placedPoints[placedPoints.length - 1].position;
-    const snapped = applySnap(last, pos);
-    addMeasurePoint(snapped);
-  } else {
-    addMeasurePoint(pos);
-  }
-  if (navigator.vibrate) navigator.vibrate(30);
-}
+                <!-- Capture Screenshot -->
+                <button id="btnCapture" class="glass-button w-12 h-12 rounded-full flex items-center justify-center text-gray-300 hover:text-cyber-blue">
+                    <i class="fa-solid fa-camera"></i>
+                </button>
+            </div>
 
-function addMeasurePoint(pos) {
-  removePreview();
+            <!-- Log Drawer Toggle Button -->
+            <button id="btnToggleLog" class="glass-button px-4 py-1.5 rounded-full text-xs text-gray-300 flex items-center space-x-2">
+                <i class="fa-solid fa-list-ul"></i>
+                <span>Riwayat (<span id="logCount">0</span>)</span>
+                <i id="logIcon" class="fa-solid fa-chevron-up text-[10px]"></i>
+            </button>
+        </div>
 
-  const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.015, 16, 16),
-    new THREE.MeshBasicMaterial({ color: 0xff3366 })
-  );
-  sphere.position.copy(pos);
-  scene.add(sphere);
+        <!-- History Log Drawer Panel -->
+        <div id="logDrawer" class="absolute bottom-0 left-0 right-0 z-40 glass-panel rounded-t-3xl p-5 transform translate-y-full transition-transform duration-300 max-h-[45vh] flex flex-col">
+            <div class="flex items-center justify-between mb-3 border-b border-gray-700/50 pb-2">
+                <h3 class="font-bold text-sm text-cyber-blue flex items-center space-x-2">
+                    <i class="fa-solid fa-history"></i>
+                    <span>Riwayat Pengukuran</span>
+                </h3>
+                <button id="btnCloseLog" class="text-gray-400 hover:text-white text-sm p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="logContainer" class="overflow-y-auto no-scrollbar space-y-2 flex-1 text-xs">
+                <div class="text-center text-gray-500 py-4 italic">Belum ada pengukuran tersimpan.</div>
+            </div>
+        </div>
+    </div>
 
-  placedPoints.push({ position: pos.clone(), mesh: sphere });
+    <!-- Modal Kalibrasi -->
+    <div id="modalCalib" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative border border-cyber-blue/40 shadow-2xl">
+            <button id="btnCloseCalib" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-lg font-bold text-cyber-blue mb-1 flex items-center space-x-2">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Kalibrasi Kamera</span>
+            </h3>
+            <p class="text-xs text-gray-300 mb-4">
+                Pilih objek acuan standar dan paskan jarak antar dua titik pada objek tersebut di layar untuk akurasi tinggi.
+            </p>
 
-  if (placedPoints.length >= 2) {
-    const prev = placedPoints[placedPoints.length - 2];
-    drawLine(prev.position, pos);
-  }
-  updateInfo();
-}
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1 font-medium">Pilih Acuan Objek Standard:</label>
+                    <select id="presetSelect" class="w-full bg-slate-900 border border-gray-700 rounded-xl p-2.5 text-white focus:border-cyber-blue outline-none">
+                        <option value="8.56">Kartu ATM / KTP (8.56 cm)</option>
+                        <option value="21.0">Lebar Kertas A4 (21.0 cm)</option>
+                        <option value="2.7">Koin Rp 1.000 (2.7 cm)</option>
+                        <option value="custom">Ukuran Kustom...</option>
+                    </select>
+                </div>
 
-function drawLine(p1, p2) {
-  const distance = p1.distanceTo(p2);
-  const cyl = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.004, 0.004, distance, 8),
-    new THREE.MeshBasicMaterial({ color: 0x00d4ff })
-  );
-  const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
-  cyl.position.copy(mid);
-  const dir = new THREE.Vector3().subVectors(p2, p1).normalize();
-  cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-  scene.add(cyl);
-  lineMeshes.push(cyl);
+                <div id="customValueGroup" class="hidden">
+                    <label class="block text-gray-400 mb-1 font-medium">Panjang Objek Kustom (cm):</label>
+                    <input type="number" id="customLength" value="10" step="0.1" class="w-full bg-slate-900 border border-gray-700 rounded-xl p-2.5 text-white focus:border-cyber-blue outline-none">
+                </div>
 
-  const lbl = makeLabelSprite(formatDistance(distance), 0.06);
-  lbl.position.copy(mid).add(new THREE.Vector3(0, 0.03, 0));
-  scene.add(lbl);
-  labels.push(lbl);
-}
+                <div class="bg-cyber-blue/10 p-3 rounded-xl border border-cyber-blue/20">
+                    <p class="text-[11px] text-cyber-blue">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        Cara: Ukur objek acuan tersebut menggunakan 2 titik di aplikasi, lalu tekan "Terapkan Kalibrasi".
+                    </p>
+                </div>
 
-// ============================================================
-// Labels (Sprite)
-// ============================================================
-function makeLabelSprite(text, size = 0.05, color = '#00d4ff', border = '#00d4ff') {
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, depthWrite: false }));
-  sprite.userData = { size, textColor: color, bgBorder: border, text: text };
-  updateLabelSprite(sprite, text, color, border);
-  return sprite;
-}
+                <div class="flex space-x-2 pt-2">
+                    <button id="btnApplyCalib" class="flex-1 bg-cyber-blue text-slate-950 font-bold py-2.5 rounded-xl hover:bg-cyber-blue/90 transition">
+                        Terapkan Kalibrasi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-function updateLabelSprite(sprite, text, color, border) {
-  const size = sprite.userData.size;
-  if (color) sprite.userData.textColor = color;
-  if (border) sprite.userData.bgBorder = border;
+    <!-- Modal Panduan / Help -->
+    <div id="modalHelp" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 relative border border-cyber-blue/40 shadow-2xl">
+            <button id="btnCloseHelp" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-lg font-bold text-cyber-blue mb-3 flex items-center space-x-2">
+                <i class="fa-solid fa-circle-question"></i>
+                <span>Panduan Penggunaan</span>
+            </h3>
 
-  if (sprite.material.map) sprite.material.map.dispose();
+            <div class="space-y-3 text-xs text-gray-300">
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">1</span>
+                    <p>Arahkan pembidik (crosshair) di tengah layar ke **Titik A** benda yang ingin diukur.</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">2</span>
+                    <p>Tekan tombol **"TAMBAH TITIK"** untuk mengunci posisi pertama.</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">3</span>
+                    <p>Geser HP/kamera ke **Titik B** ujung benda lainnya, lalu tekan tombol **"TAMBAH TITIK"** kembali.</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">4</span>
+                    <p>Gunakan menu **Kalibrasi** untuk menyelaraskan rasio piksel kamera dengan benda standar (KTP/Kertas A4) agar hasil lebih akurat.</p>
+                </div>
+            </div>
 
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  const fontSize = 64;
-  ctx.font = `bold ${fontSize}px sans-serif`;
-  const tw = ctx.measureText(text).width;
-  const pad = 24;
-  canvas.width = Math.ceil(tw + pad * 2);
-  canvas.height = fontSize + pad * 2;
+            <button id="btnGotIt" class="w-full mt-5 bg-gradient-to-r from-cyber-blue to-purple-600 text-white font-bold py-2.5 rounded-xl">
+                Mengerti
+            </button>
+        </div>
+    </div>
 
-  const c = canvas.getContext('2d');
-  c.fillStyle = 'rgba(0,0,0,0.85)';
-  roundRect(c, 2, 2, canvas.width - 4, canvas.height - 4, 20);
-  c.fill();
-  c.strokeStyle = sprite.userData.bgBorder;
-  c.lineWidth = 3;
-  roundRect(c, 2, 2, canvas.width - 4, canvas.height - 4, 20);
-  c.stroke();
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2 rounded-full text-xs font-semibold text-cyber-blue border border-cyber-blue/40 shadow-xl pointer-events-none opacity-0 transition-opacity duration-300">
+        Pesan Notifikasi
+    </div>
 
-  c.font = `bold ${fontSize}px sans-serif`;
-  c.fillStyle = sprite.userData.textColor;
-  c.textAlign = 'center';
-  c.textBaseline = 'middle';
-  c.fillText(text, canvas.width / 2, canvas.height / 2 + 4);
+    <!-- Main JavaScript Logic -->
+    <script>
+        // App State
+        let currentUnit = 'cm';
+        let pixelsPerCm = 37.795; // Default reference scale (approx 96 DPI / 2.54)
+        let points = []; // Array of measured screen points [{x, y}]
+        let historyLogs = [];
+        let videoStream = null;
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.minFilter = THREE.LinearFilter;
-  sprite.material.map = tex;
-  sprite.material.needsUpdate = true;
+        // Elements
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('overlayCanvas');
+        const ctx = canvas.getContext('2d');
+        const currentValueEl = document.getElementById('currentValue');
+        const unitDisplayEl = document.getElementById('unitDisplay');
+        const logCountEl = document.getElementById('logCount');
+        const logContainer = document.getElementById('logContainer');
 
-  const aspect = canvas.width / canvas.height;
-  sprite.scale.set(size * aspect, size, 1);
-}
+        // Modal Elements
+        const modalCalib = document.getElementById('modalCalib');
+        const modalHelp = document.getElementById('modalHelp');
+        const presetSelect = document.getElementById('presetSelect');
+        const customValueGroup = document.getElementById('customValueGroup');
+        const customLengthInput = document.getElementById('customLength');
+        const toast = document.getElementById('toast');
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
+        // Initialize Camera
+        async function initCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                };
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = videoStream;
+                await video.play();
+                resizeCanvas();
+                requestAnimationFrame(renderLoop);
+                showToast('Kamera aktif. Siap mengukur!');
+            } catch (err) {
+                console.error("Gagal mengakses kamera:", err);
+                showToast('Akses kamera ditolak / tidak tersedia.');
+            }
+        }
 
-function formatDistance(m) {
-  if (m < 1) return (m * 100).toFixed(1) + ' cm';
-  return m.toFixed(2) + ' m';
-}
+        // Window Resize Handling
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
 
-function updateInfo() {
-  if (placedPoints.length === 0) { infoEl.style.display = 'none'; return; }
-  if (placedPoints.length === 1) {
-    infoEl.style.display = 'block';
-    infoEl.innerHTML = 'Titik ke-1 tertandai. Ketuk titik ke-2.' + (snapEnabled ? ' <b>🔒 Snap aktif</b>' : '');
-    return;
-  }
-  const parts = [];
-  for (let i = 1; i < placedPoints.length; i++) {
-    const d = placedPoints[i - 1].position.distanceTo(placedPoints[i].position);
-    parts.push(formatDistance(d));
-  }
-  infoEl.style.display = 'block';
-  infoEl.innerHTML = parts.map((p, i) => `#${i + 1}: <b>${p}</b>`).join(' | ');
-}
+        // Toast Helper
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
 
-// ============================================================
-// Tombol Snap
-// ============================================================
-snapBtn.addEventListener('click', () => {
-  snapEnabled = !snapEnabled;
-  snapBtn.classList.toggle('on', snapEnabled);
-  toast(snapEnabled ? '📏 Snap Lurus: ON — garis akan otomatis lurus vertikal/horizontal' : 'Snap Lurus: OFF');
-});
+        // Distance Calculation Utility
+        function calculateDistancePx(p1, p2) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
 
-// ============================================================
-// Tombol AI Bounding Box
-// ============================================================
-aiBtn.addEventListener('click', async () => {
-  if (!videoEl) { toast('Kamera AI tidak tersedia.'); return; }
-  aiEnabled = !aiEnabled;
-  aiBtn.classList.toggle('on', aiEnabled);
+        function convertFromCm(cmValue, unit) {
+            switch(unit) {
+                case 'mm': return cmValue * 10;
+                case 'm': return cmValue / 100;
+                case 'in': return cmValue / 2.54;
+                case 'cm':
+                default: return cmValue;
+            }
+        }
 
-  if (aiEnabled) {
-    detCanvas.style.display = 'block';
-    if (!cocoModel) {
-      aiLoadingEl.style.display = 'block';
-      aiLoadingEl.textContent = '🧠 Memuat model AI...';
-      try {
-        const tf = await import('@tensorflow/tfjs');
-        await tf.ready();
-        const cocoSsd = await import('@tensorflow-models/coco-ssd');
-        cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
-        aiLoadingEl.style.display = 'none';
-        toast('✅ Model AI siap');
-      } catch (e) {
-        console.error(e);
-        aiLoadingEl.style.display = 'none';
-        aiEnabled = false;
-        aiBtn.classList.remove('on');
-        detCanvas.style.display = 'none';
-        toast('Gagal memuat AI: ' + e.message);
-        return;
-      }
-    }
-    startAILoop();
-    toast('🧠 AI Deteksi ON — arahkan ke benda (botol, kursi, meja, dll) lalu ketuk');
-  } else {
-    detCanvas.style.display = 'none';
-    lastDetections = [];
-    clearDetCanvas();
-  }
-});
+        // Formatting Output
+        function formatDistance(distPx, unit) {
+            const cmValue = distPx / pixelsPerCm;
+            const converted = convertFromCm(cmValue, unit);
+            if (unit === 'm') return converted.toFixed(3);
+            if (unit === 'in') return converted.toFixed(2);
+            return converted.toFixed(1);
+        }
 
-async function startAILoop() {
-  if (aiDetecting) return;
-  aiDetecting = true;
-  const loop = async () => {
-    if (!aiEnabled || !cocoModel || !videoEl || videoEl.readyState < 2) {
-      aiDetecting = false;
-      return;
-    }
-    try {
-      lastDetections = await cocoModel.detect(videoEl, 5, 0.45);
-    } catch (e) {
-      console.warn('AI detect error', e);
-    }
-    requestAnimationFrame(loop);
-  };
-  loop();
-}
+        // Main Drawing Loop
+        function renderLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-function drawDetections() {
-  const rect = detCanvas.getBoundingClientRect();
-  detCanvas.width = rect.width;
-  detCanvas.height = rect.height;
-  const ctx = detCanvas.getContext('2d');
-  ctx.clearRect(0, 0, detCanvas.width, detCanvas.height);
+            // 1. Draw Camera Frame to Canvas
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }
 
-  if (!videoEl) return;
-  // Skalakan box dari resolusi video ke ukuran layar (cover-fit kasar)
-  const sx = detCanvas.width / videoEl.videoWidth;
-  const sy = detCanvas.height / videoEl.videoHeight;
+            const center = { x: canvas.width / 2, y: canvas.height / 2 };
 
-  lastDetections.forEach(det => {
-    const [x, y, w, h] = det.bbox;
-    const label = `${det.class} ${(det.score * 100).toFixed(0)}%`;
-    ctx.strokeStyle = '#00ff88';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(x * sx, y * sy, w * sx, h * sy);
+            // 2. Draw Locked Points & Lines
+            if (points.length > 0) {
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#00f0ff';
+                ctx.fillStyle = '#ff0055';
 
-    ctx.fillStyle = 'rgba(0,255,136,0.85)';
-    const textW = ctx.measureText(label).width;
-    ctx.fillRect(x * sx, y * sy - 24, textW + 12, 22);
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.fillText(label, x * sx + 6, y * sy - 7);
-  });
-}
+                // Draw existing lines between stored points
+                for (let i = 0; i < points.length - 1; i++) {
+                    drawLineWithLabel(points[i], points[i+1]);
+                }
 
-function clearDetCanvas() {
-  const ctx = detCanvas.getContext('2d');
-  ctx.clearRect(0, 0, detCanvas.width, detCanvas.height);
-}
+                // Draw line from last point to current reticle target
+                const lastPoint = points[points.length - 1];
+                drawLineWithLabel(lastPoint, center, true);
 
-// ============================================================
-// Undo & Reset
-// ============================================================
-document.getElementById('undoBtn').addEventListener('click', () => {
-  if (placedPoints.length === 0) return;
-  removePreview();
-  const last = placedPoints.pop();
-  scene.remove(last.mesh);
-  last.mesh.geometry.dispose();
-  last.mesh.material.dispose();
+                // Draw Point Markers
+                points.forEach((pt, idx) => {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
 
-  if (lineMeshes.length > 0 && placedPoints.length >= 1) {
-    const l = lineMeshes.pop();
-    scene.remove(l);
-    l.geometry.dispose(); l.material.dispose();
-    const lbl = labels.pop();
-    if (lbl) {
-      scene.remove(lbl);
-      if (lbl.material.map) lbl.material.map.dispose();
-      lbl.material.dispose();
-    }
-  }
-  updateInfo();
-});
+                    // Point Label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px "Plus Jakarta Sans"';
+                    ctx.fillText(`P${idx + 1}`, pt.x + 10, pt.y - 10);
+                });
 
-document.getElementById('resetBtn').addEventListener('click', () => {
-  removePreview();
-  placedPoints.forEach(p => { scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); });
-  lineMeshes.forEach(l => { scene.remove(l); l.geometry.dispose(); l.material.dispose(); });
-  labels.forEach(l => { scene.remove(l); if (l.material.map) l.material.map.dispose(); l.material.dispose(); });
-  placedPoints = []; lineMeshes = []; labels = [];
-  updateInfo();
-});
+                // Update Header Live Value
+                const currentDistPx = calculateDistancePx(lastPoint, center);
+                currentValueEl.innerText = formatDistance(currentDistPx, currentUnit);
+            } else {
+                currentValueEl.innerText = '0.0';
+            }
 
-// ============================================================
-// Session end
-// ============================================================
-function onSessionEnd() {
-  renderer.setAnimationLoop(null);
-  renderer.domElement.removeEventListener('pointerdown', onTap);
-  hitTestSource = null; hitTestSourceRequested = false;
+            requestAnimationFrame(renderLoop);
+        }
 
-  removePreview();
-  placedPoints.forEach(p => scene.remove(p.mesh));
-  lineMeshes.forEach(l => scene.remove(l));
-  labels.forEach(l => scene.remove(l));
-  placedPoints = []; lineMeshes = []; labels = [];
+        // Draw Line with Dimension Label
+        function drawLineWithLabel(p1, p2, isDynamic = false) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineWidth = isDynamic ? 2 : 3;
+            ctx.strokeStyle = isDynamic ? 'rgba(0, 240, 255, 0.7)' : '#00f0ff';
+            if (isDynamic) ctx.setLineDash([6, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
 
-  aiEnabled = false; aiBtn.classList.remove('on');
-  detCanvas.style.display = 'none';
-  clearDetCanvas();
+            // Calculate distance & midpoint
+            const distPx = calculateDistancePx(p1, p2);
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
 
-  if (videoEl && videoEl.srcObject) {
-    videoEl.srcObject.getTracks().forEach(t => t.stop());
-    videoEl = null;
-  }
+            const textVal = formatDistance(distPx, currentUnit) + ' ' + currentUnit;
 
-  overlay.classList.remove('hidden');
-  startBtn.disabled = false;
-  startBtn.textContent = 'Mulai AR';
-  reticleEl.style.display = 'none';
-  infoEl.style.display = 'none';
-  liveInfoEl.style.display = 'none';
-  controlsEl.style.display = 'none';
-  statusEl.style.display = 'none';
-  aiLoadingEl.style.display = 'none';
-  reticleEl.classList.remove('active');
-}
+            // Text Bubble Background
+            ctx.font = 'bold 13px "Plus Jakarta Sans"';
+            const textWidth = ctx.measureText(textVal).width;
+            ctx.fillStyle = 'rgba(10, 13, 20, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(midX - textWidth / 2 - 8, midY - 14, textWidth + 16, 26, 8);
+            ctx.fill();
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
-document.getElementById('ui').addEventListener('pointerdown', (e) => {
-  // Hanya tangani jika yang di-tap bukan tombol
-  if (e.target.tagName !== 'BUTTON') {
-    onTap();
-  }
-});
- 
-// ============================================================
-// Resize
-// ============================================================
-window.addEventListener('resize', () => {
-  if (camera && renderer) {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-});
-</script>
+            // Text Label
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(textVal, midX, midY);
+        }
+
+        // Add Point
+        document.getElementById('btnAddPoint').addEventListener('click', () => {
+            const center = { x: canvas.width / 2, y: canvas.height / 2 };
+            points.push(center);
+
+            if (points.length > 1) {
+                const p1 = points[points.length - 2];
+                const p2 = points[points.length - 1];
+                const distPx = calculateDistancePx(p1, p2);
+                const formatted = formatDistance(distPx, currentUnit) + ' ' + currentUnit;
+
+                addHistoryLog(`P${points.length - 1} ke P${points.length}`, formatted);
+                showToast(`Titik ${points.length} ditambahkan (${formatted})`);
+            } else {
+                showToast('Titik 1 terkunci. Geser ke Titik 2.');
+            }
+        });
+
+        // Clear Points
+        document.getElementById('btnClear').addEventListener('click', () => {
+            points = [];
+            currentValueEl.innerText = '0.0';
+            showToast('Titik pengukuran dibersihkan.');
+        });
+
+        // History Log Helpers
+        function addHistoryLog(label, val) {
+            historyLogs.push({ label, val, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+            logCountEl.innerText = historyLogs.length;
+
+            renderLogs();
+        }
+
+        function renderLogs() {
+            if (historyLogs.length === 0) {
+                logContainer.innerHTML = '<div class="text-center text-gray-500 py-4 italic">Belum ada pengukuran tersimpan.</div>';
+                return;
+            }
+
+            logContainer.innerHTML = historyLogs.map((item) => `
+                <div class="glass-panel p-3 rounded-xl flex justify-between items-center border border-gray-800">
+                    <div>
+                        <span class="font-bold text-cyber-blue block">${item.label}</span>
+                        <span class="text-[10px] text-gray-400">${item.time}</span>
+                    </div>
+                    <span class="font-extrabold text-sm text-white">${item.val}</span>
+                </div>
+            `).join('');
+        }
+
+        // Unit Switcher
+        document.querySelectorAll('.unit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.unit-btn').forEach(b => {
+                    b.classList.remove('bg-cyber-blue', 'text-black', 'font-bold');
+                    b.classList.add('text-gray-300');
+                });
+
+                e.target.classList.add('bg-cyber-blue', 'text-black', 'font-bold');
+                e.target.classList.remove('text-gray-300');
+
+                currentUnit = e.target.getAttribute('data-unit');
+                unitDisplayEl.innerText = currentUnit;
+            });
+        });
+
+        // Calibration Modal Actions
+        presetSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                customValueGroup.classList.remove('hidden');
+            } else {
+                customValueGroup.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('btnOpenCalib').addEventListener('click', () => modalCalib.classList.remove('hidden'));
+        document.getElementById('btnCloseCalib').addEventListener('click', () => modalCalib.classList.add('hidden'));
+
+        document.getElementById('btnApplyCalib').addEventListener('click', () => {
+            if (points.length < 2) {
+                showToast('Atur minimal 2 titik terlebih dahulu untuk mengkalibrasi!');
+                modalCalib.classList.add('hidden');
+                return;
+            }
+
+            let realCm = parseFloat(presetSelect.value);
+            if (presetSelect.value === 'custom') {
+                realCm = parseFloat(customLengthInput.value);
+            }
+
+            if (isNaN(realCm) || realCm <= 0) {
+                showToast('Nilai kalibrasi tidak valid!');
+                return;
+            }
+
+            // Calculate current pixel distance between first two points
+            const distPx = calculateDistancePx(points[0], points[1]);
+            pixelsPerCm = distPx / realCm;
+
+            showToast(`Kalibrasi Berhasil! (1 cm = ${pixelsPerCm.toFixed(1)} px)`);
+            modalCalib.classList.add('hidden');
+        });
+
+        // Log Drawer Toggle
+        const logDrawer = document.getElementById('logDrawer');
+        const logIcon = document.getElementById('logIcon');
+
+        function toggleLogDrawer() {
+            const isClosed = logDrawer.classList.contains('translate-y-full');
+            if (isClosed) {
+                logDrawer.classList.remove('translate-y-full');
+                logIcon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            } else {
+                logDrawer.classList.add('translate-y-full');
+                logIcon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            }
+        }
+
+        document.getElementById('btnToggleLog').addEventListener('click', toggleLogDrawer);
+        document.getElementById('btnCloseLog').addEventListener('click', toggleLogDrawer);
+
+        // Help Modal Toggle
+        document.getElementById('btnOpenHelp').addEventListener('click', () => modalHelp.classList.remove('hidden'));
+        document.getElementById('btnCloseHelp').addEventListener('click', () => modalHelp.classList.add('hidden'));
+        document.getElementById('btnGotIt').addEventListener('click', () => modalHelp.classList.add('hidden'));
+
+        // Capture / Snapshot feature
+        document.getElementById('btnCapture').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `AR_Ruler_Measurement_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast('Foto hasil pengukuran disimpan!');
+        });
+
+        // On Load Start Camera
+        window.onload = () => {
+            initCamera();
+        };
+    </script>
 </body>
 </html>
