@@ -246,19 +246,19 @@
             <div class="space-y-3 text-xs text-gray-300">
                 <div class="flex items-start space-x-3">
                     <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">1</span>
-                    <p>Arahkan pembidik (crosshair) di tengah layar ke **Titik A** benda yang ingin diukur.</p>
+                    <p>Arahkan pembidik (crosshair) di tengah layar ke <strong>Titik A</strong> benda yang ingin diukur.</p>
                 </div>
                 <div class="flex items-start space-x-3">
                     <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">2</span>
-                    <p>Tekan tombol **"TAMBAH TITIK"** untuk mengunci posisi pertama.</p>
+                    <p>Tekan tombol <strong>"TAMBAH TITIK"</strong> untuk mengunci posisi pertama.</p>
                 </div>
                 <div class="flex items-start space-x-3">
                     <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">3</span>
-                    <p>Geser HP/kamera ke **Titik B** ujung benda lainnya, lalu tekan tombol **"TAMBAH TITIK"** kembali.</p>
+                    <p>Geser HP/kamera ke <strong>Titik B</strong> ujung benda lainnya, lalu tekan tombol <strong>"TAMBAH TITIK"</strong> kembali.</p>
                 </div>
                 <div class="flex items-start space-x-3">
                     <span class="w-5 h-5 rounded-full bg-cyber-blue/20 text-cyber-blue flex items-center justify-center font-bold text-[10px] flex-shrink-0 mt-0.5">4</span>
-                    <p>Gunakan menu **Kalibrasi** untuk menyelaraskan rasio piksel kamera dengan benda standar (KTP/Kertas A4) agar hasil lebih akurat.</p>
+                    <p>Gunakan menu <strong>Kalibrasi</strong> untuk menyelaraskan rasio piksel kamera dengan benda standar (KTP/Kertas A4) agar hasil lebih akurat.</p>
                 </div>
             </div>
 
@@ -275,14 +275,16 @@
 
     <!-- Main JavaScript Logic -->
     <script>
-        // App State
+        // ================= APP STATE =================
         let currentUnit = 'cm';
         let pixelsPerCm = 37.795; // Default reference scale (approx 96 DPI / 2.54)
         let points = []; // Array of measured screen points [{x, y}]
         let historyLogs = [];
         let videoStream = null;
+        let lastW = window.innerWidth;
+        let lastH = window.innerHeight;
 
-        // Elements
+        // ================= ELEMENTS =================
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('overlayCanvas');
         const ctx = canvas.getContext('2d');
@@ -299,8 +301,45 @@
         const customLengthInput = document.getElementById('customLength');
         const toast = document.getElementById('toast');
 
-        // Initialize Camera
+        // ================= TOAST HELPER =================
+        let toastTimer = null;
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
+
+        // ================= CANVAS HELPERS =================
+        // Fallback roundRect untuk browser lama (Safari < 16, Firefox < 112, dll.)
+        function roundRectPath(context, x, y, w, h, r) {
+            if (typeof context.roundRect === 'function') {
+                context.beginPath();
+                context.roundRect(x, y, w, h, r);
+                return;
+            }
+            // Fallback manual
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            context.beginPath();
+            context.moveTo(x + r, y);
+            context.arcTo(x + w, y, x + w, y + h, r);
+            context.arcTo(x + w, y + h, x, y + h, r);
+            context.arcTo(x, y + h, x, y, r);
+            context.arcTo(x, y, x + w, y, r);
+            context.closePath();
+        }
+
+        // ================= CAMERA INIT =================
         async function initCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast('Browser tidak mendukung akses kamera.');
+                return;
+            }
             try {
                 const constraints = {
                     video: {
@@ -312,35 +351,51 @@
                 };
                 videoStream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = videoStream;
-                await video.play();
+
+                try {
+                    await video.play();
+                } catch (playErr) {
+                    // Autoplay bisa ditolak di iOS, butuh interaksi user
+                    console.warn('Auto-play ditolak:', playErr);
+                    document.body.addEventListener('click', () => {
+                        video.play().catch(() => {});
+                    }, { once: true });
+                }
+
                 resizeCanvas();
                 requestAnimationFrame(renderLoop);
                 showToast('Kamera aktif. Siap mengukur!');
             } catch (err) {
                 console.error("Gagal mengakses kamera:", err);
-                showToast('Akses kamera ditolak / tidak tersedia.');
+                let msg = 'Akses kamera ditolak / tidak tersedia.';
+                if (err.name === 'NotAllowedError') msg = 'Izin kamera ditolak. Aktifkan di pengaturan browser.';
+                else if (err.name === 'NotFoundError') msg = 'Kamera tidak ditemukan.';
+                else if (err.name === 'NotReadableError') msg = 'Kamera sedang dipakai aplikasi lain.';
+                showToast(msg);
             }
         }
 
-        // Window Resize Handling
+        // ================= RESIZE HANDLING =================
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            const newW = window.innerWidth;
+            const newH = window.innerHeight;
+
+            // Skala titik agar tetap proporsional terhadap perubahan ukuran layar
+            if (points.length && lastW > 0 && lastH > 0) {
+                const sx = newW / lastW;
+                const sy = newH / lastH;
+                points = points.map(p => ({ x: p.x * sx, y: p.y * sy }));
+            }
+
+            canvas.width = newW;
+            canvas.height = newH;
+            lastW = newW;
+            lastH = newH;
         }
         window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 300));
 
-        // Toast Helper
-        function showToast(msg) {
-            toast.innerText = msg;
-            toast.classList.remove('opacity-0');
-            toast.classList.add('opacity-100');
-            setTimeout(() => {
-                toast.classList.remove('opacity-100');
-                toast.classList.add('opacity-0');
-            }, 2500);
-        }
-
-        // Distance Calculation Utility
+        // ================= DISTANCE & UNIT UTILS =================
         function calculateDistancePx(p1, p2) {
             const dx = p2.x - p1.x;
             const dy = p2.y - p1.y;
@@ -348,7 +403,7 @@
         }
 
         function convertFromCm(cmValue, unit) {
-            switch(unit) {
+            switch (unit) {
                 case 'mm': return cmValue * 10;
                 case 'm': return cmValue / 100;
                 case 'in': return cmValue / 2.54;
@@ -357,7 +412,6 @@
             }
         }
 
-        // Formatting Output
         function formatDistance(distPx, unit) {
             const cmValue = distPx / pixelsPerCm;
             const converted = convertFromCm(cmValue, unit);
@@ -366,13 +420,17 @@
             return converted.toFixed(1);
         }
 
-        // Main Drawing Loop
+        // ================= RENDER LOOP =================
         function renderLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // 1. Draw Camera Frame to Canvas
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (video.readyState >= 2) { // HAVE_CURRENT_DATA
+                try {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                } catch (e) {
+                    console.warn('drawImage gagal:', e);
+                }
             }
 
             const center = { x: canvas.width / 2, y: canvas.height / 2 };
@@ -385,7 +443,7 @@
 
                 // Draw existing lines between stored points
                 for (let i = 0; i < points.length - 1; i++) {
-                    drawLineWithLabel(points[i], points[i+1]);
+                    drawLineWithLabel(points[i], points[i + 1]);
                 }
 
                 // Draw line from last point to current reticle target
@@ -405,6 +463,8 @@
                     // Point Label
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 12px "Plus Jakarta Sans"';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'alphabetic';
                     ctx.fillText(`P${idx + 1}`, pt.x + 10, pt.y - 10);
                 });
 
@@ -418,7 +478,7 @@
             requestAnimationFrame(renderLoop);
         }
 
-        // Draw Line with Dimension Label
+        // ================= DRAW LINE WITH LABEL =================
         function drawLineWithLabel(p1, p2, isDynamic = false) {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
@@ -439,9 +499,17 @@
             // Text Bubble Background
             ctx.font = 'bold 13px "Plus Jakarta Sans"';
             const textWidth = ctx.measureText(textVal).width;
+            const boxW = textWidth + 16;
+            const boxH = 26;
+
+            // Clamp label agar tidak keluar canvas
+            let bx = midX - boxW / 2;
+            let by = midY - boxH / 2;
+            bx = Math.max(4, Math.min(bx, canvas.width - boxW - 4));
+            by = Math.max(4, Math.min(by, canvas.height - boxH - 4));
+
             ctx.fillStyle = 'rgba(10, 13, 20, 0.85)';
-            ctx.beginPath();
-            ctx.roundRect(midX - textWidth / 2 - 8, midY - 14, textWidth + 16, 26, 8);
+            roundRectPath(ctx, bx, by, boxW, boxH, 8);
             ctx.fill();
             ctx.strokeStyle = '#00f0ff';
             ctx.lineWidth = 1;
@@ -451,10 +519,10 @@
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(textVal, midX, midY);
+            ctx.fillText(textVal, bx + boxW / 2, by + boxH / 2);
         }
 
-        // Add Point
+        // ================= ADD POINT =================
         document.getElementById('btnAddPoint').addEventListener('click', () => {
             const center = { x: canvas.width / 2, y: canvas.height / 2 };
             points.push(center);
@@ -472,18 +540,21 @@
             }
         });
 
-        // Clear Points
+        // ================= CLEAR POINTS =================
         document.getElementById('btnClear').addEventListener('click', () => {
             points = [];
             currentValueEl.innerText = '0.0';
             showToast('Titik pengukuran dibersihkan.');
         });
 
-        // History Log Helpers
+        // ================= HISTORY LOG =================
         function addHistoryLog(label, val) {
-            historyLogs.push({ label, val, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+            historyLogs.push({
+                label,
+                val,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
             logCountEl.innerText = historyLogs.length;
-
             renderLogs();
         }
 
@@ -492,7 +563,6 @@
                 logContainer.innerHTML = '<div class="text-center text-gray-500 py-4 italic">Belum ada pengukuran tersimpan.</div>';
                 return;
             }
-
             logContainer.innerHTML = historyLogs.map((item) => `
                 <div class="glass-panel p-3 rounded-xl flex justify-between items-center border border-gray-800">
                     <div>
@@ -504,23 +574,26 @@
             `).join('');
         }
 
-        // Unit Switcher
+        // ================= UNIT SWITCHER =================
         document.querySelectorAll('.unit-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                const target = e.currentTarget; // Gunakan currentTarget agar selalu tombol
                 document.querySelectorAll('.unit-btn').forEach(b => {
                     b.classList.remove('bg-cyber-blue', 'text-black', 'font-bold');
-                    b.classList.add('text-gray-300');
+                    b.classList.add('text-gray-300', 'hover:text-white');
                 });
+                target.classList.add('bg-cyber-blue', 'text-black', 'font-bold');
+                target.classList.remove('text-gray-300', 'hover:text-white');
 
-                e.target.classList.add('bg-cyber-blue', 'text-black', 'font-bold');
-                e.target.classList.remove('text-gray-300');
-
-                currentUnit = e.target.getAttribute('data-unit');
-                unitDisplayEl.innerText = currentUnit;
+                const newUnit = target.getAttribute('data-unit');
+                if (newUnit) {
+                    currentUnit = newUnit;
+                    unitDisplayEl.innerText = currentUnit;
+                }
             });
         });
 
-        // Calibration Modal Actions
+        // ================= CALIBRATION MODAL =================
         presetSelect.addEventListener('change', (e) => {
             if (e.target.value === 'custom') {
                 customValueGroup.classList.remove('hidden');
@@ -539,25 +612,37 @@
                 return;
             }
 
-            let realCm = parseFloat(presetSelect.value);
+            let realCm;
             if (presetSelect.value === 'custom') {
                 realCm = parseFloat(customLengthInput.value);
+            } else {
+                realCm = parseFloat(presetSelect.value);
             }
 
-            if (isNaN(realCm) || realCm <= 0) {
+            if (!isFinite(realCm) || realCm <= 0) {
                 showToast('Nilai kalibrasi tidak valid!');
                 return;
             }
 
-            // Calculate current pixel distance between first two points
+            // Hitung jarak piksel antara 2 titik pertama
             const distPx = calculateDistancePx(points[0], points[1]);
+            if (distPx < 10) {
+                showToast('Jarak antar titik terlalu kecil. Ulangi pengukuran acuan.');
+                return;
+            }
+
             pixelsPerCm = distPx / realCm;
+
+            // Simpan kalibrasi ke localStorage
+            try {
+                localStorage.setItem('ar_ruler_ppcm', String(pixelsPerCm));
+            } catch (_) {}
 
             showToast(`Kalibrasi Berhasil! (1 cm = ${pixelsPerCm.toFixed(1)} px)`);
             modalCalib.classList.add('hidden');
         });
 
-        // Log Drawer Toggle
+        // ================= LOG DRAWER TOGGLE =================
         const logDrawer = document.getElementById('logDrawer');
         const logIcon = document.getElementById('logIcon');
 
@@ -575,22 +660,45 @@
         document.getElementById('btnToggleLog').addEventListener('click', toggleLogDrawer);
         document.getElementById('btnCloseLog').addEventListener('click', toggleLogDrawer);
 
-        // Help Modal Toggle
+        // ================= HELP MODAL =================
         document.getElementById('btnOpenHelp').addEventListener('click', () => modalHelp.classList.remove('hidden'));
         document.getElementById('btnCloseHelp').addEventListener('click', () => modalHelp.classList.add('hidden'));
         document.getElementById('btnGotIt').addEventListener('click', () => modalHelp.classList.add('hidden'));
 
-        // Capture / Snapshot feature
+        // ================= CAPTURE / SNAPSHOT =================
         document.getElementById('btnCapture').addEventListener('click', () => {
+            if (video.readyState < 2) {
+                showToast('Kamera belum siap. Tunggu sebentar...');
+                return;
+            }
             const link = document.createElement('a');
             link.download = `AR_Ruler_Measurement_${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            showToast('Foto hasil pengukuran disimpan!');
+            try {
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('Foto hasil pengukuran disimpan!');
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal menyimpan screenshot.');
+            }
         });
 
-        // On Load Start Camera
+        // ================= CLEANUP STREAM =================
+        window.addEventListener('beforeunload', () => {
+            if (videoStream) {
+                videoStream.getTracks().forEach(t => t.stop());
+            }
+        });
+
+        // ================= ON LOAD =================
         window.onload = () => {
+            // Muat kalibrasi tersimpan jika ada
+            try {
+                const saved = localStorage.getItem('ar_ruler_ppcm');
+                const parsed = parseFloat(saved);
+                if (isFinite(parsed) && parsed > 0) pixelsPerCm = parsed;
+            } catch (_) {}
+
             initCamera();
         };
     </script>
