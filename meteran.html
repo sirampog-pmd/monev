@@ -116,6 +116,9 @@
     border-radius: 30px; font-size: 12px; z-index: 12; display: none;
     font-weight: 600;
   }
+ #reticle, #info, #liveInfo, #status {
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -252,6 +255,7 @@ async function initAR() {
 
     referenceSpace = await session.requestReferenceSpace('local');
     viewerSpace    = await session.requestReferenceSpace('viewer');
+    hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
 
     renderer.setAnimationLoop(render);
 
@@ -301,10 +305,6 @@ async function startCameraForAI() {
 // ============================================================
 function render(timestamp, frame) {
   if (frame) {
-    if (!hitTestSourceRequested) {
-      frame.session.requestHitTestSource({ space: viewerSpace }).then(s => hitTestSource = s);
-      hitTestSourceRequested = true;
-    }
     if (hitTestSource) {
       const results = frame.getHitTestResults(hitTestSource);
       if (results.length > 0) {
@@ -753,6 +753,13 @@ function onSessionEnd() {
   reticleEl.classList.remove('active');
 }
 
+document.getElementById('ui').addEventListener('pointerdown', (e) => {
+  // Hanya tangani jika yang di-tap bukan tombol
+  if (e.target.tagName !== 'BUTTON') {
+    onTap();
+  }
+});
+ 
 // ============================================================
 // Resize
 // ============================================================
