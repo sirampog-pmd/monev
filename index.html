@@ -2849,7 +2849,7 @@ async function generatePdf() {
       const infoLines = [
         `Desa: ${ruas.desa || '-'}  |  Tahun: ${ruas.tahun || '-'}`,
         `Sumber Dana: ${ruas.sumberDana || '-'}`,
-        `Kategori: ${ruas.kategori || '-'}`,
+        `Lokasi: ${ruas.kategori || '-'}`,
         `Kondisi Ruas: ${kondisiLabel(ruas.kondisi)}  |  Tanggal Monev: ${ruas.tanggalMonev ? fmtDate(ruas.tanggalMonev) : fmtDate(ruas.createdAt)}`
       ];
       if (ruas.ket) infoLines.push(`Catatan: ${ruas.ket}`);
