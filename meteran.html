@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>AR Ruler — Pengukur Benda (Multi-Segmen + Tinggi)</title>
+<title>AR Ruler — Pengukur Benda</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -24,7 +24,6 @@
     overflow: hidden;
   }
 
-  /* ===== Home ===== */
   #home {
     position: fixed; inset: 0; z-index: 100;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -47,6 +46,8 @@
   .mode-card small { color: var(--muted); font-size: 13px; line-height: 1.45; display: block; }
   .mode-card.disabled { opacity: .5; cursor: not-allowed; border-color: var(--line); }
   .mode-card.highlight { border-color: var(--accent3); }
+  #home .row2 { display: flex; gap: 8px; width: 100%; max-width: 420px; }
+  #home .row2 button { flex: 1; }
 
   button {
     font-family: inherit; font-size: 14px; font-weight: 600;
@@ -60,69 +61,31 @@
   button.yellow { background: var(--accent3); }
   button.red { background: var(--danger); }
   button:disabled { opacity: .4; cursor: not-allowed; }
+  button.sm { padding: 8px 10px; font-size: 12px; }
 
-  /* ===== Mode Foto ===== */
-  #photoMode {
-    position: fixed; inset: 0; display: none; flex-direction: column;
-    background: #000; z-index: 200;
-  }
+  #photoMode { position: fixed; inset: 0; display: none; flex-direction: column; background: #000; z-index: 200; }
   #photoMode.active { display: flex; }
-  #photoStage {
-    flex: 1; position: relative; overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #photoCanvas {
-    max-width: 100%; max-height: 100%; touch-action: none;
-    display: block;
-  }
+  #photoStage { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  #photoCanvas { max-width: 100%; max-height: 100%; touch-action: none; display: block; }
   #photoCanvas.hidden { display: none; }
-  #cameraHint {
-    color: var(--muted); text-align: center; padding: 24px;
-    line-height: 1.6; font-size: 14px;
-  }
-  #photoToolbar {
-    background: var(--panel); border-top: 1px solid var(--line);
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-    display: flex; flex-direction: column; gap: 10px;
-  }
+  #cameraHint { color: var(--muted); text-align: center; padding: 24px; line-height: 1.6; font-size: 14px; }
+  #photoToolbar { background: var(--panel); border-top: 1px solid var(--line); padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
   #photoToolbar .row { display: flex; gap: 8px; flex-wrap: wrap; }
   #photoToolbar .row button { flex: 1; min-width: 0; padding: 11px 10px; font-size: 13px; }
-  #readout {
-    background: #0b0f14; border: 1px solid var(--line); border-radius: 10px;
-    padding: 10px 14px; display: flex; flex-direction: column; gap: 4px;
-  }
+  #readout { background: #0b0f14; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; }
   #readout .line { display: flex; justify-content: space-between; align-items: center; font-size: 15px; }
   #readout .line.small { font-size: 12px; color: var(--muted); }
   #readout .val { font-weight: 700; color: var(--accent2); font-variant-numeric: tabular-nums; }
   #readout .val.blue { color: var(--accent); }
   #readout .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
-  #segmentsList {
-    font-size: 12px; color: var(--muted); max-height: 70px; overflow-y: auto;
-    font-variant-numeric: tabular-nums; line-height: 1.5;
-  }
+  #segmentsList { font-size: 12px; color: var(--muted); max-height: 70px; overflow-y: auto; font-variant-numeric: tabular-nums; line-height: 1.5; }
 
-  /* Overlay AR */
-  #arOverlay {
-    position: fixed; inset: 0; z-index: 210; display: none;
-    pointer-events: none;
-  }
+  #arOverlay { position: fixed; inset: 0; z-index: 210; display: none; pointer-events: none; }
   #arOverlay.active { display: block; }
-  #arTopbar {
-    position: absolute; top: 0; left: 0; right: 0;
-    padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
-    display: flex; gap: 8px; pointer-events: none;
-  }
+  #arTopbar { position: absolute; top: 0; left: 0; right: 0; padding: calc(14px + env(safe-area-inset-top)) 14px 14px; display: flex; gap: 8px; pointer-events: none; flex-wrap: wrap; }
   #arTopbar button { pointer-events: auto; }
-  #arBottom {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
-    display: flex; flex-direction: column; gap: 10px; align-items: stretch;
-  }
-  #arReadout {
-    background: rgba(13,17,23,.85); backdrop-filter: blur(8px);
-    border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;
-  }
+  #arBottom { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 14px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+  #arReadout { background: rgba(13,17,23,.85); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
   #arReadout .line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
   #arReadout .val { font-weight: 700; color: var(--accent2); font-variant-numeric: tabular-nums; }
   #arReadout .val.blue { color: var(--accent); }
@@ -130,102 +93,79 @@
   #arSegments { font-size: 12px; color: var(--muted); max-height: 60px; overflow-y: auto; }
   #arButtons { display: flex; gap: 8px; flex-wrap: wrap; }
   #arButtons button { flex: 1; min-width: 0; pointer-events: auto; }
-  #reticle {
-    position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
-    margin: -13px 0 0 -13px; border: 2px solid #fff; border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(0,0,0,.4); opacity: .9;
-  }
-  #hint {
-    position: absolute; left: 50%; top: calc(50% + 46px); transform: translateX(-50%);
-    background: rgba(0,0,0,.55); color: #fff; padding: 6px 14px; border-radius: 20px;
-    font-size: 13px; white-space: nowrap;
-  }
+  #reticle { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.4); opacity: .9; }
 
-  /* ===== Mode Tinggi ===== */
-  #heightMode {
-    position: fixed; inset: 0; display: none; flex-direction: column;
-    background: #000; z-index: 220;
-  }
+  #heightMode { position: fixed; inset: 0; display: none; flex-direction: column; background: #000; z-index: 220; }
   #heightMode.active { display: flex; }
-  #heightStage {
-    flex: 1; position: relative; overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(circle at 50% 50%, #1a2330 0%, #05080c 100%);
-  }
-  #heightVideo {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; display: none;
-  }
+  #heightStage { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 50%, #1a2330 0%, #05080c 100%); }
+  #heightVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
   #heightVideo.active { display: block; }
-  #heightCrosshair {
-    position: absolute; left: 50%; top: 50%;
-    width: 40px; height: 40px; margin: -20px 0 0 -20px;
-    border: 2px solid var(--accent3); border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(0,0,0,.5);
-    pointer-events: none;
-  }
-  #heightCrosshair::before, #heightCrosshair::after {
-    content: ''; position: absolute; background: var(--accent3);
-  }
-  #heightCrosshair::before {
-    left: 50%; top: -10px; width: 2px; height: 60px; margin-left: -1px;
-  }
-  #heightCrosshair::after {
-    top: 50%; left: -10px; height: 2px; width: 60px; margin-top: -1px;
-  }
-  #heightHud {
-    position: absolute; top: calc(14px + env(safe-area-inset-top)); left: 14px; right: 14px;
-    display: flex; justify-content: space-between; gap: 8px;
-  }
-  #heightHud .hudbox {
-    background: rgba(13,17,23,.85); backdrop-filter: blur(8px);
-    border: 1px solid var(--line); border-radius: 10px;
-    padding: 8px 14px; font-size: 13px; flex: 1; text-align: center;
-  }
-  #heightHud .hudbox .big {
-    font-size: 22px; font-weight: 700; color: var(--accent3);
-    font-variant-numeric: tabular-nums; display: block;
-  }
+  #heightCrosshair { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border: 2px solid var(--accent3); border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.5); pointer-events: none; }
+  #heightCrosshair::before, #heightCrosshair::after { content: ''; position: absolute; background: var(--accent3); }
+  #heightCrosshair::before { left: 50%; top: -10px; width: 2px; height: 60px; margin-left: -1px; }
+  #heightCrosshair::after { top: 50%; left: -10px; height: 2px; width: 60px; margin-top: -1px; }
+  #heightHud { position: absolute; top: calc(14px + env(safe-area-inset-top)); left: 14px; right: 14px; display: flex; justify-content: space-between; gap: 8px; }
+  #heightHud .hudbox { background: rgba(13,17,23,.85); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font-size: 13px; flex: 1; text-align: center; }
+  #heightHud .hudbox .big { font-size: 22px; font-weight: 700; color: var(--accent3); font-variant-numeric: tabular-nums; display: block; }
   #heightHud .hudbox .small { color: var(--muted); font-size: 11px; text-transform: uppercase; }
-  #heightToolbar {
-    background: var(--panel); border-top: 1px solid var(--line);
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-    display: flex; flex-direction: column; gap: 10px;
-  }
+  #heightToolbar { background: var(--panel); border-top: 1px solid var(--line); padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
   #heightToolbar .row { display: flex; gap: 8px; flex-wrap: wrap; }
   #heightToolbar .row button { flex: 1; min-width: 0; padding: 11px 10px; font-size: 13px; }
-  #heightToolbar label {
-    font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;
-    text-transform: uppercase; letter-spacing: .5px;
-  }
-  #heightToolbar input {
-    width: 100%; box-sizing: border-box;
-    background: #0b0f14; border: 1px solid var(--line); border-radius: 8px;
-    color: var(--text); padding: 10px 12px; font-size: 15px;
-    font-family: inherit; font-variant-numeric: tabular-nums;
-  }
-  #heightResult {
-    background: #0b0f14; border: 1px solid var(--accent3); border-radius: 10px;
-    padding: 12px 16px; text-align: center;
-  }
-  #heightResult .big {
-    font-size: 26px; font-weight: 700; color: var(--accent3);
-    font-variant-numeric: tabular-nums;
-  }
+  #heightToolbar label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  #heightToolbar input { width: 100%; box-sizing: border-box; background: #0b0f14; border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 15px; font-family: inherit; font-variant-numeric: tabular-nums; }
+  #heightResult { background: #0b0f14; border: 1px solid var(--accent3); border-radius: 10px; padding: 12px 16px; text-align: center; }
+  #heightResult .big { font-size: 26px; font-weight: 700; color: var(--accent3); font-variant-numeric: tabular-nums; }
   #heightResult .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
 
-  /* Modal bantuan */
-  #helpModal {
-    position: fixed; inset: 0; z-index: 300; display: none;
-    background: rgba(0,0,0,.75); padding: 24px;
-    align-items: center; justify-content: center;
+  #historyPanel {
+    position: fixed; inset: 0; z-index: 250; display: none;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 18px;
   }
-  #helpModal.active { display: flex; }
-  #helpModal .box {
+  #historyPanel.active { display: flex; }
+  #historyPanel .box {
     background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 22px; max-width: 440px; width: 100%; max-height: 80vh; overflow-y: auto;
-    line-height: 1.6; font-size: 14px;
+    width: 100%; max-width: 560px; max-height: 86vh;
+    display: flex; flex-direction: column; overflow: hidden;
   }
+  #historyPanel header {
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #historyPanel header h3 { margin: 0; font-size: 16px; }
+  #historySize { font-size: 11px; color: var(--muted); margin-right: auto; margin-left: 12px; }
+  #historyList {
+    flex: 1; overflow-y: auto; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #historyList .empty {
+    color: var(--muted); text-align: center; padding: 40px 10px; font-size: 13px;
+  }
+  .hist-item {
+    background: #0b0f14; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .hist-item .thumb {
+    width: 60px; height: 60px; border-radius: 8px; object-fit: cover;
+    background: #000; flex-shrink: 0; border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: var(--muted);
+  }
+  .hist-item .info { flex: 1; min-width: 0; }
+  .hist-item .info .val { font-weight: 700; color: var(--accent2); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .hist-item .info .meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .hist-item .info .note { color: var(--text); font-size: 12px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-item .actions { display: flex; flex-direction: column; gap: 4px; }
+  .hist-item .actions button { padding: 6px 8px; font-size: 11px; }
+  #historyPanel footer {
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line);
+    display: flex; gap: 8px;
+  }
+  #historyPanel footer button { flex: 1; }
+
+  #helpModal { position: fixed; inset: 0; z-index: 300; display: none; background: rgba(0,0,0,.75); padding: 24px; align-items: center; justify-content: center; }
+  #helpModal.active { display: flex; }
+  #helpModal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; max-width: 440px; width: 100%; max-height: 80vh; overflow-y: auto; line-height: 1.6; font-size: 14px; }
   #helpModal h3 { margin-top: 0; }
   #helpModal ul { padding-left: 20px; color: var(--muted); }
   #helpModal li { margin-bottom: 8px; }
@@ -245,7 +185,15 @@
       <small>Android Chrome + ARCore. Tandai banyak titik di dunia nyata — total panjang otomatis.</small>
     </div>
   </div>
-
+  
+  <div class="mode-card highlight" id="btnHeight">
+    <div class="icon">📏</div>
+    <div>
+      <h3>Mode Ukur Tinggi (Sudut Elevasi)</h3>
+      <small>Untuk benda tinggi (pohon, tiang, gedung). Masukkan jarak & tinggi mata, arahkan ke puncak benda.</small>
+    </div>
+  </div>
+  
   <div class="mode-card" id="btnPhoto">
     <div class="icon">📷</div>
     <div>
@@ -254,15 +202,10 @@
     </div>
   </div>
 
-  <div class="mode-card highlight" id="btnHeight">
-    <div class="icon">📏</div>
-    <div>
-      <h3>Mode Ukur Tinggi (Sudut Elevasi)</h3>
-      <small>Untuk benda tinggi (pohon, tiang, gedung). Masukkan jarak & tinggi mata, arahkan ke puncak benda, aplikasi baca sudut & hitung tinggi.</small>
-    </div>
+  <div class="row2">
+    <button class="ghost" id="btnHistory">🗂️ Riwayat</button>
+    <button class="ghost" id="btnHelp">❓ Cara Pakai</button>
   </div>
-
-  <button class="ghost" id="btnHelp" style="max-width:420px;width:100%;">❓ Cara Pakai</button>
 </div>
 
 <!-- ================= MODE FOTO ================= -->
@@ -286,13 +229,17 @@
     </div>
     <div class="row">
       <button id="btnPickPhoto">📷 Ambil / Pilih Foto</button>
-      <button id="btnHelpPhoto" class="ghost" style="flex:0 0 auto;">❓</button>
+      <button id="btnSnapPhoto" class="yellow" disabled>📸 Snapshot</button>
     </div>
     <div class="row">
       <button id="btnCalibrate" class="green">1️⃣ Kalibrasi</button>
       <button id="btnMeasure" disabled>2️⃣ Ukur</button>
-      <button id="btnUndo" class="ghost" disabled>↶ Hapus Terakhir</button>
+      <button id="btnUndo" class="ghost" disabled>↶ Undo</button>
       <button id="btnReset" class="red">↺ Reset</button>
+    </div>
+    <div class="row">
+      <button id="btnBackPhotoHome" class="ghost">← Kembali</button>
+      <button id="btnSavePhotoResult" class="green" disabled>💾 Simpan Hasil</button>
     </div>
   </div>
 </div>
@@ -300,8 +247,11 @@
 <!-- ================= MODE AR ================= -->
 <div id="arOverlay">
   <div id="reticle"></div>
+
   <div id="arTopbar">
     <button class="ghost" id="btnExitAR">✕ Keluar</button>
+    <button class="yellow" id="btnSnapAR" style="pointer-events:auto;">📸 Snapshot</button>
+    <button class="green" id="btnSaveAR" style="pointer-events:auto;" disabled>💾 Simpan</button>
   </div>
 
   <div id="arBottom">
@@ -365,9 +315,29 @@
       <button id="btnHelpHeight" class="ghost" style="flex:0 0 auto;">❓</button>
     </div>
     <div class="row">
+      <button id="btnSnapHeight" class="yellow" disabled>📸 Snapshot</button>
+      <button id="btnSaveHeight" class="green" disabled>💾 Simpan Hasil</button>
+    </div>
+    <div class="row">
       <button id="btnBackHome" class="ghost">← Kembali</button>
       <button id="btnResetHeight" class="red">↺ Reset</button>
     </div>
+  </div>
+</div>
+
+<!-- ================= PANEL RIWAYAT ================= -->
+<div id="historyPanel">
+  <div class="box">
+    <header>
+      <h3>🗂️ Riwayat Pengukuran</h3>
+      <span id="historySize"></span>
+      <button class="ghost sm" id="btnCloseHistory">✕</button>
+    </header>
+    <div id="historyList"></div>
+    <footer>
+      <button class="ghost" id="btnExportCSV">⬇️ Export CSV</button>
+      <button class="red" id="btnClearHistory">🗑️ Hapus Semua</button>
+    </footer>
   </div>
 </div>
 
@@ -375,42 +345,113 @@
 <div id="helpModal">
   <div class="box">
     <h3>Cara Pakai</h3>
-
     <p><b>Mode AR (Android Chrome):</b></p>
     <ul>
       <li>Ketuk <b>Mode AR</b>, izinkan akses kamera.</li>
       <li>Arahkan HP ke permukaan datar sampai muncul penanda (ring biru).</li>
       <li>Ketuk <b>Tandai Titik</b> untuk menambah titik berulang (multi-segmen).</li>
-      <li>Total panjang = jumlah semua segmen. <b>Hapus Terakhir</b> / <b>Reset</b> tersedia.</li>
+      <li><b>Snapshot</b> = unduh gambar pengukuran. <b>Simpan</b> = masukkan ke riwayat (foto dikompres otomatis).</li>
     </ul>
-
     <p><b>Mode Foto Referensi:</b></p>
     <ul>
-      <li>Ambil foto dengan benda referensi (kartu nama = 85,6 mm, koin Rp500 = 27 mm) di samping benda ukur.</li>
+      <li>Ambil foto dengan benda referensi (kartu nama = 85,6 mm) di samping benda ukur.</li>
       <li>Ketuk <b>Kalibrasi</b> → ketuk 2 ujung referensi → masukkan panjang aslinya (mm).</li>
       <li>Ketuk <b>Ukur</b> → ketuk banyak titik pada benda. Total & tiap segmen ditampilkan.</li>
-      <li>Ketuk tepat di atas titik lama untuk menghapusnya; atau pakai <b>Hapus Terakhir</b>.</li>
+      <li>Snapshot = gambar kanvas dengan garis + label resolusi penuh.</li>
     </ul>
-
     <p><b>Mode Ukur Tinggi (Sudut Elevasi):</b></p>
     <ul>
-      <li>Cocok untuk benda tinggi: pohon, tiang, gedung, lemari tinggi.</li>
-      <li><b>Langkah 1 —</b> Ukur jarak horizontal dari Anda ke benda (pakai mode AR/foto, atau meteran).</li>
-      <li><b>Langkah 2 —</b> Isi <b>Jarak Horizontal</b> (meter) dan <b>Tinggi Mata</b> (cm, mis. 160).</li>
-      <li><b>Langkah 3 —</b> Ketuk <b>Aktifkan Kamera & Sensor</b>, izinkan akses kamera + gerak.</li>
-      <li><b>Langkah 4 —</b> Berdiri tegak, arahkan HP ke <b>puncak</b> benda. Sudut elevasi terbaca langsung.</li>
-      <li><b>Langkah 5 —</b> Ketuk <b>Kunci Sudut</b> saat crosshair tepat di puncak. Tinggi dihitung otomatis.</li>
-      <li>Rumus: tinggi = jarak × tan(sudut) + tinggi mata.</li>
-      <li>Agar akurat: tanah rata, HP sejajar garis pandang (bukan miring), sudut 20°–70°.</li>
+      <li>Isi jarak horizontal (m) & tinggi mata (cm).</li>
+      <li>Aktifkan kamera & sensor, arahkan ke puncak benda.</li>
+      <li>Kunci sudut → tinggi dihitung otomatis. Snapshot menyertakan HUD.</li>
     </ul>
-
+    <p><b>Riwayat:</b></p>
+    <ul>
+      <li>Semua hasil yang disimpan masuk ke Riwayat (localStorage).</li>
+      <li>Foto dikompres ke max 1280 px @ JPEG 72% agar hemat kuota.</li>
+      <li>Export CSV untuk Excel / Google Sheets.</li>
+    </ul>
     <button id="btnCloseHelp" style="width:100%;margin-top:8px;">Tutup</button>
   </div>
 </div>
 
 <script>
 /* ============================================================
-   BAGIAN 1 — HOME & DETEKSI DUKUNGAN
+   BAGIAN 1 — UTIL, RIWAYAT, KOMPRESI
+   ============================================================ */
+const HISTORY_KEY = 'arruler.history.v1';
+const COMPRESS_MAX = 1280;
+const COMPRESS_QUALITY = 0.72;
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+function saveHistory(arr) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); return true; }
+  catch (e) { return false; }
+}
+
+function makeId() { return 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+function fmtTime(ts) {
+  return new Date(ts).toLocaleString('id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/1024/1024).toFixed(2) + ' MB';
+}
+function estimateHistoryBytes() {
+  try { return (localStorage.getItem(HISTORY_KEY) || '').length * 2; }
+  catch { return 0; }
+}
+
+function compressImage(dataUrl, maxSide = COMPRESS_MAX, quality = COMPRESS_QUALITY) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width: w, height: h } = img;
+      const longest = Math.max(w, h);
+      if (longest > maxSide) {
+        const k = maxSide / longest;
+        w = Math.round(w * k);
+        h = Math.round(h * k);
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      try { resolve(c.toDataURL('image/jpeg', quality)); }
+      catch (e) { reject(e); }
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+async function addHistory(entry) {
+  if (entry.photo) {
+    try { entry.photo = await compressImage(entry.photo); }
+    catch (e) { console.warn('Kompresi gagal:', e); }
+  }
+  const arr = loadHistory();
+  arr.unshift(entry);
+  if (arr.length > 100) arr.length = 100;
+  if (!saveHistory(arr)) {
+    // buang 5 tertua lalu coba lagi
+    arr.length = Math.max(0, arr.length - 5);
+    if (!saveHistory(arr)) {
+      alert('Riwayat penuh. Hapus beberapa item lama terlebih dahulu.');
+      return;
+    }
+  }
+  renderHistory();
+}
+
+/* ============================================================
+   BAGIAN 2 — HOME & DETEKSI DUKUNGAN
    ============================================================ */
 const home       = document.getElementById('home');
 const photoMode  = document.getElementById('photoMode');
@@ -421,6 +462,9 @@ const btnPhoto   = document.getElementById('btnPhoto');
 const btnHeight  = document.getElementById('btnHeight');
 const btnHelp    = document.getElementById('btnHelp');
 const helpModal  = document.getElementById('helpModal');
+const historyPanel = document.getElementById('historyPanel');
+const historyList  = document.getElementById('historyList');
+const historySize  = document.getElementById('historySize');
 
 let xrSupported = false;
 (async () => {
@@ -437,9 +481,120 @@ let xrSupported = false;
 
 btnHelp.onclick = () => helpModal.classList.add('active');
 document.getElementById('btnCloseHelp').onclick = () => helpModal.classList.remove('active');
+document.getElementById('btnHistory').onclick = () => {
+  renderHistory();
+  historyPanel.classList.add('active');
+};
+document.getElementById('btnCloseHistory').onclick = () => historyPanel.classList.remove('active');
 
 /* ============================================================
-   BAGIAN 2 — MODE FOTO (MULTI-SEGMEN)
+   BAGIAN 3 — RENDER & EXPORT RIWAYAT
+   ============================================================ */
+function renderHistory() {
+  const arr = loadHistory();
+  historySize.textContent = `${arr.length} item · ${fmtBytes(estimateHistoryBytes())}`;
+  historyList.innerHTML = '';
+  if (arr.length === 0) {
+    historyList.innerHTML = '<div class="empty">Belum ada riwayat. Simpan hasil pengukuran pertama Anda.</div>';
+    return;
+  }
+  arr.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'hist-item';
+
+    const thumb = document.createElement('img');
+    thumb.className = 'thumb';
+    if (item.photo) {
+      thumb.src = item.photo;
+    } else {
+      thumb.style.display = 'flex';
+      thumb.textContent = item.mode === 'AR' ? '🕶️' : item.mode === 'Tinggi' ? '📏' : '📷';
+    }
+    thumb.alt = '';
+
+    const bytes = item.photo ? Math.round(item.photo.length * 0.75) : 0;
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.innerHTML = `
+      <div class="val">${escapeHtml(item.result || '—')}</div>
+      <div class="meta">${escapeHtml(item.mode)} · ${fmtTime(item.ts)}${bytes ? ' · 📷 ' + fmtBytes(bytes) : ''}</div>
+      ${item.note ? `<div class="note">${escapeHtml(item.note)}</div>` : ''}
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    if (item.photo) {
+      const dl = document.createElement('button');
+      dl.className = 'ghost sm';
+      dl.textContent = '⬇ Foto';
+      dl.onclick = () => downloadDataUrl(item.photo, `arruler_${item.id}.jpg`);
+      actions.appendChild(dl);
+    }
+    const del = document.createElement('button');
+    del.className = 'red sm';
+    del.textContent = '🗑';
+    del.onclick = () => {
+      const cur = loadHistory().filter(x => x.id !== item.id);
+      saveHistory(cur);
+      renderHistory();
+    };
+    actions.appendChild(del);
+
+    el.appendChild(thumb);
+    el.appendChild(info);
+    el.appendChild(actions);
+    historyList.appendChild(el);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+function downloadDataUrl(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+function csvEscape(s) {
+  const str = String(s ?? '');
+  if (/[",\n]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
+  return str;
+}
+
+document.getElementById('btnExportCSV').onclick = () => {
+  const arr = loadHistory();
+  if (arr.length === 0) return alert('Riwayat kosong.');
+  const header = ['No', 'Waktu', 'Mode', 'Hasil', 'Catatan', 'AdaFoto'];
+  const rows = arr.map((item, i) => [
+    i + 1, fmtTime(item.ts), item.mode, item.result,
+    item.note || '', item.photo ? 'Ya' : 'Tidak',
+  ]);
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `arruler_riwayat_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+};
+
+document.getElementById('btnClearHistory').onclick = () => {
+  if (!confirm('Hapus semua riwayat? Tidak bisa dibatalkan.')) return;
+  saveHistory([]);
+  renderHistory();
+};
+
+/* ============================================================
+   BAGIAN 4 — MODE FOTO
    ============================================================ */
 const photoCanvas  = document.getElementById('photoCanvas');
 const ctx          = photoCanvas.getContext('2d');
@@ -449,6 +604,8 @@ const btnCalibrate = document.getElementById('btnCalibrate');
 const btnMeasure   = document.getElementById('btnMeasure');
 const btnUndo      = document.getElementById('btnUndo');
 const btnReset     = document.getElementById('btnReset');
+const btnSnapPhoto = document.getElementById('btnSnapPhoto');
+const btnSavePhotoResult = document.getElementById('btnSavePhotoResult');
 const readoutLbl   = document.getElementById('readoutLbl');
 const readoutVal   = document.getElementById('readoutVal');
 const segmentsList = document.getElementById('segmentsList');
@@ -456,13 +613,17 @@ const segmentsList = document.getElementById('segmentsList');
 const photoState = {
   img: null, points: [], mode: null,
   mmPerPx: null, refPx: null, refMm: null,
+  lastResult: null, lastPhoto: null,
 };
 
 btnPhoto.onclick = () => {
   home.style.display = 'none';
   photoMode.classList.add('active');
 };
-document.getElementById('btnHelpPhoto').onclick = () => helpModal.classList.add('active');
+document.getElementById('btnBackPhotoHome').onclick = () => {
+  photoMode.classList.remove('active');
+  home.style.display = 'flex';
+};
 
 btnPickPhoto.onclick = () => {
   const input = document.createElement('input');
@@ -484,18 +645,19 @@ function loadImage(src) {
   img.onload = () => {
     Object.assign(photoState, {
       img, points: [], mmPerPx: null, refPx: null, refMm: null, mode: null,
+      lastResult: null, lastPhoto: null,
     });
     cameraHint.style.display = 'none';
     photoCanvas.classList.remove('hidden');
-
     const stage = document.getElementById('photoStage');
     const scale = Math.min(stage.clientWidth / img.width, stage.clientHeight / img.height, 1);
     photoCanvas.width  = Math.round(img.width  * scale);
     photoCanvas.height = Math.round(img.height * scale);
     photoCanvas.dataset.scale = scale;
-
     btnMeasure.disabled = true;
     btnUndo.disabled = true;
+    btnSnapPhoto.disabled = true;
+    btnSavePhotoResult.disabled = true;
     readoutLbl.textContent = 'Hasil';
     readoutVal.textContent = '—';
     segmentsList.textContent = '';
@@ -521,6 +683,8 @@ btnMeasure.onclick = () => {
   photoState.mode = 'measure';
   photoState.points = [];
   btnUndo.disabled = false;
+  btnSnapPhoto.disabled = true;
+  btnSavePhotoResult.disabled = true;
   updateMeasureReadout();
   drawPhoto();
 };
@@ -545,8 +709,12 @@ btnReset.onclick = () => {
   photoState.refPx = null;
   photoState.refMm = null;
   photoState.mode = null;
+  photoState.lastResult = null;
+  photoState.lastPhoto = null;
   btnMeasure.disabled = true;
   btnUndo.disabled = true;
+  btnSnapPhoto.disabled = true;
+  btnSavePhotoResult.disabled = true;
   readoutLbl.textContent = 'Hasil';
   readoutVal.textContent = '—';
   segmentsList.textContent = '';
@@ -598,9 +766,7 @@ photoCanvas.addEventListener('pointerdown', (e) => {
   }
 });
 
-function distPx(p1, p2) {
-  return Math.hypot(p2.x - p1.x, p2.y - p1.y);
-}
+function distPx(p1, p2) { return Math.hypot(p2.x - p1.x, p2.y - p1.y); }
 
 function handleCalibrationDone() {
   const [a, b] = photoState.points;
@@ -634,6 +800,9 @@ function updateMeasureReadout() {
     readoutLbl.textContent = 'Pengukuran';
     readoutVal.textContent = pts.length === 0 ? 'Klik titik pertama' : 'Klik titik berikutnya';
     segmentsList.textContent = '';
+    btnSnapPhoto.disabled = true;
+    btnSavePhotoResult.disabled = true;
+    photoState.lastResult = null;
     return;
   }
   let totalPx = 0;
@@ -645,19 +814,21 @@ function updateMeasureReadout() {
     parts.push(`S${i}: ${mm < 100 ? mm.toFixed(1) + ' mm' : (mm/10).toFixed(2) + ' cm'}`);
   }
   const totalMm = totalPx * photoState.mmPerPx;
-  readoutLbl.textContent = `Total (${pts.length - 1} segmen)`;
-  readoutVal.textContent = totalMm < 100
+  const resultText = totalMm < 100
     ? `${totalMm.toFixed(1)} mm`
     : `${(totalMm/10).toFixed(2)} cm`;
+  readoutLbl.textContent = `Total (${pts.length - 1} segmen)`;
+  readoutVal.textContent = resultText;
   segmentsList.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+  photoState.lastResult = resultText;
+  btnSnapPhoto.disabled = false;
+  btnSavePhotoResult.disabled = false;
 }
 
 function drawPhoto() {
   const scale = parseFloat(photoCanvas.dataset.scale) || 1;
   ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
-  if (photoState.img) {
-    ctx.drawImage(photoState.img, 0, 0, photoCanvas.width, photoCanvas.height);
-  }
+  if (photoState.img) ctx.drawImage(photoState.img, 0, 0, photoCanvas.width, photoCanvas.height);
 
   const pts = photoState.points.map(p => ({ x: p.x * scale, y: p.y * scale }));
 
@@ -715,8 +886,34 @@ function drawPhoto() {
   }
 }
 
+btnSnapPhoto.onclick = () => {
+  if (!photoState.lastResult) return alert('Belum ada hasil ukur.');
+  photoState.lastPhoto = photoCanvas.toDataURL('image/png');
+  downloadDataUrl(photoState.lastPhoto, `arruler_foto_${Date.now()}.png`);
+  btnSnapPhoto.textContent = '✅ Tersimpan';
+  setTimeout(() => { btnSnapPhoto.textContent = '📸 Snapshot'; }, 1400);
+};
+
+btnSavePhotoResult.onclick = async () => {
+  if (!photoState.lastResult) return alert('Belum ada hasil ukur.');
+  if (!photoState.lastPhoto) photoState.lastPhoto = photoCanvas.toDataURL('image/png');
+  btnSavePhotoResult.disabled = true;
+  btnSavePhotoResult.textContent = '⏳ Menyimpan…';
+  await addHistory({
+    id: makeId(), ts: Date.now(), mode: 'Foto',
+    result: photoState.lastResult,
+    note: segmentsList.textContent.trim(),
+    photo: photoState.lastPhoto,
+  });
+  btnSavePhotoResult.textContent = '✅ Tersimpan';
+  setTimeout(() => {
+    btnSavePhotoResult.disabled = false;
+    btnSavePhotoResult.textContent = '💾 Simpan Hasil';
+  }, 1400);
+};
+
 /* ============================================================
-   BAGIAN 3 — MODE AR (MULTI-SEGMEN)
+   BAGIAN 5 — MODE AR
    ============================================================ */
 let THREE = null;
 let arRenderer = null, arScene = null, arCamera = null;
@@ -726,6 +923,9 @@ let arMarkersGroup = null;
 let arLinesGroup = null;
 let arReticleMesh = null;
 let arActive = false;
+let arSuppressSelect = false;
+let arLastResult = null;
+let arLastPhoto = null;
 
 async function loadThree() {
   if (THREE) return THREE;
@@ -741,10 +941,7 @@ async function loadThree() {
 }
 
 btnAR.onclick = async () => {
-  if (!xrSupported) {
-    alert('Mode AR tidak didukung di browser ini. Gunakan Mode Foto / Tinggi.');
-    return;
-  }
+  if (!xrSupported) { alert('Mode AR tidak didukung di browser ini. Gunakan Mode Foto / Tinggi.'); return; }
   try { await startAR(); }
   catch (e) { console.error(e); alert('Gagal memulai AR: ' + e.message); }
 };
@@ -753,8 +950,9 @@ async function startAR() {
   await loadThree();
   home.style.display = 'none';
   arOverlay.classList.add('active');
+  document.getElementById('btnSaveAR').disabled = true;
 
-  arRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  arRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   arRenderer.setPixelRatio(window.devicePixelRatio);
   arRenderer.setSize(window.innerWidth, window.innerHeight);
   arRenderer.xr.enabled = true;
@@ -803,7 +1001,6 @@ async function startAR() {
 
 function onARFrame(timestamp, frame) {
   if (!frame || !arActive) return;
-
   const hitResults = frame.getHitTestResults(arHitTestSource);
   if (hitResults.length > 0) {
     const pose = hitResults[0].getPose(arRefSpace);
@@ -818,22 +1015,19 @@ function onARFrame(timestamp, frame) {
   } else {
     arReticleMesh.visible = false;
   }
-
   arRenderer.render(arScene, arCamera);
 }
 
 function onARSelect() {
   if (arSuppressSelect) return;
-  if (!arReticleMesh.visible) return;
+  if (!arReticleMesh || !arReticleMesh.visible) return;
   const pos = arReticleMesh.position.clone();
-
   const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(0.012, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0x3fb950 })
   );
   sphere.position.copy(pos);
   arMarkersGroup.add(sphere);
-
   arPoints.push({ mesh: sphere, pos });
 
   if (arPoints.length >= 2) {
@@ -844,7 +1038,6 @@ function onARSelect() {
     line.userData.segmentIndex = arPoints.length - 1;
     arLinesGroup.add(line);
   }
-
   updateARReadout();
 }
 
@@ -857,9 +1050,10 @@ function updateARReadout() {
     arVal.textContent  = '—';
     arLast.textContent = arPoints.length === 1 ? 'titik A ditandai' : '—';
     arSegsEl.textContent = '';
+    arLastResult = null;
+    document.getElementById('btnSaveAR').disabled = true;
     return;
   }
-
   let total = 0;
   const parts = [];
   for (let i = 1; i < arPoints.length; i++) {
@@ -869,20 +1063,16 @@ function updateARReadout() {
   }
   const last = arPoints[arPoints.length - 1].pos
     .distanceTo(arPoints[arPoints.length - 2].pos);
-
-  arVal.textContent = total < 0.1
+  const totalStr = total < 0.1
     ? `${(total*1000).toFixed(1)} mm`
-    : total < 1
-      ? `${(total*100).toFixed(2)} cm`
-      : `${total.toFixed(3)} m`;
-
+    : total < 1 ? `${(total*100).toFixed(2)} cm` : `${total.toFixed(3)} m`;
+  arVal.textContent = totalStr;
   arLast.textContent = last < 0.1
     ? `${(last*1000).toFixed(1)} mm`
-    : last < 1
-      ? `${(last*100).toFixed(2)} cm`
-      : `${last.toFixed(3)} m`;
-
+    : last < 1 ? `${(last*100).toFixed(2)} cm` : `${last.toFixed(3)} m`;
   arSegsEl.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+  arLastResult = totalStr;
+  document.getElementById('btnSaveAR').disabled = false;
 }
 
 function undoARPoint() {
@@ -911,16 +1101,74 @@ document.getElementById('btnPointA').onclick = () => {
   else alert('Arahkan kamera ke permukaan hingga muncul penanda.');
 };
 document.getElementById('btnUndoAR').onclick = undoARPoint;
-
-let arSuppressSelect = false;
 document.getElementById('btnResetAR').onclick = (e) => {
   e.preventDefault();
   e.stopPropagation();
   arSuppressSelect = true;
   clearARPoints();
-  setTimeout(() => { arSuppressSelect = false; }, 120);
+  setTimeout(() => { arSuppressSelect = false; }, 150);
 };
-document.getElementById('btnExitAR').onclick  = () => { if (arSession) arSession.end(); };
+document.getElementById('btnExitAR').onclick = () => { if (arSession) arSession.end(); };
+
+document.getElementById('btnSnapAR').onclick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!arRenderer || !arLastResult) return alert('Belum ada hasil ukur.');
+  try { arRenderer.render(arScene, arCamera); } catch (_) {}
+  const glCanvas = arRenderer.domElement;
+  const snap = document.createElement('canvas');
+  snap.width = glCanvas.width;
+  snap.height = glCanvas.height;
+  const sctx = snap.getContext('2d');
+  sctx.drawImage(glCanvas, 0, 0, snap.width, snap.height);
+
+  const dpr = window.devicePixelRatio || 1;
+  sctx.font = `bold ${18 * dpr}px -apple-system, sans-serif`;
+  sctx.textAlign = 'center';
+  sctx.textBaseline = 'middle';
+  const txt = `AR: ${arLastResult}`;
+  const tw = sctx.measureText(txt).width;
+  const boxW = tw + 24 * dpr;
+  const boxH = 34 * dpr;
+  const bx = (snap.width - boxW) / 2;
+  const by = snap.height - boxH - 90 * dpr;
+  sctx.fillStyle = 'rgba(13,17,23,.85)';
+  sctx.fillRect(bx, by, boxW, boxH);
+  sctx.strokeStyle = '#3fb950';
+  sctx.lineWidth = 2 * dpr;
+  sctx.strokeRect(bx, by, boxW, boxH);
+  sctx.fillStyle = '#3fb950';
+  sctx.fillText(txt, snap.width / 2, by + boxH / 2);
+
+  arLastPhoto = snap.toDataURL('image/png');
+  downloadDataUrl(arLastPhoto, `arruler_ar_${Date.now()}.png`);
+  const btn = document.getElementById('btnSnapAR');
+  btn.textContent = '✅ Snapshot';
+  setTimeout(() => { btn.textContent = '📸 Snapshot'; }, 1400);
+};
+
+document.getElementById('btnSaveAR').onclick = async (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!arLastResult) return alert('Belum ada hasil ukur.');
+  if (!arLastPhoto) {
+    try {
+      arRenderer.render(arScene, arCamera);
+      arLastPhoto = arRenderer.domElement.toDataURL('image/png');
+    } catch (_) { arLastPhoto = null; }
+  }
+  const btn = document.getElementById('btnSaveAR');
+  btn.disabled = true;
+  btn.textContent = '⏳ Menyimpan…';
+  await addHistory({
+    id: makeId(), ts: Date.now(), mode: 'AR',
+    result: arLastResult,
+    note: document.getElementById('arSegments').textContent.trim(),
+    photo: arLastPhoto,
+  });
+  btn.textContent = '✅ Tersimpan';
+  setTimeout(() => { btn.textContent = '💾 Simpan'; }, 1400);
+};
 
 function onAREnd() {
   arActive = false;
@@ -936,6 +1184,8 @@ function onAREnd() {
   arPoints = [];
   arMarkersGroup = null;
   arLinesGroup = null;
+  arLastResult = null;
+  arLastPhoto = null;
   home.style.display = 'flex';
   updateARReadout();
 }
@@ -949,7 +1199,7 @@ window.addEventListener('resize', () => {
 });
 
 /* ============================================================
-   BAGIAN 4 — MODE TINGGI (SUDUT ELEVASI)
+   BAGIAN 6 — MODE TINGGI
    ============================================================ */
 const heightVideo    = document.getElementById('heightVideo');
 const angleValEl     = document.getElementById('angleVal');
@@ -960,16 +1210,16 @@ const inpDistance    = document.getElementById('inpDistance');
 const inpEyeHeight   = document.getElementById('inpEyeHeight');
 const btnStartCam    = document.getElementById('btnStartCam');
 const btnFreeze      = document.getElementById('btnFreeze');
+const btnSnapHeight  = document.getElementById('btnSnapHeight');
+const btnSaveHeight  = document.getElementById('btnSaveHeight');
 const btnResetHeight = document.getElementById('btnResetHeight');
 const btnBackHome    = document.getElementById('btnBackHome');
 
 const heightState = {
-  stream: null,
-  listening: false,
-  angleDeg: null,        // sudut elevasi live (derajat)
-  frozenAngle: null,
-  lastBeta: null,
-  lastGamma: null,
+  stream: null, listening: false,
+  angleDeg: null, frozenAngle: null,
+  lastBeta: null, lastGamma: null,
+  lastHeightStr: null, lastPhoto: null,
 };
 
 btnHeight.onclick = () => {
@@ -985,7 +1235,6 @@ btnBackHome.onclick = () => {
   home.style.display = 'flex';
 };
 
-/* --- Kamera + sensor --- */
 btnStartCam.onclick = async () => {
   try {
     await startHeightCam();
@@ -993,6 +1242,7 @@ btnStartCam.onclick = async () => {
     btnStartCam.textContent = '✅ Kamera & Sensor Aktif';
     btnStartCam.disabled = true;
     btnFreeze.disabled = false;
+    btnSnapHeight.disabled = false;
   } catch (e) {
     alert('Gagal mengaktifkan: ' + e.message);
     console.error(e);
@@ -1022,14 +1272,12 @@ function stopHeightCam() {
   btnStartCam.textContent = '📹 Aktifkan Kamera & Sensor';
   btnStartCam.disabled = false;
   btnFreeze.disabled = true;
+  btnSnapHeight.disabled = true;
+  btnSaveHeight.disabled = true;
 }
 
-/* --- Sensor orientasi --- */
 async function startOrientation() {
-  if (!window.DeviceOrientationEvent) {
-    throw new Error('Sensor orientasi tidak didukung browser ini.');
-  }
-  // iOS 13+ butuh izin eksplisit
+  if (!window.DeviceOrientationEvent) throw new Error('Sensor orientasi tidak didukung.');
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
     const perm = await DeviceOrientationEvent.requestPermission();
     if (perm !== 'granted') throw new Error('Izin sensor gerak ditolak.');
@@ -1047,22 +1295,11 @@ function stopOrientation() {
 }
 
 function onOrientation(ev) {
-  // beta = kemiringan depan-belakang (sumbu X), gamma = kiri-kanan (Y)
-  // Saat HP tegak (potrait) dipegang vertikal menghadap puncak benda,
-  // sudut elevasi diukur dari posisi horizontal (beta = 90 berarti HP menghadap depan sejajar tanah).
   if (ev.beta == null && ev.gamma == null) return;
-
   heightState.lastBeta = ev.beta;
   heightState.lastGamma = ev.gamma;
-
-  // Konversi orientasi ke sudut elevasi:
-  // Bila HP tegak lurus (menghadap horizon), beta ≈ 90° → elevasi 0°
-  // Bila HP diarahkan ke atas, beta > 90° (mis. 120°) → elevasi 30°
-  // Bila HP diarahkan ke bawah, beta < 90° → elevasi negatif
   let elevasi = (ev.beta ?? 90) - 90;
-  // Clamp ke rentang wajar
   elevasi = Math.max(-89, Math.min(89, elevasi));
-
   if (heightState.frozenAngle == null) {
     heightState.angleDeg = elevasi;
     angleValEl.textContent = elevasi.toFixed(1) + '°';
@@ -1070,7 +1307,6 @@ function onOrientation(ev) {
   }
 }
 
-/* --- Perhitungan tinggi --- */
 function computeHeight() {
   const distM = parseFloat(inpDistance.value);
   const eyeCm = parseFloat(inpEyeHeight.value) || 0;
@@ -1079,43 +1315,43 @@ function computeHeight() {
   if (!isFinite(distM) || distM <= 0) {
     heightValEl.textContent = '—';
     heightSubEl.textContent = 'Isi jarak horizontal dulu';
+    heightState.lastHeightStr = null;
+    btnSaveHeight.disabled = true;
     return;
   }
-
-  const angle = heightState.frozenAngle != null
-    ? heightState.frozenAngle
-    : heightState.angleDeg;
-
+  const angle = heightState.frozenAngle != null ? heightState.frozenAngle : heightState.angleDeg;
   if (angle == null) {
     heightValEl.textContent = '—';
     heightSubEl.textContent = 'Arahkan kamera ke puncak benda';
+    heightState.lastHeightStr = null;
+    btnSaveHeight.disabled = true;
     return;
   }
-
   if (Math.abs(angle) < 1) {
     heightValEl.textContent = '≈ 0';
-    heightSubEl.textContent = 'Sudut terlalu kecil — mundur sedikit atau arahkan lebih ke atas';
+    heightSubEl.textContent = 'Sudut terlalu kecil — mundur atau arahkan lebih ke atas';
+    heightState.lastHeightStr = null;
+    btnSaveHeight.disabled = true;
     return;
   }
-
   const rad = angle * Math.PI / 180;
   const tinggiM = distM * Math.tan(rad) + (eyeCm / 100);
-
   if (tinggiM < 0) {
     heightValEl.textContent = '—';
     heightSubEl.textContent = 'Sudut negatif (kamera mengarah ke bawah)';
+    heightState.lastHeightStr = null;
+    btnSaveHeight.disabled = true;
     return;
   }
-
-  heightValEl.textContent = tinggiM.toFixed(2) + ' m';
-  heightSubEl.textContent =
-    `= ${distM.toFixed(1)} m × tan(${angle.toFixed(1)}°) + ${eyeCm} cm`;
+  const str = tinggiM.toFixed(2) + ' m';
+  heightValEl.textContent = str;
+  heightSubEl.textContent = `= ${distM.toFixed(1)} m × tan(${angle.toFixed(1)}°) + ${eyeCm} cm`;
+  heightState.lastHeightStr = str;
+  btnSaveHeight.disabled = false;
 }
 
-/* --- Kunci sudut --- */
 btnFreeze.onclick = () => {
   if (heightState.frozenAngle != null) {
-    // lepas kunci
     heightState.frozenAngle = null;
     btnFreeze.textContent = '📌 Kunci Sudut';
     btnFreeze.classList.remove('red');
@@ -1132,23 +1368,84 @@ btnFreeze.onclick = () => {
   }
 };
 
-/* --- Reset --- */
 function resetHeightMode() {
   heightState.frozenAngle = null;
   heightState.angleDeg = null;
+  heightState.lastHeightStr = null;
+  heightState.lastPhoto = null;
   angleValEl.textContent = '—';
   heightValEl.textContent = '—';
   heightSubEl.textContent = 'Isi jarak & tinggi mata, lalu arahkan kamera ke puncak benda';
   btnFreeze.textContent = '📌 Kunci Sudut';
   btnFreeze.classList.remove('red');
   btnFreeze.classList.add('yellow');
+  btnSaveHeight.disabled = true;
   computeHeight();
 }
 btnResetHeight.onclick = resetHeightMode;
-
-/* --- live update saat input jarak / tinggi mata berubah --- */
 inpDistance.addEventListener('input', computeHeight);
 inpEyeHeight.addEventListener('input', computeHeight);
+
+btnSnapHeight.onclick = () => {
+  if (!heightVideo.videoWidth) return alert('Kamera belum aktif.');
+  const vw = heightVideo.videoWidth, vh = heightVideo.videoHeight;
+  const snap = document.createElement('canvas');
+  snap.width = vw; snap.height = vh;
+  const sctx = snap.getContext('2d');
+  sctx.drawImage(heightVideo, 0, 0, vw, vh);
+
+  const dpr = Math.max(1, vw / 800);
+  const pad = 16 * dpr;
+  const lineH = 26 * dpr;
+  sctx.font = `bold ${16 * dpr}px -apple-system, sans-serif`;
+  sctx.textBaseline = 'top';
+  const angleTxt  = 'Sudut: '  + (angleValEl.textContent || '—');
+  const distTxt   = 'Jarak: '  + (distValEl.textContent || '—');
+  const tinggiTxt = 'Tinggi: ' + (heightValEl.textContent || '—');
+  const w = Math.max(
+    sctx.measureText(angleTxt).width,
+    sctx.measureText(distTxt).width,
+    sctx.measureText(tinggiTxt).width
+  ) + pad * 2;
+  const h = lineH * 3 + pad * 2;
+  sctx.fillStyle = 'rgba(13,17,23,.85)';
+  sctx.fillRect(vw - w - pad, pad, w, h);
+  sctx.strokeStyle = '#d29922';
+  sctx.lineWidth = 2 * dpr;
+  sctx.strokeRect(vw - w - pad, pad, w, h);
+  sctx.fillStyle = '#d29922';
+  sctx.fillText(angleTxt, vw - w - pad + pad, pad + pad);
+  sctx.fillText(distTxt,  vw - w - pad + pad, pad + pad + lineH);
+  sctx.fillStyle = '#3fb950';
+  sctx.fillText(tinggiTxt, vw - w - pad + pad, pad + pad + lineH * 2);
+
+  heightState.lastPhoto = snap.toDataURL('image/png');
+  downloadDataUrl(heightState.lastPhoto, `arruler_tinggi_${Date.now()}.png`);
+  const btn = document.getElementById('btnSnapHeight');
+  btn.textContent = '✅ Tersimpan';
+  setTimeout(() => { btn.textContent = '📸 Snapshot'; }, 1400);
+};
+
+btnSaveHeight.onclick = async () => {
+  if (!heightState.lastHeightStr) return alert('Belum ada hasil tinggi.');
+  if (!heightState.lastPhoto && heightVideo.videoWidth) {
+    const snap = document.createElement('canvas');
+    snap.width = heightVideo.videoWidth;
+    snap.height = heightVideo.videoHeight;
+    snap.getContext('2d').drawImage(heightVideo, 0, 0);
+    heightState.lastPhoto = snap.toDataURL('image/png');
+  }
+  const note = `Sudut ${angleValEl.textContent}, jarak ${distValEl.textContent}`;
+  btnSaveHeight.disabled = true;
+  btnSaveHeight.textContent = '⏳ Menyimpan…';
+  await addHistory({
+    id: makeId(), ts: Date.now(), mode: 'Tinggi',
+    result: heightState.lastHeightStr, note,
+    photo: heightState.lastPhoto,
+  });
+  btnSaveHeight.textContent = '✅ Tersimpan';
+  setTimeout(() => { btnSaveHeight.textContent = '💾 Simpan Hasil'; }, 1400);
+};
 </script>
 </body>
 </html>
