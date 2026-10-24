@@ -1415,7 +1415,7 @@
         Informasi Umum
       </h3>
       
-      <div class="form-group">
+	  <div class="form-group">
           <label>Nama Kegiatan / Pembangunan *</label>
           <input type="text" id="newRuasName" placeholder="Contoh: Peningkatan Jalan Lingkungan">
       </div>
@@ -1459,7 +1459,7 @@
           </select>
         </div>
       </div>
-		
+
       <div class="form-group" style="margin-bottom: 0;">
         <label>Lokasi Kegiatan</label>
         <input type="text" id="newRuasKategori" placeholder="Contoh: Dukuh Sidamulya RT 01/RW 02">
@@ -1630,6 +1630,22 @@
     <p style="font-size:0.75em;color:var(--text-subtle);margin-top:10px;">
       PDF disimpan ke folder Downloads.
     </p>
+  </div>
+</div>
+
+<!-- Modal Catatan Monev -->
+<div class="modal" id="modalCatatan">
+  <div class="modal-content">
+    <div class="modal-title">
+      <span>📝 Catatan Monev Kegiatan</span>
+      <button class="modal-close" onclick="closeModal('modalCatatan')">✕</button>
+    </div>
+    <input type="hidden" id="catatanRuasId">
+    <div class="form-group">
+      <label>Catatan / Kesimpulan Akhir</label>
+      <textarea id="catatanText" rows="6" placeholder="Tuliskan kesimpulan hasil monev, kendala di lapangan, atau rekomendasi..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveCatatanMonev()">💾 Simpan & Sync Catatan</button>
   </div>
 </div>
 
@@ -2293,15 +2309,20 @@ function renderRuasList() {
         </div>
         <div>${kondisiBadge(r.kondisi)}</div>
       </div>
-      <div class="ruas-stats">
-        <div class="ruas-stat"><div class="v">${pts.length}</div><div class="l">Titik</div></div>
-        <div class="ruas-stat"><div class="v">${fmtDist(total)}</div><div class="l">Panjang</div></div>
-        <div class="ruas-stat"><div class="v">${fotoCount}</div><div class="l">Foto</div></div>
-        <div class="ruas-stat" style="display:flex;flex-direction:column;gap:4px;">
-          <div class="v" style="font-size:1em;cursor:pointer;" onclick="event.stopPropagation();openPdfModal('${r.id}')">🖨️</div>
-          <div class="l" style="color:var(--danger);cursor:pointer;font-size:0.85em;" onclick="event.stopPropagation();deleteRuas('${r.id}')">🗑️</div>
-        </div>
-      </div>
+        <div class="ruas-stats" style="grid-template-columns: repeat(5, 1fr);"> <!-- Ubah jadi 5 kolom -->
+			<div class="ruas-stat"><div class="v">${pts.length}</div><div class="l">Titik</div></div>
+			<div class="ruas-stat"><div class="v">${fmtDist(total)}</div><div class="l">Panjang</div></div>
+			<div class="ruas-stat"><div class="v">${fotoCount}</div><div class="l">Foto</div></div>
+			<!-- TOMBOL BARU -->
+			<div class="ruas-stat" style="display:flex;flex-direction:column;gap:4px;">
+			  <div class="v" style="font-size:1em;cursor:pointer;color:var(--primary);" onclick="event.stopPropagation();openCatatanModal('${r.id}')">📝</div>
+			  <div class="l" style="color:var(--primary);">Catatan</div>
+			</div>
+			<div class="ruas-stat" style="display:flex;flex-direction:column;gap:4px;">
+			  <div class="v" style="font-size:1em;cursor:pointer;" onclick="event.stopPropagation();openPdfModal('${r.id}')">🖨️</div>
+			  <div class="l" style="color:var(--danger);cursor:pointer;font-size:0.85em;" onclick="event.stopPropagation();deleteRuas('${r.id}')">🗑️</div>
+			</div>
+		</div>
       <button class="btn btn-outline btn-sm btn-block" onclick="event.stopPropagation();selectRuasAndGo('${r.id}')">📍 Ukur Ruas Ini</button>
     </div>`;
   }).join('');
@@ -2849,7 +2870,7 @@ async function generatePdf() {
       const infoLines = [
         `Desa: ${ruas.desa || '-'}  |  Tahun: ${ruas.tahun || '-'}`,
         `Sumber Dana: ${ruas.sumberDana || '-'}`,
-        `Lokasi: ${ruas.kategori || '-'}`,
+        `Kategori: ${ruas.kategori || '-'}`,
         `Kondisi Ruas: ${kondisiLabel(ruas.kondisi)}  |  Tanggal Monev: ${ruas.tanggalMonev ? fmtDate(ruas.tanggalMonev) : fmtDate(ruas.createdAt)}`
       ];
       if (ruas.ket) infoLines.push(`Catatan: ${ruas.ket}`);
@@ -3267,6 +3288,84 @@ function resetPinApp() {
       sessionStorage.removeItem('monev_unlocked');
       location.reload();
     }
+  }
+}
+
+// Buka Modal Catatan
+function openCatatanModal(ruasId) {
+  const ruas = state.ruas.find(r => r.id === ruasId);
+  if (!ruas) return;
+  document.getElementById('catatanRuasId').value = ruasId;
+  document.getElementById('catatanText').value = ruas.catatanMonev || '';
+  document.getElementById('modalCatatan').classList.add('show');
+}
+
+// Simpan Catatan & Sync ke Sheets
+async function saveCatatanMonev() {
+  const ruasId = document.getElementById('catatanRuasId').value;
+  const ruas = state.ruas.find(r => r.id === ruasId);
+  if (!ruas) return;
+
+  const text = document.getElementById('catatanText').value.trim();
+  ruas.catatanMonev = text;
+  ruas.synced = false; // Tandai agar bisa di-sync ulang
+  saveState();
+  closeModal('modalCatatan');
+  toast('✅ Catatan disimpan lokal. Mengirim ke server...');
+
+  // Langsung kirim catatan ke Google Sheets
+  try {
+    const url = getSyncUrl();
+    const secret = getSyncSecret();
+    
+    // Kita ambil 1 titik saja dari ruas ini untuk dijadikan "kendaraan" mengirim catatan
+    const pts = state.points.filter(p => p.ruasId === ruasId).sort((a,b)=>a.order-b.order);
+    if (pts.length === 0) {
+       toast('⚠️ Buat minimal 1 titik agar catatan bisa disinkronkan.', 3000);
+       return;
+    }
+    const p = pts[0]; // Ambil titik pertama
+
+    const payload = {
+      secret: secret,
+      petugas: getPetugasName(),
+      ruas: ruas.nama,
+      desa: ruas.desa,
+      tahun: ruas.tahun,
+      sumberDana: ruas.sumberDana,
+      kategori: ruas.kategori,
+      anggaran: ruas.anggaran,
+      realisasi: ruas.realisasi,
+      progress: ruas.progress,
+      tanggalMonev: ruas.tanggalMonev,
+      noTitik: 0, // Tanda 0 = Baris Catatan Monev
+      lat: p.lat.toFixed(6),
+      lon: p.lon.toFixed(6),
+      akurasi: 0,
+      jarakSegmen: '',
+      kondisiSegmen: '',
+      keterangan: text, // Catatan dimasukkan ke kolom keterangan
+      foto: null,
+      waktuUkur: new Date().toISOString()
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    });
+    const result = await response.json();
+    if (result.status === 'success') {
+      toast('✅ Catatan berhasil dikirim ke Google Sheets!');
+      ruas.synced = true;
+      saveState();
+    } else {
+      toast('❌ Gagal sync catatan: ' + result.message);
+    }
+  } catch (err) {
+    console.error(err);
+    toast('❌ Koneksi gagal saat sync catatan.');
   }
 }
 
