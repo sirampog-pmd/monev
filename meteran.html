@@ -185,7 +185,7 @@
       <small>Android Chrome + ARCore. Tandai banyak titik di dunia nyata — total panjang otomatis.</small>
     </div>
   </div>
-  
+
   <div class="mode-card highlight" id="btnHeight">
     <div class="icon">📏</div>
     <div>
@@ -193,7 +193,7 @@
       <small>Untuk benda tinggi (pohon, tiang, gedung). Masukkan jarak & tinggi mata, arahkan ke puncak benda.</small>
     </div>
   </div>
-  
+
   <div class="mode-card" id="btnPhoto">
     <div class="icon">📷</div>
     <div>
@@ -350,14 +350,15 @@
       <li>Ketuk <b>Mode AR</b>, izinkan akses kamera.</li>
       <li>Arahkan HP ke permukaan datar sampai muncul penanda (ring biru).</li>
       <li>Ketuk <b>Tandai Titik</b> untuk menambah titik berulang (multi-segmen).</li>
-      <li><b>Snapshot</b> = unduh gambar pengukuran. <b>Simpan</b> = masukkan ke riwayat (foto dikompres otomatis).</li>
+      <li><b>Snapshot</b> = unduh gambar pengukuran (feed kamera + overlay 3D).</li>
+      <li><b>Simpan</b> = masukkan ke riwayat (foto dikompres otomatis).</li>
     </ul>
     <p><b>Mode Foto Referensi:</b></p>
     <ul>
       <li>Ambil foto dengan benda referensi (kartu nama = 85,6 mm) di samping benda ukur.</li>
       <li>Ketuk <b>Kalibrasi</b> → ketuk 2 ujung referensi → masukkan panjang aslinya (mm).</li>
       <li>Ketuk <b>Ukur</b> → ketuk banyak titik pada benda. Total & tiap segmen ditampilkan.</li>
-      <li>Snapshot = gambar kanvas dengan garis + label resolusi penuh.</li>
+      <li>Snapshot = gambar kanvas dengan latar putih + garis + label.</li>
     </ul>
     <p><b>Mode Ukur Tinggi (Sudut Elevasi):</b></p>
     <ul>
@@ -440,7 +441,6 @@ async function addHistory(entry) {
   arr.unshift(entry);
   if (arr.length > 100) arr.length = 100;
   if (!saveHistory(arr)) {
-    // buang 5 tertua lalu coba lagi
     arr.length = Math.max(0, arr.length - 5);
     if (!saveHistory(arr)) {
       alert('Riwayat penuh. Hapus beberapa item lama terlebih dahulu.');
@@ -886,9 +886,17 @@ function drawPhoto() {
   }
 }
 
+/* --- Snapshot Mode Foto: tempel latar putih, hindari transparan --- */
 btnSnapPhoto.onclick = () => {
   if (!photoState.lastResult) return alert('Belum ada hasil ukur.');
-  photoState.lastPhoto = photoCanvas.toDataURL('image/png');
+  const out = document.createElement('canvas');
+  out.width = photoCanvas.width;
+  out.height = photoCanvas.height;
+  const octx = out.getContext('2d');
+  octx.fillStyle = '#ffffff';
+  octx.fillRect(0, 0, out.width, out.height);
+  octx.drawImage(photoCanvas, 0, 0);
+  photoState.lastPhoto = out.toDataURL('image/png');
   downloadDataUrl(photoState.lastPhoto, `arruler_foto_${Date.now()}.png`);
   btnSnapPhoto.textContent = '✅ Tersimpan';
   setTimeout(() => { btnSnapPhoto.textContent = '📸 Snapshot'; }, 1400);
@@ -896,7 +904,16 @@ btnSnapPhoto.onclick = () => {
 
 btnSavePhotoResult.onclick = async () => {
   if (!photoState.lastResult) return alert('Belum ada hasil ukur.');
-  if (!photoState.lastPhoto) photoState.lastPhoto = photoCanvas.toDataURL('image/png');
+  if (!photoState.lastPhoto) {
+    const out = document.createElement('canvas');
+    out.width = photoCanvas.width;
+    out.height = photoCanvas.height;
+    const octx = out.getContext('2d');
+    octx.fillStyle = '#ffffff';
+    octx.fillRect(0, 0, out.width, out.height);
+    octx.drawImage(photoCanvas, 0, 0);
+    photoState.lastPhoto = out.toDataURL('image/png');
+  }
   btnSavePhotoResult.disabled = true;
   btnSavePhotoResult.textContent = '⏳ Menyimpan…';
   await addHistory({
@@ -926,6 +943,10 @@ let arActive = false;
 let arSuppressSelect = false;
 let arLastResult = null;
 let arLastPhoto = null;
+
+/* stream kamera terpisah untuk snapshot (di belakang layar) */
+let arSnapStream = null;
+let arSnapVideo = null;
 
 async function loadThree() {
   if (THREE) return THREE;
@@ -1110,17 +1131,87 @@ document.getElementById('btnResetAR').onclick = (e) => {
 };
 document.getElementById('btnExitAR').onclick = () => { if (arSession) arSession.end(); };
 
-document.getElementById('btnSnapAR').onclick = (e) => {
-  e.preventDefault();
-  e.stopPropagation();
+/* --- stream kamera terpisah untuk snapshot AR --- */
+async function ensureArSnapStream() {
+  if (arSnapStream && arSnapVideo && arSnapVideo.readyState >= 2 && arSnapVideo.videoWidth > 0) {
+    return true;
+  }
+  try {
+    arSnapStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    });
+    arSnapVideo = document.createElement('video');
+    arSnapVideo.autoplay = true;
+    arSnapVideo.muted = true;
+    arSnapVideo.playsInline = true;
+    arSnapVideo.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;';
+    document.body.appendChild(arSnapVideo);
+    arSnapVideo.srcObject = arSnapStream;
+    await arSnapVideo.play();
+    await new Promise(res => {
+      const check = () => {
+        if (arSnapVideo.videoWidth > 0 && arSnapVideo.readyState >= 2) res();
+        else requestAnimationFrame(check);
+      };
+      check();
+    });
+    return true;
+  } catch (e) {
+    console.warn('Snapshot kamera terpisah gagal:', e);
+    return false;
+  }
+}
+
+function releaseArSnapStream() {
+  if (arSnapStream) {
+    arSnapStream.getTracks().forEach(t => t.stop());
+    arSnapStream = null;
+  }
+  if (arSnapVideo) {
+    arSnapVideo.srcObject = null;
+    arSnapVideo.remove();
+    arSnapVideo = null;
+  }
+}
+
+/* --- Snapshot AR: komposit frame kamera + overlay 3D --- */
+document.getElementById('btnSnapAR').onclick = async (e) => {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
   if (!arRenderer || !arLastResult) return alert('Belum ada hasil ukur.');
+
+  const btn = document.getElementById('btnSnapAR');
+  btn.textContent = '⏳…';
+  btn.disabled = true;
+
   try { arRenderer.render(arScene, arCamera); } catch (_) {}
   const glCanvas = arRenderer.domElement;
+  const W = glCanvas.width, H = glCanvas.height;
+
   const snap = document.createElement('canvas');
-  snap.width = glCanvas.width;
-  snap.height = glCanvas.height;
+  snap.width = W; snap.height = H;
   const sctx = snap.getContext('2d');
-  sctx.drawImage(glCanvas, 0, 0, snap.width, snap.height);
+
+  const camOk = await ensureArSnapStream();
+  if (camOk && arSnapVideo.videoWidth > 0) {
+    const vw = arSnapVideo.videoWidth;
+    const vh = arSnapVideo.videoHeight;
+    const scale = Math.max(W / vw, H / vh);
+    const dw = vw * scale, dh = vh * scale;
+    const dx = (W - dw) / 2, dy = (H - dh) / 2;
+    sctx.drawImage(arSnapVideo, dx, dy, dw, dh);
+  } else {
+    sctx.fillStyle = '#0b0f14';
+    sctx.fillRect(0, 0, W, H);
+    const dpr0 = window.devicePixelRatio || 1;
+    sctx.fillStyle = '#8b949e';
+    sctx.font = `${14 * dpr0}px -apple-system, sans-serif`;
+    sctx.textAlign = 'center';
+    sctx.textBaseline = 'middle';
+    sctx.fillText('Snapshot AR — feed kamera tidak tersedia', W/2, H/2 - 40);
+  }
+
+  sctx.drawImage(glCanvas, 0, 0, W, H);
 
   const dpr = window.devicePixelRatio || 1;
   sctx.font = `bold ${18 * dpr}px -apple-system, sans-serif`;
@@ -1130,33 +1221,36 @@ document.getElementById('btnSnapAR').onclick = (e) => {
   const tw = sctx.measureText(txt).width;
   const boxW = tw + 24 * dpr;
   const boxH = 34 * dpr;
-  const bx = (snap.width - boxW) / 2;
-  const by = snap.height - boxH - 90 * dpr;
-  sctx.fillStyle = 'rgba(13,17,23,.85)';
+  const bx = (W - boxW) / 2;
+  const by = H - boxH - 90 * dpr;
+  sctx.fillStyle = 'rgba(13,17,23,.92)';
   sctx.fillRect(bx, by, boxW, boxH);
   sctx.strokeStyle = '#3fb950';
   sctx.lineWidth = 2 * dpr;
   sctx.strokeRect(bx, by, boxW, boxH);
   sctx.fillStyle = '#3fb950';
-  sctx.fillText(txt, snap.width / 2, by + boxH / 2);
+  sctx.fillText(txt, W / 2, by + boxH / 2);
 
   arLastPhoto = snap.toDataURL('image/png');
   downloadDataUrl(arLastPhoto, `arruler_ar_${Date.now()}.png`);
-  const btn = document.getElementById('btnSnapAR');
+
   btn.textContent = '✅ Snapshot';
+  btn.disabled = false;
   setTimeout(() => { btn.textContent = '📸 Snapshot'; }, 1400);
 };
 
 document.getElementById('btnSaveAR').onclick = async (e) => {
-  e.preventDefault();
-  e.stopPropagation();
+  if (e) { e.preventDefault(); e.stopPropagation(); }
   if (!arLastResult) return alert('Belum ada hasil ukur.');
+
   if (!arLastPhoto) {
-    try {
-      arRenderer.render(arScene, arCamera);
-      arLastPhoto = arRenderer.domElement.toDataURL('image/png');
-    } catch (_) { arLastPhoto = null; }
+    await document.getElementById('btnSnapAR').onclick();
+    if (!arLastPhoto) {
+      alert('Snapshot gagal. Coba tombol 📸 Snapshot dulu.');
+      return;
+    }
   }
+
   const btn = document.getElementById('btnSaveAR');
   btn.disabled = true;
   btn.textContent = '⏳ Menyimpan…';
@@ -1186,6 +1280,7 @@ function onAREnd() {
   arLinesGroup = null;
   arLastResult = null;
   arLastPhoto = null;
+  releaseArSnapStream();
   home.style.display = 'flex';
   updateARReadout();
 }
@@ -1386,12 +1481,33 @@ btnResetHeight.onclick = resetHeightMode;
 inpDistance.addEventListener('input', computeHeight);
 inpEyeHeight.addEventListener('input', computeHeight);
 
-btnSnapHeight.onclick = () => {
-  if (!heightVideo.videoWidth) return alert('Kamera belum aktif.');
+/* --- Snapshot Mode Tinggi: tunggu frame video benar-benar siap --- */
+btnSnapHeight.onclick = async () => {
+  if (!heightState.stream) return alert('Kamera belum aktif.');
+
+  // tunggu frame video siap
+  if (!heightVideo.videoWidth || heightVideo.readyState < 2) {
+    const ok = await new Promise(res => {
+      let tries = 0;
+      const check = () => {
+        if (heightVideo.videoWidth > 0 && heightVideo.readyState >= 2) return res(true);
+        if (++tries > 90) return res(false);
+        requestAnimationFrame(check);
+      };
+      check();
+    });
+    if (!ok) return alert('Kamera belum siap. Coba lagi.');
+  }
+
   const vw = heightVideo.videoWidth, vh = heightVideo.videoHeight;
+  if (!vw || !vh) return alert('Frame kamera kosong. Coba lagi.');
+
   const snap = document.createElement('canvas');
   snap.width = vw; snap.height = vh;
   const sctx = snap.getContext('2d');
+  // latar hitam dulu, baru tempel video (jaga-jaga video alpha)
+  sctx.fillStyle = '#000';
+  sctx.fillRect(0, 0, vw, vh);
   sctx.drawImage(heightVideo, 0, 0, vw, vh);
 
   const dpr = Math.max(1, vw / 800);
@@ -1419,8 +1535,8 @@ btnSnapHeight.onclick = () => {
   sctx.fillStyle = '#3fb950';
   sctx.fillText(tinggiTxt, vw - w - pad + pad, pad + pad + lineH * 2);
 
-  heightState.lastPhoto = snap.toDataURL('image/png');
-  downloadDataUrl(heightState.lastPhoto, `arruler_tinggi_${Date.now()}.png`);
+  heightState.lastPhoto = snap.toDataURL('image/jpeg', 0.9);
+  downloadDataUrl(heightState.lastPhoto, `arruler_tinggi_${Date.now()}.jpg`);
   const btn = document.getElementById('btnSnapHeight');
   btn.textContent = '✅ Tersimpan';
   setTimeout(() => { btn.textContent = '📸 Snapshot'; }, 1400);
@@ -1428,12 +1544,15 @@ btnSnapHeight.onclick = () => {
 
 btnSaveHeight.onclick = async () => {
   if (!heightState.lastHeightStr) return alert('Belum ada hasil tinggi.');
-  if (!heightState.lastPhoto && heightVideo.videoWidth) {
+  if (!heightState.lastPhoto && heightVideo.videoWidth && heightVideo.readyState >= 2) {
     const snap = document.createElement('canvas');
     snap.width = heightVideo.videoWidth;
     snap.height = heightVideo.videoHeight;
-    snap.getContext('2d').drawImage(heightVideo, 0, 0);
-    heightState.lastPhoto = snap.toDataURL('image/png');
+    const sc = snap.getContext('2d');
+    sc.fillStyle = '#000';
+    sc.fillRect(0, 0, snap.width, snap.height);
+    sc.drawImage(heightVideo, 0, 0);
+    heightState.lastPhoto = snap.toDataURL('image/jpeg', 0.9);
   }
   const note = `Sudut ${angleValEl.textContent}, jarak ${distValEl.textContent}`;
   btnSaveHeight.disabled = true;
