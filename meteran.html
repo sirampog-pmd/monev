@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>AR Ruler — Pengukur Jarak</title>
+<title>AR Ruler — Pengukur Benda</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
   :root {
     --bg: #0d1117;
@@ -22,6 +23,42 @@
     background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow: hidden;
+  }
+
+  /* SweetAlert2 tema gelap */
+  .swal2-popup {
+    background: #161b22 !important;
+    color: #e6edf3 !important;
+    border: 1px solid #30363d !important;
+    border-radius: 14px !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+  .swal2-title { color: #e6edf3 !important; font-size: 18px !important; }
+  .swal2-html-container { color: #8b949e !important; font-size: 14px !important; }
+  .swal2-input, .swal2-select {
+    background: #0b0f14 !important;
+    color: #e6edf3 !important;
+    border: 1px solid #30363d !important;
+    border-radius: 8px !important;
+  }
+  .swal2-confirm {
+    background: #2f81f7 !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+  }
+  .swal2-cancel {
+    background: #30363d !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+  }
+  .swal2-toast {
+    background: #161b22 !important;
+    color: #e6edf3 !important;
+    border: 1px solid #30363d !important;
+  }
+  .swal2-validation-message {
+    background: #0b0f14 !important;
+    color: #f85149 !important;
   }
 
   /* ===== Home ===== */
@@ -295,6 +332,14 @@
     </div>
   </div>
 
+  <div class="mode-card" id="btnPhoto">
+    <div class="icon">📷</div>
+    <div>
+      <h3>Mode Foto Referensi</h3>
+      <small>Semua perangkat. Kalibrasi dengan benda diketahui ukurannya, lalu ukur banyak segmen.</small>
+    </div>
+  </div>
+
   <div class="mode-card highlight" id="btnHeight">
     <div class="icon">📏</div>
     <div>
@@ -302,14 +347,6 @@
       <small>Untuk benda tinggi (pohon, tiang, gedung). Masukkan jarak & tinggi mata, arahkan ke puncak.</small>
     </div>
   </div>
-  <!--
-  <div class="mode-card" id="btnPhoto">
-    <div class="icon">📷</div>
-    <div>
-      <h3>Mode Foto Referensi</h3>
-      <small>Semua perangkat. Kalibrasi dengan benda diketahui ukurannya, lalu ukur banyak segmen.</small>
-    </div>
-  </div>-->
 
   <div style="display:flex;gap:8px;max-width:420px;width:100%;">
     <button class="ghost" id="btnHistory" style="flex:1;">📋 Riwayat</button>
@@ -484,8 +521,24 @@
 
 <script>
 /* ============================================================
-   BAGIAN 0 — RIWAYAT & CSV (localStorage)
+   BAGIAN 0 — HELPER SWEETALERT & RIWAYAT
    ============================================================ */
+function toast(icon, title) {
+  Swal.fire({
+    toast: true,
+    position: 'top',
+    icon,
+    title,
+    showConfirmButton: false,
+    timer: 2000,
+    timerProgressBar: true,
+  });
+}
+
+function alertError(title, text) {
+  return Swal.fire({ icon: 'error', title, text });
+}
+
 const HISTORY_KEY = 'arruler_history_v1';
 const historyModal = document.getElementById('historyModal');
 const historyBody  = document.getElementById('historyBody');
@@ -499,13 +552,12 @@ function loadHistory() {
 
 function saveHistoryArray(arr) {
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
-  catch (e) { alert('Gagal menyimpan riwayat: ' + e.message); }
+  catch (e) { alertError('Gagal menyimpan riwayat', e.message); }
 }
 
 function addHistoryEntry(entry) {
   const arr = loadHistory();
-  arr.unshift(entry); // terbaru di atas
-  // batasi agar tidak membengkak
+  arr.unshift(entry);
   if (arr.length > 500) arr.length = 500;
   saveHistoryArray(arr);
   renderHistory();
@@ -517,10 +569,20 @@ function deleteHistoryEntry(id) {
   renderHistory();
 }
 
-function clearHistory() {
-  if (!confirm('Hapus SEMUA riwayat pengukuran? Tindakan ini tidak bisa dibatalkan.')) return;
+async function clearHistory() {
+  const res = await Swal.fire({
+    title: 'Hapus semua riwayat?',
+    text: 'Tindakan ini tidak bisa dibatalkan.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Hapus',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#f85149',
+  });
+  if (!res.isConfirmed) return;
   localStorage.removeItem(HISTORY_KEY);
   renderHistory();
+  toast('success', 'Riwayat dihapus');
 }
 
 function fmtDate(ts) {
@@ -558,7 +620,6 @@ function renderHistory() {
     `;
   }).join('');
 
-  // pasang listener hapus
   historyBody.querySelectorAll('.del').forEach(btn => {
     btn.onclick = () => deleteHistoryEntry(btn.dataset.id);
   });
@@ -573,7 +634,7 @@ function escapeHtml(s) {
 /* --- Export CSV --- */
 function exportCSV() {
   const arr = loadHistory();
-  if (arr.length === 0) { alert('Riwayat kosong. Tidak ada yang diexport.'); return; }
+  if (arr.length === 0) { toast('info', 'Riwayat kosong'); return; }
 
   const headers = ['Waktu', 'Mode', 'Judul', 'Hasil', 'Satuan', 'Rincian Segmen'];
   const rows = [headers];
@@ -589,7 +650,6 @@ function exportCSV() {
     ]);
   });
 
-  // escape field CSV: bungkus dengan kutip, gandakan kutip di dalamnya
   const csv = rows.map(row =>
     row.map(field => {
       const s = String(field ?? '');
@@ -600,7 +660,6 @@ function exportCSV() {
     }).join(',')
   ).join('\r\n');
 
-  // BOM agar Excel mengenali UTF-8 (untuk karakter non-ASCII)
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -611,9 +670,9 @@ function exportCSV() {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast('success', 'CSV diunduh');
 }
 
-/* --- Modal kontrol --- */
 document.getElementById('btnHistory').onclick       = () => { renderHistory(); historyModal.classList.add('active'); };
 document.getElementById('btnHistoryAR').onclick     = () => { renderHistory(); historyModal.classList.add('active'); };
 document.getElementById('btnCloseHistory').onclick  = () => historyModal.classList.remove('active');
@@ -628,7 +687,7 @@ const photoMode  = document.getElementById('photoMode');
 const arOverlay  = document.getElementById('arOverlay');
 const heightMode = document.getElementById('heightMode');
 const btnAR      = document.getElementById('btnAR');
-//const btnPhoto   = document.getElementById('btnPhoto');
+const btnPhoto   = document.getElementById('btnPhoto');
 const btnHeight  = document.getElementById('btnHeight');
 const btnHelp    = document.getElementById('btnHelp');
 const helpModal  = document.getElementById('helpModal');
@@ -672,10 +731,10 @@ const photoState = {
   lastSegments: [],
 };
 
-//btnPhoto.onclick = () => {
-//  home.style.display = 'none';
-//  photoMode.classList.add('active');
-//};
+btnPhoto.onclick = () => {
+  home.style.display = 'none';
+  photoMode.classList.add('active');
+};
 document.getElementById('btnHelpPhoto').onclick = () => helpModal.classList.add('active');
 
 btnPickPhoto.onclick = () => {
@@ -721,7 +780,7 @@ function loadImage(src) {
 }
 
 btnCalibrate.onclick = () => {
-  if (!photoState.img) return alert('Ambil foto dulu.');
+  if (!photoState.img) return toast('info', 'Ambil foto dulu');
   photoState.mode = 'calibrate';
   photoState.points = [];
   btnUndo.disabled = false;
@@ -732,8 +791,8 @@ btnCalibrate.onclick = () => {
 };
 
 btnMeasure.onclick = () => {
-  if (!photoState.img) return alert('Ambil foto dulu.');
-  if (!photoState.mmPerPx) return alert('Lakukan kalibrasi dulu.');
+  if (!photoState.img) return toast('info', 'Ambil foto dulu');
+  if (!photoState.mmPerPx) return toast('warning', 'Lakukan kalibrasi dulu');
   photoState.mode = 'measure';
   photoState.points = [];
   btnUndo.disabled = false;
@@ -821,21 +880,34 @@ function distPx(p1, p2) {
   return Math.hypot(p2.x - p1.x, p2.y - p1.y);
 }
 
-function handleCalibrationDone() {
+async function handleCalibrationDone() {
   const [a, b] = photoState.points;
   photoState.refPx = distPx(a, b);
-  const input = prompt(
-    'Panjang benda referensi dalam milimeter (mm).\nContoh: kartu nama = 85.6, koin Rp500 = 27, kertas A4 lebar = 210',
-    '85.6'
-  );
-  const mm = parseFloat(input);
-  if (!isFinite(mm) || mm <= 0) {
-    alert('Nilai tidak valid. Kalibrasi dibatalkan.');
+
+  const { value: mmStr } = await Swal.fire({
+    title: 'Panjang Benda Referensi',
+    html: 'Masukkan panjang asli benda referensi dalam <b>milimeter (mm)</b>.<br><small>Contoh: kartu nama = 85.6, koin Rp500 = 27, kertas A4 lebar = 210</small>',
+    input: 'number',
+    inputValue: '85.6',
+    inputAttributes: { min: 0.1, step: 0.1, inputmode: 'decimal' },
+    showCancelButton: true,
+    confirmButtonText: 'OK',
+    cancelButtonText: 'Batal',
+    inputValidator: (v) => {
+      const n = parseFloat(v);
+      if (!isFinite(n) || n <= 0) return 'Masukkan angka > 0';
+      return null;
+    },
+  });
+
+  if (mmStr == null) {
     photoState.points = [];
     drawPhoto();
     btnUndo.disabled = true;
     return;
   }
+
+  const mm = parseFloat(mmStr);
   photoState.refMm = mm;
   photoState.mmPerPx = mm / photoState.refPx;
   btnMeasure.disabled = false;
@@ -845,6 +917,7 @@ function handleCalibrationDone() {
   readoutVal.textContent = `${photoState.mmPerPx.toFixed(4)} mm/px`;
   segmentsList.textContent = `Referensi: ${mm} mm = ${photoState.refPx.toFixed(0)} px`;
   drawPhoto();
+  toast('success', 'Kalibrasi berhasil');
 }
 
 function updateMeasureReadout() {
@@ -943,7 +1016,6 @@ function drawPhoto() {
   }
 }
 
-/* --- Simpan hasil foto --- */
 btnSavePhoto.onclick = () => {
   if (photoState.lastTotalMm == null) return;
   const totalMm = photoState.lastTotalMm;
@@ -963,10 +1035,7 @@ btnSavePhoto.onclick = () => {
     unit: unit,
     detail: detail,
   });
-  // feedback
-  const old = btnSavePhoto.textContent;
-  btnSavePhoto.textContent = '✅ Tersimpan';
-  setTimeout(() => { btnSavePhoto.textContent = old; }, 1200);
+  toast('success', 'Tersimpan ke riwayat');
 };
 
 /* ============================================================
@@ -997,11 +1066,18 @@ async function loadThree() {
 
 btnAR.onclick = async () => {
   if (!xrSupported) {
-    alert('Mode AR tidak didukung di browser ini. Gunakan Mode Foto / Tinggi.');
+    Swal.fire({
+      icon: 'info',
+      title: 'Mode AR tidak didukung',
+      html: 'Browser/perangkat ini belum mendukung WebXR AR.<br>Gunakan <b>Mode Foto</b> atau <b>Mode Tinggi</b>.',
+    });
     return;
   }
   try { await startAR(); }
-  catch (e) { console.error(e); alert('Gagal memulai AR: ' + e.message); }
+  catch (e) {
+    console.error(e);
+    alertError('Gagal memulai AR', e.message);
+  }
 };
 
 async function startAR() {
@@ -1164,12 +1240,11 @@ function clearARPoints() {
   updateARReadout();
 }
 
-/* tombol Tandai Titik */
 document.getElementById('btnPointA').onclick = (e) => {
   e.preventDefault();
   e.stopPropagation();
   if (arReticleMesh && arReticleMesh.visible) onARSelect();
-  else {alert('Arahkan kamera ke permukaan hingga muncul penanda.'); return;}
+  else toast('info', 'Arahkan kamera ke permukaan hingga muncul penanda');
 };
 
 document.getElementById('btnUndoAR').onclick = (e) => {
@@ -1177,7 +1252,6 @@ document.getElementById('btnUndoAR').onclick = (e) => {
   undoARPoint();
 };
 
-/* Reset: HANYA menghapus, tidak menandai titik baru */
 document.getElementById('btnResetAR').onclick = (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -1186,7 +1260,6 @@ document.getElementById('btnResetAR').onclick = (e) => {
   setTimeout(() => { arSuppressSelect = false; }, 150);
 };
 
-/* Simpan AR ke riwayat */
 document.getElementById('btnSaveAR').onclick = (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -1211,10 +1284,7 @@ document.getElementById('btnSaveAR').onclick = (e) => {
     unit: unit,
     detail: detail,
   });
-  const btn = document.getElementById('btnSaveAR');
-  const old = btn.textContent;
-  btn.textContent = '✅';
-  setTimeout(() => { btn.textContent = old; }, 1200);
+  toast('success', 'Tersimpan ke riwayat');
 };
 
 document.getElementById('btnExitAR').onclick = (e) => {
@@ -1298,7 +1368,7 @@ btnStartCam.onclick = async () => {
     btnStartCam.disabled = true;
     btnFreeze.disabled = false;
   } catch (e) {
-    alert('Gagal mengaktifkan: ' + e.message);
+    alertError('Gagal mengaktifkan', e.message);
     console.error(e);
   }
 };
@@ -1422,7 +1492,7 @@ btnFreeze.onclick = () => {
     computeHeight();
   } else {
     const a = heightState.angleDeg;
-    if (a == null) return alert('Belum ada sudut terbaca. Arahkan kamera ke atas.');
+    if (a == null) return toast('info', 'Arahkan kamera ke atas dulu');
     heightState.frozenAngle = a;
     btnFreeze.textContent = '🔓 Lepas Kunci (' + a.toFixed(1) + '°)';
     btnFreeze.classList.remove('yellow');
@@ -1448,7 +1518,6 @@ function resetHeightMode() {
 }
 btnResetHeight.onclick = resetHeightMode;
 
-/* --- Simpan tinggi ke riwayat --- */
 btnSaveHeight.onclick = () => {
   if (heightState.lastHeightM == null) return;
   const detail = `Jarak ${heightState.lastDistanceM.toFixed(1)} m · ` +
@@ -1463,15 +1532,12 @@ btnSaveHeight.onclick = () => {
     unit: 'm',
     detail: detail,
   });
-  const old = btnSaveHeight.textContent;
-  btnSaveHeight.textContent = '✅ Tersimpan';
-  setTimeout(() => { btnSaveHeight.textContent = old; }, 1200);
+  toast('success', 'Tersimpan ke riwayat');
 };
 
 inpDistance.addEventListener('input', computeHeight);
 inpEyeHeight.addEventListener('input', computeHeight);
 
-/* render awal riwayat */
 renderHistory();
 </script>
 </body>
