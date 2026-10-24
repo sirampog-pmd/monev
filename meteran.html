@@ -302,14 +302,14 @@
       <small>Untuk benda tinggi (pohon, tiang, gedung). Masukkan jarak & tinggi mata, arahkan ke puncak.</small>
     </div>
   </div>
-
+  <!--
   <div class="mode-card" id="btnPhoto">
     <div class="icon">📷</div>
     <div>
       <h3>Mode Foto Referensi</h3>
       <small>Semua perangkat. Kalibrasi dengan benda diketahui ukurannya, lalu ukur banyak segmen.</small>
     </div>
-  </div>
+  </div>-->
 
   <div style="display:flex;gap:8px;max-width:420px;width:100%;">
     <button class="ghost" id="btnHistory" style="flex:1;">📋 Riwayat</button>
@@ -628,7 +628,7 @@ const photoMode  = document.getElementById('photoMode');
 const arOverlay  = document.getElementById('arOverlay');
 const heightMode = document.getElementById('heightMode');
 const btnAR      = document.getElementById('btnAR');
-const btnPhoto   = document.getElementById('btnPhoto');
+//const btnPhoto   = document.getElementById('btnPhoto');
 const btnHeight  = document.getElementById('btnHeight');
 const btnHelp    = document.getElementById('btnHelp');
 const helpModal  = document.getElementById('helpModal');
@@ -672,10 +672,10 @@ const photoState = {
   lastSegments: [],
 };
 
-btnPhoto.onclick = () => {
-  home.style.display = 'none';
-  photoMode.classList.add('active');
-};
+//btnPhoto.onclick = () => {
+//  home.style.display = 'none';
+//  photoMode.classList.add('active');
+//};
 document.getElementById('btnHelpPhoto').onclick = () => helpModal.classList.add('active');
 
 btnPickPhoto.onclick = () => {
@@ -1169,7 +1169,7 @@ document.getElementById('btnPointA').onclick = (e) => {
   e.preventDefault();
   e.stopPropagation();
   if (arReticleMesh && arReticleMesh.visible) onARSelect();
-  else alert('Arahkan kamera ke permukaan hingga muncul penanda.');
+  else {alert('Arahkan kamera ke permukaan hingga muncul penanda.'); return;}
 };
 
 document.getElementById('btnUndoAR').onclick = (e) => {
