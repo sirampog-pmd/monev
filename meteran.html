@@ -300,8 +300,6 @@
 <!-- ================= MODE AR ================= -->
 <div id="arOverlay">
   <div id="reticle"></div>
-  <div id="hint">Ketuk untuk menandai titik. Ketuk berulang untuk multi-segmen.</div>
-
   <div id="arTopbar">
     <button class="ghost" id="btnExitAR">✕ Keluar</button>
   </div>
@@ -825,6 +823,7 @@ function onARFrame(timestamp, frame) {
 }
 
 function onARSelect() {
+  if (arSuppressSelect) return;
   if (!arReticleMesh.visible) return;
   const pos = arReticleMesh.position.clone();
 
@@ -912,7 +911,15 @@ document.getElementById('btnPointA').onclick = () => {
   else alert('Arahkan kamera ke permukaan hingga muncul penanda.');
 };
 document.getElementById('btnUndoAR').onclick = undoARPoint;
-document.getElementById('btnResetAR').onclick = clearARPoints;
+
+let arSuppressSelect = false;
+document.getElementById('btnResetAR').onclick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  arSuppressSelect = true;
+  clearARPoints();
+  setTimeout(() => { arSuppressSelect = false; }, 120);
+};
 document.getElementById('btnExitAR').onclick  = () => { if (arSession) arSession.end(); };
 
 function onAREnd() {
