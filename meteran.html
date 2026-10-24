@@ -332,19 +332,19 @@
     </div>
   </div>
 
-  <div class="mode-card" id="btnPhoto">
-    <div class="icon">📷</div>
-    <div>
-      <h3>Mode Foto Referensi</h3>
-      <small>Semua perangkat. Kalibrasi dengan benda diketahui ukurannya, lalu ukur banyak segmen.</small>
-    </div>
-  </div>
-
   <div class="mode-card highlight" id="btnHeight">
     <div class="icon">📏</div>
     <div>
       <h3>Mode Ukur Tinggi (Sudut Elevasi)</h3>
       <small>Untuk benda tinggi (pohon, tiang, gedung). Masukkan jarak & tinggi mata, arahkan ke puncak.</small>
+    </div>
+  </div>
+  
+  <div class="mode-card" id="btnPhoto">
+    <div class="icon">📷</div>
+    <div>
+      <h3>Mode Foto Referensi</h3>
+      <small>Semua perangkat. Kalibrasi dengan benda diketahui ukurannya, lalu ukur banyak segmen.</small>
     </div>
   </div>
 
@@ -493,6 +493,7 @@
       <li>Ketuk <b>Mode AR</b>, izinkan akses kamera.</li>
       <li>Arahkan HP ke permukaan datar sampai muncul penanda (ring biru).</li>
       <li>Ketuk <b>Tandai Titik</b> untuk menambah titik berulang (multi-segmen).</li>
+      <li>Setiap titik diberi label A, B, C… dan setiap segmen menampilkan jaraknya.</li>
       <li><b>Simpan</b> menyimpan total panjang ke riwayat.</li>
     </ul>
     <p><b>Mode Foto Referensi:</b></p>
@@ -631,7 +632,6 @@ function escapeHtml(s) {
   }[c]));
 }
 
-/* --- Export CSV --- */
 function exportCSV() {
   const arr = loadHistory();
   if (arr.length === 0) { toast('info', 'Riwayat kosong'); return; }
@@ -983,7 +983,7 @@ function drawPhoto() {
         const a = photoState.points[i - 1], b = photoState.points[i];
         const d = distPx(a, b);
         const mm = d * photoState.mmPerPx;
-        const label = mm < 100 ? `${mm.toFixed(1)} mm` : `${(mm/10).toFixed(2)} cm`;
+        const label = `S${i}: ${mm < 100 ? mm.toFixed(1) + ' mm' : (mm/10).toFixed(2) + ' cm'}`;
         const mx = (pts[i - 1].x + pts[i].x) / 2;
         const my = (pts[i - 1].y + pts[i].y) / 2;
         const tw = ctx.measureText(label).width;
@@ -1039,7 +1039,7 @@ btnSavePhoto.onclick = () => {
 };
 
 /* ============================================================
-   BAGIAN 3 — MODE AR (MULTI-SEGMEN)
+   BAGIAN 3 — MODE AR (MULTI-SEGMEN + LABEL TEKS)
    ============================================================ */
 let THREE = null;
 let arRenderer = null, arScene = null, arCamera = null;
@@ -1050,6 +1050,83 @@ let arLinesGroup = null;
 let arReticleMesh = null;
 let arActive = false;
 let arSuppressSelect = false;
+
+/* ---- helper: label titik A, B, C, ..., AA, AB, ... ---- */
+function pointLabel(i) {
+  let s = '';
+  let n = i;
+  do {
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return s;
+}
+
+/* ---- helper: sprite teks (selalu menghadap kamera) ---- */
+function makeTextSprite(text, options = {}) {
+  const {
+    fontSize = 64,
+    padding = 24,
+    bg = 'rgba(13,17,23,.88)',
+    fg = '#e6edf3',
+    border = '#3fb950',
+    borderWidth = 4,
+  } = options;
+
+  const measureCanvas = document.createElement('canvas');
+  const mctx = measureCanvas.getContext('2d');
+  mctx.font = `bold ${fontSize}px -apple-system, sans-serif`;
+  const textW = Math.ceil(mctx.measureText(text).width);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = textW + padding * 2;
+  canvas.height = fontSize + padding * 2;
+  const c = canvas.getContext('2d');
+
+  const r = 16;
+  c.fillStyle = bg;
+  c.beginPath();
+  c.moveTo(r, 0);
+  c.lineTo(canvas.width - r, 0);
+  c.quadraticCurveTo(canvas.width, 0, canvas.width, r);
+  c.lineTo(canvas.width, canvas.height - r);
+  c.quadraticCurveTo(canvas.width, canvas.height, canvas.width - r, canvas.height);
+  c.lineTo(r, canvas.height);
+  c.quadraticCurveTo(0, canvas.height, 0, canvas.height - r);
+  c.lineTo(0, r);
+  c.quadraticCurveTo(0, 0, r, 0);
+  c.closePath();
+  c.fill();
+
+  c.strokeStyle = border;
+  c.lineWidth = borderWidth;
+  c.stroke();
+
+  c.fillStyle = fg;
+  c.font = `bold ${fontSize}px -apple-system, sans-serif`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    sizeAttenuation: false,
+  });
+  const sprite = new THREE.Sprite(material);
+
+  const baseH = 0.075;
+  sprite.scale.set(baseH * (canvas.width / canvas.height), baseH, 1);
+  sprite.renderOrder = 999;
+  return sprite;
+}
 
 async function loadThree() {
   if (THREE) return THREE;
@@ -1165,7 +1242,19 @@ function onARSelect() {
   sphere.position.copy(pos);
   arMarkersGroup.add(sphere);
 
-  arPoints.push({ mesh: sphere, pos });
+  /* --- label titik (A, B, C, ...) --- */
+  const labelIdx = arPoints.length;
+  const pointSprite = makeTextSprite(pointLabel(labelIdx), {
+    fontSize: 64,
+    fg: '#ffffff',
+    border: '#3fb950',
+    bg: 'rgba(13,17,23,.9)',
+  });
+  pointSprite.position.copy(pos);
+  pointSprite.position.y += 0.04;
+  arMarkersGroup.add(pointSprite);
+
+  arPoints.push({ mesh: sphere, pos, label: pointSprite });
 
   if (arPoints.length >= 2) {
     const a = arPoints[arPoints.length - 2].pos;
@@ -1174,6 +1263,25 @@ function onARSelect() {
     const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ color: 0xf85149 }));
     line.userData.segmentIndex = arPoints.length - 1;
     arLinesGroup.add(line);
+
+    /* --- label jarak di tengah segmen --- */
+    const mid = a.clone().add(b).multiplyScalar(0.5);
+    const d = a.distanceTo(b);
+    const txt = `S${arPoints.length - 1}: ` + (
+      d < 0.1 ? `${(d*1000).toFixed(1)} mm`
+      : d < 1 ? `${(d*100).toFixed(2)} cm`
+      : `${d.toFixed(3)} m`
+    );
+    const distSprite = makeTextSprite(txt, {
+      fontSize: 56,
+      fg: '#ffffff',
+      border: '#f85149',
+      bg: 'rgba(13,17,23,.9)',
+    });
+    distSprite.position.copy(mid);
+    distSprite.position.y += 0.02;
+    arLinesGroup.add(distSprite);
+    line.userData.distLabel = distSprite;
   }
 
   updateARReadout();
@@ -1223,10 +1331,14 @@ function undoARPoint() {
   if (arPoints.length === 0) return;
   const last = arPoints.pop();
   arMarkersGroup.remove(last.mesh);
+  if (last.label) arMarkersGroup.remove(last.label);
+
+  /* hapus garis + label jarak terakhir */
   for (let i = arLinesGroup.children.length - 1; i >= 0; i--) {
-    const line = arLinesGroup.children[i];
-    if (line.userData.segmentIndex === arPoints.length) {
-      arLinesGroup.remove(line);
+    const child = arLinesGroup.children[i];
+    if (child.userData && child.userData.segmentIndex === arPoints.length) {
+      arLinesGroup.remove(child);
+      if (child.userData.distLabel) arLinesGroup.remove(child.userData.distLabel);
       break;
     }
   }
@@ -1234,9 +1346,14 @@ function undoARPoint() {
 }
 
 function clearARPoints() {
-  arPoints.forEach(p => arMarkersGroup.remove(p.mesh));
+  arPoints.forEach(p => {
+    arMarkersGroup.remove(p.mesh);
+    if (p.label) arMarkersGroup.remove(p.label);
+  });
   arPoints = [];
-  while (arLinesGroup.children.length) arLinesGroup.remove(arLinesGroup.children[0]);
+  while (arLinesGroup.children.length) {
+    arLinesGroup.remove(arLinesGroup.children[0]);
+  }
   updateARReadout();
 }
 
