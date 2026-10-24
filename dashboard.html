@@ -235,6 +235,55 @@
 </head>
 <body>
 
+<!-- ============ LAYAR KUNCI PIN ADMIN ============ -->
+<div id="lockscreenAdmin" style="position:fixed;inset:0;background:#0f172a;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif;color:#fff;flex-direction:column;padding:20px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="width:72px;height:72px;border-radius:50%;border:2px solid #38bdf8;background:rgba(56,189,248,0.1);display:flex;align-items:center;justify-content:center;font-size:1.8em;color:#38bdf8;margin:0 auto 16px;box-shadow:0 0 20px rgba(56,189,248,0.2);">
+      🔐
+    </div>
+    <h2 style="font-size:1.4em;font-weight:800;margin-bottom:8px;">Akses Admin Dashboard</h2>
+    <p style="font-size:0.85em;color:#94a3b8;max-width:300px;margin:0 auto;line-height:1.4;">Masukkan PIN Admin untuk melihat data transparansi & monev.</p>
+  </div>
+
+  <div id="pinDotsAdmin" style="display:flex;gap:14px;margin-bottom:30px;">
+    <div class="pin-dot-admin"></div><div class="pin-dot-admin"></div><div class="pin-dot-admin"></div>
+    <div class="pin-dot-admin"></div><div class="pin-dot-admin"></div><div class="pin-dot-admin"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;width:100%;max-width:320px;margin-bottom:30px;">
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('1')">1</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('2')">2</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('3')">3</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('4')">4</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('5')">5</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('6')">6</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('7')">7</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('8')">8</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('9')">9</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('C')" style="color:#94a3b8;">C</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('0')">0</button>
+    <button class="keypad-btn-admin" onclick="enterPinAdmin('DEL')" style="color:#94a3b8;">⌫</button>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;width:100%;max-width:320px;font-size:0.8em;font-weight:600;">
+    <button onclick="gantiPinAdmin()" style="background:none;border:none;color:#38bdf8;cursor:pointer;">⚙️ Ganti PIN</button>
+    <a href="transparansi.html" style="color:#94a3b8;text-decoration:none;">🌐 Halaman Transparansi</a>
+  </div>
+</div>
+
+<style>
+  .pin-dot-admin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #475569; transition: all 0.2s; }
+  .pin-dot-admin.active { background: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.5); transform: scale(1.2); }
+  .keypad-btn-admin {
+    aspect-ratio: 1.2 / 1; border-radius: 16px; background: #1e293b; border: 1px solid #334155;
+    color: #fff; font-size: 1.5em; font-weight: 600; cursor: pointer; transition: all 0.1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .keypad-btn-admin:active { background: #334155; transform: scale(0.95); }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+  .shake { animation: shake 0.3s ease-in-out; }
+</style>
+
 <div class="header">
   <div style="max-width:1200px;margin:0 auto;">
     <div class="right">
@@ -346,6 +395,96 @@
 
 
 <script>
+
+/* ================================================================
+   LOGIKA LAYAR KUNCI PIN ADMIN
+   ================================================================ */
+let currentPinAdmin = '';
+const DEFAULT_PIN_ADMIN = '081006'; // PIN Bawaan Admin (Silakan ganti)
+
+// Cek saat halaman dimuat
+window.addEventListener('load', () => {
+  const isUnlocked = sessionStorage.getItem('dashboard_unlocked');
+  if (isUnlocked === 'true') {
+    document.getElementById('lockscreenAdmin').style.display = 'none';
+  } else {
+    // Sembunyikan konten dashboard sementara
+    document.querySelector('.container').style.display = 'none';
+  }
+});
+
+function enterPinAdmin(val) {
+  if (val === 'C') {
+    currentPinAdmin = '';
+    updatePinDotsAdmin();
+    return;
+  }
+  if (val === 'DEL') {
+    currentPinAdmin = currentPinAdmin.slice(0, -1);
+    updatePinDotsAdmin();
+    return;
+  }
+
+  if (currentPinAdmin.length < 6) {
+    currentPinAdmin += val;
+    updatePinDotsAdmin();
+  }
+
+  if (currentPinAdmin.length === 6) {
+    const savedPin = localStorage.getItem('dashboard_pin') || DEFAULT_PIN_ADMIN;
+    
+    if (currentPinAdmin === savedPin) {
+      // Jika benar
+      sessionStorage.setItem('dashboard_unlocked', 'true');
+      const lockScreen = document.getElementById('lockscreenAdmin');
+      lockScreen.style.transition = 'opacity 0.3s';
+      lockScreen.style.opacity = '0';
+      setTimeout(() => { 
+        lockScreen.style.display = 'none'; 
+        document.querySelector('.container').style.display = 'block';
+        loadDashboard(); // Muat data setelah terbuka
+      }, 300);
+    } else {
+      // Jika salah
+      const dots = document.getElementById('pinDotsAdmin');
+      dots.classList.add('shake');
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      setTimeout(() => {
+        dots.classList.remove('shake');
+        currentPinAdmin = '';
+        updatePinDotsAdmin();
+      }, 400);
+    }
+  }
+}
+
+function updatePinDotsAdmin() {
+  const dots = document.querySelectorAll('.pin-dot-admin');
+  dots.forEach((dot, index) => {
+    if (index < currentPinAdmin.length) {
+      dot.classList.add('active');
+    } else {
+      dot.classList.remove('active');
+    }
+  });
+}
+
+function gantiPinAdmin() {
+  const oldPin = prompt('Masukkan PIN Lama Admin:');
+  const savedPin = localStorage.getItem('dashboard_pin') || DEFAULT_PIN_ADMIN;
+  
+  if (oldPin === savedPin) {
+    const newPin = prompt('Masukkan PIN Baru (6 Angka):');
+    if (newPin && newPin.length === 6 && !isNaN(newPin)) {
+      localStorage.setItem('dashboard_pin', newPin);
+      alert('✅ PIN Admin berhasil diubah!');
+    } else {
+      alert('❌ PIN baru harus 6 angka!');
+    }
+  } else if (oldPin !== null) {
+    alert('❌ PIN Lama salah!');
+  }
+}
 
 const DASHBOARD_API = 'https://script.google.com/macros/s/AKfycbxveayx7vBte7OTIzQcjLppSt1LQu6hw57_z9NyFGpwudJSTs4a2tY5614R4JEpxf-W/exec?action=dashboard';
 
@@ -842,8 +981,7 @@ async function eksekusiCetakRuas() {
     doc.text(`Jumlah Foto: ${fotoCount}`, margin + 4, y + 26);
     y += 35;
 
-    // ================= PETA OSM DINAMIS (AUTO-ZOOM) =================
-// ================= PETA OSM DINAMIS (AUTO-ZOOM & PRESISI) =================
+    // ================= PETA OSM DINAMIS =================
   if (y > pageH - 100) { doc.addPage(); y = margin; }
   loadingToast.textContent = '⏳ Mengunduh gambar peta jalan...';
   doc.setFontSize(10);
@@ -853,7 +991,6 @@ async function eksekusiCetakRuas() {
   y += 5;
 
   try {
-    // 1. Siapkan Canvas (Rasio 800x400 sesuai rasio peta di PDF)
     const canvas = document.createElement('canvas');
     canvas.width = 800;
     canvas.height = 400;
@@ -861,7 +998,6 @@ async function eksekusiCetakRuas() {
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Cari batas wilayah (Bounding Box) & Pusat Titik
     const lats = pts.map(p => p.lat);
     const lons = pts.map(p => p.lon);
     const minLat = Math.min(...lats);
@@ -872,16 +1008,14 @@ async function eksekusiCetakRuas() {
     const centerLat = (minLat + maxLat) / 2;
     const centerLon = (minLon + maxLon) / 2;
 
-    // 3. Hitung Zoom otomatis berdasarkan bentangan koordinat
     const latDiff = maxLat - minLat;
     const lonDiff = maxLon - minLon;
     let zoom = 17; 
     if (latDiff > 0.05 || lonDiff > 0.05) zoom = 14; 
-    else if (latDiff > 0.02 || lonDiff > 0.02) zoom = 15; // Sebelumnya 13
-    else if (latDiff > 0.01 || lonDiff > 0.01) zoom = 16; // Sebelumnya 14
-    else if (latDiff === 0 && lonDiff === 0) zoom = 19; // Sebelumnya 17
+    else if (latDiff > 0.02 || lonDiff > 0.02) zoom = 15; 
+    else if (latDiff > 0.01 || lonDiff > 0.01) zoom = 16; 
+    else if (latDiff === 0 && lonDiff === 0) zoom = 19; 
 
-    // Fungsi Proyeksi Web Mercator Standar (Global Pixel)
     const getGlobalPixel = (lat, lon, z) => {
       const scale = 256 * Math.pow(2, z);
       const x = (lon + 180) / 360 * scale;
@@ -890,12 +1024,10 @@ async function eksekusiCetakRuas() {
       return { x, y };
     };
 
-    // Tentukan titik pusat global canvas
     const centerGlobal = getGlobalPixel(centerLat, centerLon, zoom);
     const topLeftX = centerGlobal.x - (canvas.width / 2);
     const topLeftY = centerGlobal.y - (canvas.height / 2);
 
-    // 4. Muat Tile OpenStreetMap secara dinamis yang mencakup ukuran canvas 800x400
     const minTileX = Math.floor(topLeftX / 256);
     const maxTileX = Math.floor((topLeftX + canvas.width) / 256);
     const minTileY = Math.floor(topLeftY / 256);
@@ -922,8 +1054,7 @@ async function eksekusiCetakRuas() {
     }
 
     await Promise.all(tiles);
-
-    // 5. Fungsi Konversi Koordinat Real (Lat/Lon) ke Posisi Canvas yang Presisi
+	  
     const toCanvasXY = (lat, lon) => {
       const globalPos = getGlobalPixel(lat, lon, zoom);
       const x = globalPos.x - topLeftX;
@@ -931,7 +1062,6 @@ async function eksekusiCetakRuas() {
       return [x, yPos];
     };
 
-    // Gambar Garis Rute
     ctx.strokeStyle = '#0ea5e9';
     ctx.lineWidth = 5;
     ctx.lineJoin = 'round';
@@ -943,7 +1073,6 @@ async function eksekusiCetakRuas() {
     });
     ctx.stroke();
 
-    // Gambar Titik Marker
     pts.forEach((p, i) => {
       const [x, yPos] = toCanvasXY(p.lat, p.lon);
       ctx.beginPath();
@@ -959,10 +1088,9 @@ async function eksekusiCetakRuas() {
       ctx.stroke();
     });
 
-    // 6. Masukkan ke PDF
     const mapImgData = canvas.toDataURL('image/jpeg', 0.9);
     const mapW = pageW - margin * 2;
-    const mapH = mapW * 0.5; // Sesuaikan dengan rasio canvas 2:1
+    const mapH = mapW * 0.5; 
     
     doc.setDrawColor(200, 200, 200);
     doc.rect(margin, y, mapW, mapH);
@@ -1185,7 +1313,6 @@ async function generateBeritaAcara() {
       }
     }
 
-    // KOP SURAT
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('PEMERINTAH KABUPATEN BREBES', pageW / 2, y, { align: 'center' });
@@ -1197,15 +1324,12 @@ async function generateBeritaAcara() {
     doc.text('Jl. Raya Plang No. 1, Sidamulya Kec. Sirampog, Kab. Brebes 52272', pageW / 2, y, { align: 'center' });
     y += 4;
     
-    // Garis Ganda Kop
     doc.setLineWidth(1);
     doc.line(margin, y, pageW - margin, y);
     doc.setLineWidth(0.5);
     doc.line(margin, y + 1, pageW - margin, y + 1);
     
     y += 15;
-
-    // JUDUL
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('BERITA ACARA MONEV INFRASTRUKTUR', pageW / 2, y, { align: 'center' });
@@ -1218,7 +1342,6 @@ async function generateBeritaAcara() {
     doc.text(`Nomor: 01/BA-MONEV/PMD/${new Date(tanggal).getFullYear()}`, pageW / 2, y, { align: 'center' });
     y += 12;
 
-    // ISI PEMBUKA
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     const pembuka = `Pada hari ini, tanggal ${new Date(tanggal).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}, telah dilaksanakan Monitoring dan Evaluasi (Monev) Infrastruktur Desa. Berdasarkan hasil pengukuran dan pemeriksaan di lapangan, disepakati hal-hal sebagai berikut:`;
@@ -1227,7 +1350,6 @@ async function generateBeritaAcara() {
     doc.text(splitPembuka, margin, y);
     y += (splitPembuka.length * 6) + 6;
 
-    // TABEL DATA KEGIATAN
     doc.autoTable({
       startY: y,
       theme: 'plain',
@@ -1249,14 +1371,12 @@ async function generateBeritaAcara() {
     
     y = doc.lastAutoTable.finalY + 12;
 
-    // KESIMPULAN
     doc.setFontSize(11);
     const kesimpulan = catatan || 'Demikian Berita Acara ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.';
     const splitKesimpulan = doc.splitTextToSize(kesimpulan, pageW - margin * 2);
     doc.text(splitKesimpulan, margin, y);
     y += (splitKesimpulan.length * 6) + 20;
 
-    // TANDA TANGAN
     if (y > pageH - 80) { doc.addPage(); y = margin; }
     
     const col1X = margin + 20;
@@ -1272,12 +1392,10 @@ async function generateBeritaAcara() {
     doc.text(petugas, col1X, y, { align: 'center' });
     doc.text(desa, col2X, y, { align: 'center' });
     
-    // Garis Tanda Tangan
     doc.setLineWidth(0.5);
     doc.line(col1X - 30, y + 2, col1X + 30, y + 2);
     doc.line(col2X - 30, y + 2, col2X + 30, y + 2);
 
-    // Simpan PDF
     const filename = `Berita-Acara-${ruasInfo.nama.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
     doc.save(filename);
     
@@ -1297,7 +1415,6 @@ let dashMarkersLayer = null;
 function renderPetaDashboard(data) {
   if (!data.rawPoints || data.rawPoints.length === 0) return;
 
-  // Kelompokkan titik berdasarkan nama kegiatan (ruas)
   const grouped = {};
   data.rawPoints.forEach(p => {
     if (!grouped[p.ruas]) {
@@ -1315,10 +1432,8 @@ function renderPetaDashboard(data) {
 
   const locations = Object.values(grouped).filter(loc => loc.lat && loc.lon);
 
-  // Inisialisasi Peta (jika belum ada)
   if (!dashMap) {
     dashMap = L.map('dashboardMap').setView([-7.2041, 109.0624], 13);
-    // Gunakan OpenStreetMap standar (terang)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'
     }).addTo(dashMap);
@@ -1329,7 +1444,6 @@ function renderPetaDashboard(data) {
     dashMap.invalidateSize(); 
   }
 
-  // Tambahkan Marker
   locations.forEach(item => {
     let pulseClass = 'marker-pulse-red';
     if (item.progress >= 100) pulseClass = 'marker-pulse-green';
@@ -1355,7 +1469,6 @@ function renderPetaDashboard(data) {
     marker.bindPopup(popupContent);
   });
 
-  // Sesuaikan zoom agar semua marker terlihat
   if (locations.length > 0) {
     const bounds = L.latLngBounds(locations.map(l => [l.lat, l.lon]));
     dashMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
@@ -1369,10 +1482,8 @@ function escapeHtml(s) {
   }[c]));
 }
 
-
 // Auto-load saat buka
-loadDashboard();
-
+// loadDashboard();
 // setInterval(loadDashboard, 60000);
 
 </script>
