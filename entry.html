@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entry Kegiatan Baru</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+  body { background: #f1f5f9; color: #1e293b; padding-bottom: 40px; }
+  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+  .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; }
+  h2 { font-size: 1.2em; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.8em; font-weight: 700; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 0.95em; transition: all 0.2s; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn { padding: 14px; border-radius: 10px; font-weight: 700; font-size: 0.95em; cursor: pointer; border: none; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+  .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+  .btn-outline { background: #fff; border: 1.5px solid #e2e8f0; color: #475569; margin-top: 10px; }
+  .btn-outline:hover { background: #f8fafc; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h2>🏗️ Entry Kegiatan Baru</h2>
+    
+    <div class="form-group">
+      <label>Nama Kegiatan / Pembangunan *</label>
+      <input type="text" id="kegNama" placeholder="Contoh: Peningkatan Jalan Lingkungan">
+    </div>
+
+    <div class="row-2">
+      <div class="form-group">
+        <label>Desa</label>
+        <select id="kegDesa">
+          <option value="">-- Pilih Desa --</option>
+          <option value="Batursari">Batursari</option>
+          <option value="Benda">Benda</option>
+          <option value="Bumiayu">Bumiayu</option>
+          <option value="Dawuhan">Dawuhan</option>
+          <option value="Igirklanceng">Igirklanceng</option>
+          <option value="Kaligiri">Kaligiri</option>
+          <option value="Kalisoka">Kalisoka</option>
+          <option value="Sridadi">Sridadi</option>
+          <option value="Wanareja">Wanareja</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tahun Anggaran</label>
+        <input type="number" id="kegTahun" value="2026">
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="form-group">
+        <label>Sumber Dana</label>
+        <select id="kegSumberDana">
+          <option value="DDD">Dana Desa (DD)</option>
+          <option value="BKP">Bantuan Keuangan Provinsi (BKP)</option>
+          <option value="BKK">Bantuan Keuangan Kabupaten (BKK)</option>
+		  <option value="PAD">Pendapatan Asli Desa (PAD)</option>
+          <option value="Lainnya">Bantuan Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tanggal Monev</label>
+        <input type="date" id="kegTanggal">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Lokasi Kegiatan</label>
+      <input type="text" id="kegKategori" placeholder="Contoh: RT 01/02 Dusun Sidamulya">
+    </div>
+
+    <div class="row-2">
+      <div class="form-group">
+        <label>Anggaran (Rp)</label>
+        <input type="number" id="kegAnggaran" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Realisasi (Rp)</label>
+        <input type="number" id="kegRealisasi" placeholder="0">
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="form-group">
+        <label>Progress (%)</label>
+        <input type="number" id="kegProgress" min="0" max="100" placeholder="0-100">
+      </div>
+      <div class="form-group">
+        <!-- Kosongkan untuk grid -->
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Catatan Monev</label>
+      <textarea id="kegCatatan" rows="3" placeholder="Catatan hasil monev..."></textarea>
+    </div>
+
+    <button class="btn btn-primary" onclick="simpanKegiatan()">☁️ Simpan & Kirim ke Sheets</button>
+    <button class="btn btn-outline" onclick="window.location.href='index.html'">⬅️ Kembali ke Menu Ukur</button>
+  </div>
+</div>
+
+<script>
+  // Ambil URL dan Secret dari file index (bisa juga di-hardcode di sini)
+  const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxveayx7vBte7OTIzQcjLppSt1LQu6hw57_z9NyFGpwudJSTs4a2tY5614R4JEpxf-W/exec';
+  const SYNC_SECRET = 'monev-jalan-2025-rahasia';
+
+  async function simpanKegiatan() {
+    const nama = document.getElementById('kegNama').value.trim();
+    if (!nama) { alert('❌ Nama kegiatan wajib diisi!'); return; }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Mengirim ke Cloud...';
+
+    const payload = {
+      type: 'kegiatan', // Penanda untuk Apps Script
+      secret: SYNC_SECRET,
+      nama: nama,
+      desa: document.getElementById('kegDesa').value,
+      tahun: document.getElementById('kegTahun').value,
+      sumberDana: document.getElementById('kegSumberDana').value,
+      kategori: document.getElementById('kegKategori').value,
+      anggaran: document.getElementById('kegAnggaran').value,
+      realisasi: document.getElementById('kegRealisasi').value,
+      progress: document.getElementById('kegProgress').value,
+      tanggalMonev: document.getElementById('kegTanggal').value,
+      ket: document.getElementById('kegCatatan').value
+    };
+
+    try {
+      const response = await fetch(SYNC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        alert('✅ Kegiatan berhasil disimpan ke Google Sheets!\n\nSilakan kembali ke Menu Ukur dan klik "Import dari Cloud" untuk memulainya.');
+        window.location.href = 'index.html';
+      } else {
+        alert('❌ Gagal menyimpan: ' + result.message);
+      }
+    } catch (err) {
+      alert('❌ Koneksi gagal: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '☁️ Simpan & Kirim ke Sheets';
+    }
+  }
+</script>
+</body>
+</html>
