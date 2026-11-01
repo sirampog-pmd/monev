@@ -1281,7 +1281,11 @@
         <option value="">-- Pilih Kegiatan --</option>
       </select>
     </div>
-    <button class="btn btn-outline btn-full btn-sm" onclick="openNewRuasModal()">+ Buat Kegiatan Baru</button>
+    <!--<button class="btn btn-outline btn-full btn-sm" onclick="openNewRuasModal()">+ Buat Kegiatan Baru</button>-->
+	<div style="display:flex; gap:8px; margin-top:8px;">
+	  <button class="btn btn-primary btn-sm" style="flex:1;" onclick="window.location.href='kegiatan.html'">+ Entry Kegiatan</button>
+	  <button class="btn btn-outline btn-sm" style="flex:1;" onclick="importKegiatan()">⬇️ Import dari Cloud</button>
+	</div>  
   </div>
 
   <div class="tracking-panel">
@@ -3291,6 +3295,60 @@ function resetPinApp() {
   }
 }
 
+async function importKegiatan() {
+  const url = getSyncUrl();
+  const secret = getSyncSecret();
+  
+  if (!confirm('Tarik data kegiatan terbaru dari Google Sheets?')) return;
+
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Menarik data...';
+
+  try {
+    const response = await fetch(`${url}?action=pull_kegiatan&secret=${encodeURIComponent(secret)}`, { redirect: 'follow' });
+    const result = await response.json();
+
+    if (result.status !== 'success') throw new Error(result.message);
+
+    let added = 0;
+    result.rows.forEach(row => {
+      // Cek apakah kegiatan sudah ada di HP (berdasarkan nama & tahun)
+      const exist = state.ruas.find(r => r.nama === row.nama && r.tahun === row.tahun);
+      if (!exist) {
+        state.ruas.push({
+          id: row.id,
+          nama: row.nama,
+          desa: row.desa,
+          tahun: row.tahun,
+          sumberDana: row.sumberDana,
+          kategori: row.kategori,
+          anggaran: row.anggaran,
+          realisasi: row.realisasi,
+          progress: row.progress,
+          tanggalMonev: row.tanggalMonev,
+          ket: row.ket,
+          staAwal: '', staAkhir: '', kec: '', kondisi: 'baik',
+          createdAt: new Date(row.tanggalMonev || Date.now()).getTime(),
+          catatanMonev: ''
+        });
+        added++;
+      }
+    });
+
+    saveState();
+    renderRuasSelect();
+    renderRuasList();
+    toast(`✅ Berhasil import ${added} kegiatan baru.`);
+  } catch (err) {
+    toast('❌ Gagal import: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+	
 // Buka Modal Catatan
 function openCatatanModal(ruasId) {
   const ruas = state.ruas.find(r => r.id === ruasId);
